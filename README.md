@@ -48,7 +48,9 @@ JWT_SECRET = your-secret-key-here   # 32자 이상 랜덤 문자열 권장
 
 ```bash
 php spark migrate
-make serve        # FrankenPHP 개발 서버 (포트 8300)
+
+make serve        # FrankenPHP 개발 서버 (포트 8300) — 권장
+make serve-spark  # CI4 내장 서버 (포트 8300)
 ```
 
 ---
@@ -182,7 +184,8 @@ AICura/
 ## Spark 커맨드
 
 ```bash
-make serve                       # FrankenPHP 개발 서버 실행 (포트 8300)
+make serve                       # FrankenPHP 개발 서버 (포트 8300) — 권장
+make serve-spark                 # CI4 내장 개발 서버 (포트 8300)
 php spark migrate                # DB 마이그레이션
 php spark migrate:rollback       # 마이그레이션 롤백
 php spark swagger:generate       # OpenAPI 스펙 생성

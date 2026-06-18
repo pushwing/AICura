@@ -8,6 +8,9 @@ sync-assets:
 serve:
 	frankenphp run --config Caddyfile
 
+serve-spark:
+	php spark serve --port 8300
+
 migrate:
 	php spark migrate
 

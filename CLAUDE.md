@@ -7,7 +7,7 @@ AI 기반 성형·토탈 광고 솔루션. CodeIgniter 4 기반 Admin + REST API
 ## 기술 스택
 
 - **언어**: PHP 8.4+ (시스템 CLI) / PHP 8.5 (FrankenPHP 내장)
-- **웹 서버**: FrankenPHP v1.12 — `make serve` (포트 8300)
+- **웹 서버**: FrankenPHP v1.12 — `make serve` (포트 8300, 권장) / CI4 내장 — `make serve-spark`
 - **프레임워크**: CodeIgniter 4
 - **인증**: 세션(Admin) / JWT Bearer(API) — JWT는 외부 라이브러리 없이 `JwtLibrary`(HMAC-SHA256)로 직접 구현
 - **API 문서**: Swagger UI (`/api/docs`) — `zircote/swagger-php`
@@ -29,7 +29,7 @@ php spark migrate
 
 ```env
 # 앱
-app.baseURL = http://localhost:8080/
+app.baseURL = http://localhost:8300/
 
 # DB
 database.default.hostname = localhost
@@ -47,7 +47,8 @@ TINYMCE_API_KEY =    # 리치 에디터 사용 시
 ## 커맨드
 
 ```bash
-php spark serve               # 개발 서버
+make serve                    # 개발 서버 — FrankenPHP (포트 8300, 권장)
+make serve-spark              # 개발 서버 — CI4 내장 (포트 8300)
 php spark migrate             # DB 마이그레이션
 php spark swagger:generate    # OpenAPI 스펙 생성 (public/swagger.json)
 php spark routes              # 라우트 목록
