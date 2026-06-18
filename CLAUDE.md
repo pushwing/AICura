@@ -116,6 +116,37 @@ new Chart(document.getElementById('myChart'), {
 - 데이터는 컨트롤러에서 `$labels`, `$values` 형태로 분리해 전달
 - 민감한 집계 데이터는 뷰에 직접 노출하지 않고 API 엔드포인트로 분리 고려
 
+### 엑셀
+
+엑셀 내보내기·읽기는 **PhpSpreadsheet** 를 사용한다.
+
+```bash
+composer require phpoffice/phpspreadsheet
+```
+
+```php
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+
+// 내보내기
+$spreadsheet = new Spreadsheet();
+$sheet = $spreadsheet->getActiveSheet();
+$sheet->fromArray($rows, null, 'A1');
+
+header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+header('Content-Disposition: attachment; filename="export.xlsx"');
+(new Xlsx($spreadsheet))->save('php://output');
+exit;
+
+// 읽기
+$spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
+$rows = $spreadsheet->getActiveSheet()->toArray();
+```
+
+- 대용량(1만 행 이상)은 `ChunkReadFilter` 또는 청크 단위 처리 적용
+- 업로드된 파일은 `public/` 외부 경로(`writable/uploads/`)에 저장 후 처리
+- 처리 완료 후 임시 파일 즉시 삭제
+
 ## API 응답 포맷
 
 ```php
