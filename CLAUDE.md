@@ -84,6 +84,36 @@ composer check            # PHPStan + PHPUnit 순차 실행
 - 새 클래스·메서드 작성 시 `array<string, mixed>` 등 제네릭 타입 명시 필수
 - `@phpstan-ignore` 주석으로 억제 금지 — 원인을 찾아 코드를 수정할 것
 
+## 네이밍 규칙
+
+### PHP
+
+| 대상 | 규칙 | 예시 |
+|------|------|------|
+| 클래스 | PascalCase | `CampaignController`, `JwtLibrary` |
+| 인터페이스 | PascalCase + `Interface` | `PGInterface`, `AdapterInterface` |
+| 추상 클래스 | `Base` 접두어 | `BaseApiController`, `BaseAdminController` |
+| 메서드 | camelCase | `getAccessToken()`, `buildPaymentParams()` |
+| 변수 | camelCase | `$accessToken`, `$campaignId` |
+| 프로퍼티 | camelCase | `$authUserId`, `$refreshTtl` |
+| 상수 | UPPER_SNAKE_CASE | `MAX_RETRY`, `DEFAULT_TTL` |
+| 배열 키 | snake_case | `$data['access_token']`, `$payload['user_id']` |
+| 파일명 | 클래스와 동일 | `CampaignController.php` |
+
+### DB
+
+| 대상 | 규칙 | 예시 |
+|------|------|------|
+| 테이블 | snake_case · 복수형 | `campaigns`, `ad_creatives`, `stock_logs` |
+| 컬럼 | snake_case | `created_at`, `discount_price` |
+| PK | `id` | `id` |
+| FK | `{단수테이블명}_id` | `campaign_id`, `user_id` |
+| 불리언 | `is_` 접두어 | `is_active`, `is_deleted` |
+| 타임스탬프 | CI4 표준 | `created_at`, `updated_at`, `deleted_at` |
+| 일반 인덱스 | `idx_{테이블}_{컬럼}` | `idx_campaigns_status` |
+| 유니크 인덱스 | `uniq_{테이블}_{컬럼}` | `uniq_users_email` |
+| Pivot 테이블 | 두 테이블 알파벳순 · 단수 | `campaign_tag` |
+
 ## 코딩 규칙
 
 - PSR-12 준수
