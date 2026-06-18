@@ -34,12 +34,40 @@ php spark routes              # 라우트 목록
 
 ## Admin 뷰 개발
 
-Admin 뷰 작성 시 아래 두 가지를 반드시 참고한다.
+Admin 뷰 작성 시 아래를 반드시 참고한다.
 
 - **UI 컴포넌트·CSS 클래스**: `docs/ui-guide.md`
 - **브랜드 컬러·로고·타이포**: `assets/logo/`, `docs/design-system.md`
 - CSS 파일: `ui/aicura.css` 를 레이아웃에 포함
 - 컴포넌트 실물 확인: `ui/components.html`
+
+### 데이터 그리드
+
+목록성 화면(테이블)은 **AG Grid Community** 를 사용한다.
+
+```html
+<!-- CDN -->
+<script src="https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.min.js"></script>
+
+<!-- 기본 사용 패턴 -->
+<div id="myGrid" style="height:500px;" class="ag-theme-alpine"></div>
+<script>
+const gridOptions = {
+    columnDefs: [
+        { field: 'name', headerName: '캠페인명' },
+        { field: 'status', headerName: '상태' },
+    ],
+    rowData: <?= json_encode($rows) ?>,
+    pagination: true,
+    paginationPageSize: 20,
+};
+agGrid.createGrid(document.getElementById('myGrid'), gridOptions);
+</script>
+```
+
+- 테마: `ag-theme-alpine` 기본 사용
+- 서버사이드 페이징이 필요한 경우 `serverSideDatasource` 적용
+- `html` 셀 렌더링 시 `cellRenderer` 사용 (`innerHTML` 직접 조작 금지)
 
 ## API 응답 포맷
 
