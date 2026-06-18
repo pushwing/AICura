@@ -6,10 +6,16 @@ AI 기반 성형·토탈 광고 솔루션. CodeIgniter 4 기반 Admin + REST API
 
 ## 기술 스택
 
-- **언어**: PHP 8.4+
+- **언어**: PHP 8.4+ (시스템 CLI) / PHP 8.5 (FrankenPHP 내장)
+- **웹 서버**: FrankenPHP v1.12 — `make serve` (포트 8300)
 - **프레임워크**: CodeIgniter 4
 - **인증**: 세션(Admin) / JWT Bearer(API) — JWT는 외부 라이브러리 없이 `JwtLibrary`(HMAC-SHA256)로 직접 구현
 - **API 문서**: Swagger UI (`/api/docs`) — `zircote/swagger-php`
+
+> **PHP 버전 구분**  
+> - 웹 요청 처리: FrankenPHP 내장 PHP 8.5.7  
+> - CLI (composer/spark/PHPStan/PHPUnit): 시스템 PHP 8.4.22  
+> - `composer.json` 요구사항은 시스템 PHP 기준 (`^8.4`)
 
 ## 로컬 환경 설정
 
