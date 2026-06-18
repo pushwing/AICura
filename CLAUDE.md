@@ -185,6 +185,69 @@ feature/* → (PR) → dev → (PR) → main
 
 자세한 내용: `docs/git-workflow.md`
 
+## 로그 수집 파이프라인
+
+프론트(앱/웹)에서 API로 전송되는 로그는 큐를 통해 비동기 처리한다.
+
+### 흐름
+
+```
+앱/웹
+  │
+  │ POST /api/v1/logs
+  ▼
+API Server
+  │ 큐에 적재 (즉시 응답)
+  ▼
+Queue (Redis)
+  │
+  ▼
+Queue Consumer (Spark Command / Scheduler)
+  ├── 원시 로그 → 파일 저장 (writable/logs/raw/YYYY-MM-DD.log)
+  └── 가공 데이터 → DB INSERT
+```
+
+### 규칙
+
+- API는 로그를 받는 즉시 큐에 넣고 `202 Accepted` 응답 — DB 직접 쓰기 금지
+- 큐 드라이버: **Redis** (`predis/predis`)
+- 원시(raw) 로그는 `writable/logs/raw/` 에 날짜별 파일로 append
+- 가공 후 DB 저장 — 원시 파일은 보존 (감사·재처리 용도)
+- Consumer는 Spark Command로 구현, CI4 Scheduler로 주기 실행
+- 큐 처리 실패 시 dead-letter 로깅 필수 (`writable/logs/queue-failed/`)
+
+### 기본 패턴
+
+```php
+// API Controller — 큐에 적재
+public function store(): ResponseInterface
+{
+    $payload = $this->request->getJSON(true);
+    // 유효성 검사 후
+    Redis::lpush('log_queue', json_encode($payload));
+    return $this->respond(null, 202);
+}
+
+// Spark Command — Consumer
+class ProcessLogQueue extends BaseCommand
+{
+    public function run(array $params): void
+    {
+        while ($raw = Redis::rpop('log_queue')) {
+            // 1. 원시 파일 저장
+            file_put_contents(
+                WRITEPATH . 'logs/raw/' . date('Y-m-d') . '.log',
+                $raw . PHP_EOL,
+                FILE_APPEND
+            );
+            // 2. 가공 후 DB 저장
+            $data = $this->transform(json_decode($raw, true));
+            model(LogModel::class)->insert($data);
+        }
+    }
+}
+```
+
 ## 정적 분석 (PHPStan)
 
 코드 작성 후 반드시 정적 분석을 통과해야 한다.
