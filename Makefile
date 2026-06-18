@@ -6,7 +6,7 @@ sync-assets:
 	cp ui/aicura.css public/assets/css/aicura.css
 
 serve:
-	php spark serve
+	frankenphp run --config Caddyfile
 
 migrate:
 	php spark migrate
