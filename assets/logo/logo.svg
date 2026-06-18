@@ -1,7 +1,9 @@
 <svg width="180" height="48" viewBox="0 0 180 48" xmlns="http://www.w3.org/2000/svg" role="img">
   <title>AI Cura</title>
-  <!-- Diamond mark -->
-  <polygon points="16,6 32,24 16,42 0,24" fill="#0F6E56"/>
+  <!-- Square background -->
+  <rect x="0" y="8" width="32" height="32" rx="8" fill="#0F6E56"/>
+  <!-- Diamond inside -->
+  <polygon points="16,13 27,24 16,35 5,24" fill="#ffffff"/>
   <!-- Wordmark -->
   <text x="44" y="33" font-size="22" font-weight="700" fill="#0F1923" font-family="Inter, Pretendard, sans-serif" letter-spacing="-0.5">AI</text>
   <text x="76" y="33" font-size="22" font-weight="400" fill="#0F6E56" font-family="Inter, Pretendard, sans-serif" letter-spacing="-0.3">Cura</text>
