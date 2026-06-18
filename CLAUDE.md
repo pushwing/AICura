@@ -1,13 +1,23 @@
-# CLAUDE.md — AI Cura
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 AI 기반 성형·토탈 광고 솔루션. CodeIgniter 4 기반 Admin + REST API 단일 프로젝트.
 
 ## 기술 스택
 
-- **언어**: PHP 8.1+
+- **언어**: PHP 8.2+
 - **프레임워크**: CodeIgniter 4
-- **인증**: 세션(Admin) / JWT Bearer(API)
+- **인증**: 세션(Admin) / JWT Bearer(API) — JWT는 외부 라이브러리 없이 `JwtLibrary`(HMAC-SHA256)로 직접 구현
 - **API 문서**: Swagger UI (`/api/docs`) — `zircote/swagger-php`
+
+## 로컬 환경 설정
+
+```bash
+cp env .env          # env 파일을 .env로 복사 후 DB·JWT_SECRET 등 설정
+composer install
+php spark migrate
+```
 
 ## 커맨드
 
@@ -16,6 +26,9 @@ php spark serve               # 개발 서버
 php spark migrate             # DB 마이그레이션
 php spark swagger:generate    # OpenAPI 스펙 생성 (public/swagger.json)
 php spark routes              # 라우트 목록
+composer test                 # PHPUnit 단독 실행
+composer analyse              # PHPStan 단독 실행
+composer check                # PHPStan + PHPUnit 순차 실행
 ```
 
 ## 디렉토리 규칙
@@ -146,6 +159,32 @@ $rows = $spreadsheet->getActiveSheet()->toArray();
 - 대용량(1만 행 이상)은 `ChunkReadFilter` 또는 청크 단위 처리 적용
 - 업로드된 파일은 `public/` 외부 경로(`writable/uploads/`)에 저장 후 처리
 - 처리 완료 후 임시 파일 즉시 삭제
+
+## 아키텍처 핵심 패턴
+
+### JWT 인증 흐름
+
+`JwtAuthFilter`가 토큰을 검증한 뒤 `Auth::setUserId()`로 사용자 ID를 정적 홀더에 저장하고, 컨트롤러는 `$this->authUserId()`(= `Auth::userId()`)로 꺼내 쓴다. 별도 의존성 주입 없이 요청 컨텍스트 안에서만 유효하다.
+
+```php
+// JwtAuthFilter → Auth 홀더에 저장
+Auth::setUserId((int) $payload['sub']);
+
+// BaseApiController 상속 컨트롤러에서 사용
+$userId = $this->authUserId();
+```
+
+### Admin 뷰 렌더링
+
+`BaseAdminController::render()`는 `$viewData`(세션의 `authUser` 포함)를 자동으로 병합한다. CI4 기본 `view()` 함수를 직접 호출하면 `authUser`가 누락되므로 반드시 `$this->render()`를 사용한다.
+
+```php
+// ✅ 올바른 방식
+return $this->render('admin/campaigns/index', ['campaigns' => $campaigns]);
+
+// ❌ 금지 — authUser 등 공통 데이터 누락
+return view('admin/campaigns/index', ['campaigns' => $campaigns]);
+```
 
 ## API 응답 포맷
 
