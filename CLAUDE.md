@@ -14,9 +14,28 @@ AI 기반 성형·토탈 광고 솔루션. CodeIgniter 4 기반 Admin + REST API
 ## 로컬 환경 설정
 
 ```bash
-cp env .env          # env 파일을 .env로 복사 후 DB·JWT_SECRET 등 설정
+cp env .env          # env 파일을 .env로 복사 후 아래 필수 키 설정
 composer install
 php spark migrate
+```
+
+`.env` 필수 키:
+
+```env
+# 앱
+app.baseURL = http://localhost:8080/
+
+# DB
+database.default.hostname = localhost
+database.default.database = aicura
+database.default.username = root
+database.default.password =
+
+# JWT (필수 — 32자 이상 랜덤 문자열)
+JWT_SECRET = your-secret-key-here
+
+# 기능별 선택
+TINYMCE_API_KEY =    # 리치 에디터 사용 시
 ```
 
 ## 커맨드
@@ -199,6 +218,35 @@ $this->success($data, $meta);
 $this->error('ERROR_CODE', '메시지', $statusCode);
 // → { "status": "error", "code": "...", "message": "..." }
 ```
+
+### 페이지네이션 meta 표준
+
+목록 API의 `meta`는 아래 4개 필드를 항상 포함한다.
+
+```php
+$this->success($items, [
+    'page'      => (int) $page,
+    'per_page'  => (int) $limit,
+    'total'     => (int) $total,
+    'last_page' => (int) ceil($total / $limit),
+]);
+```
+
+### 에러 코드 네이밍 규칙
+
+`UPPER_SNAKE_CASE` · `도메인_동사` 형식으로 통일한다.
+
+| 에러 코드 | 용도 |
+|-----------|------|
+| `UNAUTHORIZED` | 인증 토큰 없음 |
+| `TOKEN_EXPIRED` | 토큰 만료 |
+| `INVALID_TOKEN` | 토큰 형식·서명 오류 |
+| `INVALID_CREDENTIALS` | 이메일·비밀번호 불일치 |
+| `VALIDATION_ERROR` | 유효성 검사 실패 |
+| `NOT_FOUND` | 리소스 없음 |
+| `ALREADY_EXISTS` | 중복 리소스 |
+| `FORBIDDEN` | 권한 없음 |
+| `INTERNAL_ERROR` | 서버 내부 오류 |
 
 ## Swagger 어트리뷰트 규칙
 
@@ -411,6 +459,7 @@ composer check            # PHPStan + PHPUnit 순차 실행
 - SQL은 CI4 Query Builder만 사용 (raw query 금지)
 - 시크릿은 `.env`에서만 관리 (`env('KEY')`)
 - POST 폼에는 `<?= csrf_field() ?>` 필수 (Admin 뷰)
+- Model의 `$returnType`은 `'array'`로 통일 — `'object'` 혼용 금지
 
 ## PHP 절대 금지
 
@@ -461,6 +510,7 @@ composer check            # PHPStan + PHPUnit 순차 실행
 | CSRF 예외 라우트 무분별 추가 | 보호 구멍 |
 | `env()` 없이 Config에 직접 시크릿 작성 | `.env` 관리 원칙 위반 |
 | 뷰에서 Model을 직접 호출해 데이터 조회 | MVC 책임 분리 위반, 테스트·유지보수 불가 |
+| `new UserModel()` 직접 인스턴스화 | `model()` 헬퍼 우회 — `model(UserModel::class)` 사용 |
 
 뷰는 컨트롤러가 전달한 데이터만 렌더링한다.
 
