@@ -9,6 +9,7 @@
 
 <!-- AICura Design System -->
 <link rel="stylesheet" href="<?= base_url('assets/css/aicura.css') ?>">
+<link rel="stylesheet" href="<?= base_url('assets/css/admin-layout.css') ?>">
 
 <!-- AG Grid Community -->
 <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31/dist/ag-grid-community.min.js"></script>

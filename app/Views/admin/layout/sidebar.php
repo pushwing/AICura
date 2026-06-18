@@ -1,5 +1,6 @@
 <?php
-$currentPath = parse_url(current_url(), PHP_URL_PATH);
+// PHP_URL_PATH는 string|null — null 반환 시 str_starts_with()가 TypeError 유발
+$currentPath = (string) parse_url(current_url(), PHP_URL_PATH);
 
 /**
  * @param string $prefix  URL 접두어 (예: '/admin/campaigns')
@@ -66,7 +67,7 @@ $nav = [
         ?>
             <a href="<?= esc($item['href']) ?>"
                class="nav-item<?= $active ? ' active' : '' ?>">
-                <?= $item['icon'] ?>
+                <?= $item['icon'] /* 하드코딩된 SVG — 동적 입력이 아니므로 esc() 불필요 */ ?>
                 <?= esc($item['label']) ?>
             </a>
         <?php endforeach; ?>
