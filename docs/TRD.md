@@ -159,12 +159,19 @@ $routes->get('reports/campaigns', 'Admin\ReportController::campaigns');
 $routes->resource('users', ['controller' => 'Admin\UserController']);
 ```
 
-### 신규 추가할 라우트
+### 신규 추가된 라우트 (구현 완료)
 
 ```php
-// 계약 (수주계약 + 계약 통합)
-$routes->resource('contracts', ['controller' => 'Admin\ContractController']);
-$routes->post('contracts/(:num)/deposit-confirm', 'Admin\ContractController::depositConfirm/$1');
+// 계약 관리 — contracts(메인 1개) + contract_orders(추가계약건 N개)
+$routes->get('contracts',                                'Admin\ContractController::index');
+$routes->get('contracts/(:num)',                         'Admin\ContractController::show/$1');
+$routes->get('contracts/orders',                         'Admin\ContractController::orders');
+$routes->get('contracts/orders/new',                     'Admin\ContractController::orderNew');
+$routes->post('contracts/orders',                        'Admin\ContractController::orderCreate');
+$routes->get('contracts/orders/(:num)',                  'Admin\ContractController::orderShow/$1');
+$routes->get('contracts/orders/(:num)/edit',             'Admin\ContractController::orderEdit/$1');
+$routes->post('contracts/orders/(:num)',                 'Admin\ContractController::orderUpdate/$1');
+$routes->post('contracts/orders/(:num)/deposit-confirm', 'Admin\ContractController::depositConfirm/$1');
 
 // 결제
 $routes->get('payments',          'Admin\PaymentController::index');
@@ -202,16 +209,51 @@ protected $allowedFields = [
 - `getHistoryList(int $campaignId)` — 히스토리 목록
 - `getPackageList(int $campaignId)` — 패키지 목록
 
-### 5.2 ContractModel
+### 5.2 ContractModel + ContractOrderModel (4-테이블 구조)
 
-```php
-// 테이블: contracts + contract_orders
-protected $allowedFields = [
-    'hospital_id', 'hospital_name', 'hospital_type', 'is_network',
-    'contract_date', 'contract_type', 'title', 'ad_type',
-    'start_date', 'end_date', 'amount', 'pay_type', 'status',
-];
 ```
+contracts (병원당 1개 메인 계약)
+    └── contract_order_connects (매핑)
+            └── contract_orders (추가계약건 N개: 100만원, 200만원 등)
+                        └── deposits (원장: 충전/소진/이월 이력)
+```
+
+**ContractModel** (`app/Models/ContractModel.php`)
+```php
+// 테이블: contracts
+protected $allowedFields = ['hospital_id', 'hospital_name', 'title', 'pay_type'];
+
+// 주요 메서드
+getListWithOrders(array $params)  // 계약 목록 + 수주건 집계
+getDetail(int $id)                // 계약 상세 + 수주계약 목록
+findByHospital(int $hospitalId)   // 병원 기준 메인 계약 조회
+```
+
+**ContractOrderModel** (`app/Models/ContractOrderModel.php`)
+```php
+// 테이블: contract_orders
+protected $allowedFields = [
+    'hospital_id', 'hospital_name', 'contract_type', 'ad_type', 'ad_type2',
+    'ad_price', 'contract_status', 'deposit_date', 'parent_id',
+    'agency_user_id', 'manage_user_id',
+    'tax_charge_name', 'tax_charge_email', 'tax_business_no', 'tax_issue_date',
+    'agency_company_name', 'agency_company_fee_rate', 'memo',
+];
+
+// 주요 메서드
+getList(array $params)                              // 수주계약 목록 (검색·페이징)
+getDetail(int $id)                                  // 상세 + 잔액 집계
+getBalance(int $contractId, int $orderId): int      // 잔액 = 충전 - 소진
+registerWithContract(array $data): int              // 신규/재계약 트랜잭션 등록
+confirmDeposit(int $orderId, int $userId): bool     // 입금 확인 + deposit 입력
+```
+
+**재계약 흐름 (registerWithContract)**
+1. `contract_orders` INSERT (parent_id = 이전 수주계약 id)
+2. `contract_order_connects` INSERT (같은 contract_id에 매핑)
+3. 이전 잔액 조회 → `deposits` status=11(이월소진) INSERT
+4. 신규 계약에 → `deposits` status=12(이월충전) INSERT
+5. 이전 수주계약 `contract_status` → 6(이월종료) UPDATE
 
 ### 5.3 AdvertiserModel
 
