@@ -70,6 +70,20 @@ feature/* → (PR) → dev → (PR) → main
 
 자세한 내용: `docs/git-workflow.md`
 
+## 정적 분석 (PHPStan)
+
+코드 작성 후 반드시 정적 분석을 통과해야 한다.
+
+```bash
+composer analyse          # PHPStan 단독 실행
+composer check            # PHPStan + PHPUnit 순차 실행
+```
+
+- 분석 레벨: **6** (`phpstan.neon`)
+- 분석 대상: `app/` (Views 제외)
+- 새 클래스·메서드 작성 시 `array<string, mixed>` 등 제네릭 타입 명시 필수
+- `@phpstan-ignore` 주석으로 억제 금지 — 원인을 찾아 코드를 수정할 것
+
 ## 코딩 규칙
 
 - PSR-12 준수
