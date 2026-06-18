@@ -126,3 +126,4 @@ _modules/*
 /phpunit.xml
 vendor/
 writable/
+public/swagger.json
