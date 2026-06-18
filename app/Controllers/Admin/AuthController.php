@@ -38,7 +38,11 @@ class AuthController extends BaseController
         /** @var array<string, mixed>|null $user */
         $user = model(UserModel::class)->findAdminForAuth($email);
 
-        if ($user === null || !password_verify($password, (string) $user['password'])) {
+        // 사용자가 없을 때도 password_verify를 실행해 응답 시간을 일정하게 유지 (타이밍 공격으로 이메일 열거 방지)
+        $hash  = ($user !== null) ? (string) $user['password'] : '$2y$12$invaliddummyhashfortimingXXXXXXXXXXXXXXXXXXXXXXXXXXX';
+        $valid = password_verify($password, $hash);
+
+        if ($user === null || !$valid) {
             return redirect()->back()->withInput()->with('login_error', '이메일 또는 비밀번호가 올바르지 않습니다.');
         }
 

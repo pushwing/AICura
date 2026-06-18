@@ -14,7 +14,7 @@ $routes->group('admin', static function (RouteCollection $routes): void {
     // 인증 없이 접근 가능
     $routes->get('login',  'Admin\AuthController::login');
     $routes->post('login', 'Admin\AuthController::loginProcess');
-    $routes->get('logout', 'Admin\AuthController::logout');
+    $routes->post('logout', 'Admin\AuthController::logout');
 
     // 이하 admin_auth 필터 적용
     $routes->group('', ['filter' => 'admin_auth'], static function (RouteCollection $routes): void {
