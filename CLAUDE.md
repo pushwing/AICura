@@ -69,6 +69,53 @@ agGrid.createGrid(document.getElementById('myGrid'), gridOptions);
 - 서버사이드 페이징이 필요한 경우 `serverSideDatasource` 적용
 - `html` 셀 렌더링 시 `cellRenderer` 사용 (`innerHTML` 직접 조작 금지)
 
+### 에디터
+
+리치 텍스트 입력이 필요한 경우 **TinyMCE** 를 사용한다.
+
+```html
+<script src="https://cdn.tiny.cloud/1/{API_KEY}/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>
+<script>
+tinymce.init({
+    selector: 'textarea.editor',
+    language: 'ko_KR',
+    plugins: 'link image lists table code',
+    toolbar: 'undo redo | bold italic | alignleft aligncenter alignright | bullist numlist | link image | code',
+    images_upload_url: '/admin/media/upload',
+});
+</script>
+```
+
+- API Key는 `.env`의 `TINYMCE_API_KEY`에서 관리
+- 저장 시 출력은 반드시 `esc($content, 'html')` 또는 허용된 태그 화이트리스트 필터 적용
+
+### 차트
+
+통계·리포트 화면의 차트는 **Chart.js** 를 사용한다.
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<canvas id="myChart"></canvas>
+<script>
+new Chart(document.getElementById('myChart'), {
+    type: 'bar',
+    data: {
+        labels: <?= json_encode($labels) ?>,
+        datasets: [{
+            label: '광고비',
+            data: <?= json_encode($values) ?>,
+            backgroundColor: '#1D9E75',
+        }],
+    },
+    options: { responsive: true },
+});
+</script>
+```
+
+- 브랜드 Primary 컬러 `#0F6E56` / Secondary `#1D9E75` 우선 사용
+- 데이터는 컨트롤러에서 `$labels`, `$values` 형태로 분리해 전달
+- 민감한 집계 데이터는 뷰에 직접 노출하지 않고 API 엔드포인트로 분리 고려
+
 ## API 응답 포맷
 
 ```php
