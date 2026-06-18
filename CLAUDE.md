@@ -32,6 +32,15 @@ php spark routes              # 라우트 목록
 | `assets/logo/` | 브랜드 로고 SVG |
 | `ui/` | UI 컴포넌트 (aicura.css, components.html) |
 
+## Admin 뷰 개발
+
+Admin 뷰 작성 시 아래 두 가지를 반드시 참고한다.
+
+- **UI 컴포넌트·CSS 클래스**: `docs/ui-guide.md`
+- **브랜드 컬러·로고·타이포**: `assets/logo/`, `docs/design-system.md`
+- CSS 파일: `ui/aicura.css` 를 레이아웃에 포함
+- 컴포넌트 실물 확인: `ui/components.html`
+
 ## API 응답 포맷
 
 ```php
