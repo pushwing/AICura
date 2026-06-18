@@ -13,7 +13,7 @@
         <!-- Topbar -->
         <?php
         // $authUser가 null(미인증)인 경우 안전하게 처리
-        $userName    = is_array($authUser) ? ($authUser['name'] ?? '') : '';
+        $userName    = is_array($authUser) ? ($authUser['username'] ?? '') : '';
         $userInitial = mb_substr($userName, 0, 1) ?: 'A';
         ?>
         <header class="admin-topbar">

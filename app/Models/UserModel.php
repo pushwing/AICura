@@ -81,6 +81,31 @@ class UserModel extends Model
     }
 
     /**
+     * 어드민 로그인 인증용 — password 포함 조회 ($hidden 우회)
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findAdminForAuth(string $email): ?array
+    {
+        return $this->db->table($this->table)
+            ->select('id, email, username, user_type, password, is_active, created_at')
+            ->where('email', $email)
+            ->whereIn('user_type', [
+                self::TYPE_OPERATOR,
+                self::TYPE_ADMIN,
+                self::TYPE_STATS,
+                self::TYPE_GENERAL,
+                self::TYPE_INSTALL,
+                self::TYPE_EXTERNAL,
+            ])
+            ->where('is_active', 1)
+            ->where('deleted_at IS NULL', null, false)
+            ->limit(1)
+            ->get()
+            ->getRowArray() ?: null;
+    }
+
+    /**
      * 목록 조회 (user_type 필터, 검색, 페이징)
      *
      * @param array<string, mixed> $params
