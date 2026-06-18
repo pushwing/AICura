@@ -22,6 +22,8 @@ abstract class BaseAdminController extends BaseController
     /** @param array<string, mixed> $data */
     protected function render(string $view, array $data = []): string
     {
-        return view($view, array_merge($this->viewData, $data));
+        $merged            = array_merge($this->viewData, $data);
+        $merged['content'] = view($view, $merged);
+        return view('admin/layout/main', $merged);
     }
 }
