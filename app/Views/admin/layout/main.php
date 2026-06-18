@@ -23,7 +23,10 @@
                     <div class="avatar avatar-sm"><?= esc($userInitial) ?></div>
                     <span><?= esc($userName) ?></span>
                 </div>
-                <a href="<?= base_url('admin/logout') ?>" class="topbar-logout">로그아웃</a>
+                <form action="<?= base_url('admin/logout') ?>" method="POST" style="display:inline">
+                    <?= csrf_field() ?>
+                    <button type="submit" class="topbar-logout">로그아웃</button>
+                </form>
             </div>
         </header>
 
