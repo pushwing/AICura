@@ -44,6 +44,15 @@ database.default.DBDriver = MySQLi
 JWT_SECRET = your-secret-key-here   # 32자 이상 랜덤 문자열 권장
 ```
 
+### DB 생성
+
+```bash
+# MySQL root 접속 후 실행 (dev-docs/db-setup.sql 참고)
+mysql -u root -p < dev-docs/db-setup.sql
+```
+
+생성되는 계정: `aicura / Aicura@2026!Dev` — `.env`에 동일하게 설정합니다.
+
 ### 마이그레이션 및 서버 실행
 
 ```bash
@@ -51,6 +60,15 @@ php spark migrate
 
 make serve        # FrankenPHP 개발 서버 (포트 8300) — 권장
 make serve-spark  # CI4 내장 서버 (포트 8300)
+```
+
+### 기본 관리자 계정
+
+마이그레이션 후 아래 계정이 없으면 직접 INSERT합니다 (`user_type = 401`).
+
+```
+이메일:   admin@aicura.com
+비밀번호: Admin@2026!
 ```
 
 ---
@@ -186,10 +204,14 @@ AICura/
 ```bash
 make serve                       # FrankenPHP 개발 서버 (포트 8300) — 권장
 make serve-spark                 # CI4 내장 개발 서버 (포트 8300)
-php spark migrate                # DB 마이그레이션
+php spark migrate                # DB 마이그레이션 (default 그룹)
+php spark migrate --group tests  # 테스트 DB 마이그레이션
 php spark migrate:rollback       # 마이그레이션 롤백
 php spark swagger:generate       # OpenAPI 스펙 생성
 php spark routes                 # 등록된 라우트 확인
+composer test                    # PHPUnit 단위·통합 테스트
+composer analyse                 # PHPStan 정적 분석 (level 6)
+composer check                   # PHPStan + PHPUnit 순차 실행
 ```
 
 ---
