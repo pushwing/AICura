@@ -146,10 +146,12 @@ $spreadsheet = new Spreadsheet();
 $sheet = $spreadsheet->getActiveSheet();
 $sheet->fromArray($rows, null, 'A1');
 
-header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-header('Content-Disposition: attachment; filename="export.xlsx"');
+$response = service('response');
+$response->setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+$response->setHeader('Content-Disposition', 'attachment; filename="export.xlsx"');
+ob_start();
 (new Xlsx($spreadsheet))->save('php://output');
-exit;
+return $response->setBody(ob_get_clean());
 
 // 읽기
 $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
@@ -215,12 +217,37 @@ public function index() { ... }
 feature/* → (PR) → dev → (PR) → main
 ```
 
-- **기능 개발**: `dev`에서 `feature/기능명` 브랜치 생성
 - **PR 대상**: `feature/*` → `dev`
 - **배포**: `dev` → `main` PR
 - **머지 방식**: Squash and merge
 - **머지 후**: `feature/*` 브랜치 자동 삭제
 - `main`과 `dev`에 직접 push 금지
+
+### 기능 개발 시작
+
+```bash
+git checkout dev
+git pull origin dev
+git checkout -b feature/기능명   # 예: feature/campaign-crud
+```
+
+### dev가 앞서간 경우 rebase
+
+```bash
+git rebase origin/dev
+git push --force-with-lease origin feature/기능명
+```
+
+### 커밋 메시지 (Conventional Commits)
+
+| 접두어 | 용도 |
+|--------|------|
+| `feat` | 새 기능 |
+| `fix` | 버그 수정 |
+| `refactor` | 리팩토링 |
+| `docs` | 문서 |
+| `chore` | 설정·빌드 |
+| `test` | 테스트 |
 
 자세한 내용: `docs/git-workflow.md`
 
