@@ -1,6 +1,4 @@
 <svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img">
   <title>AI Cura Icon</title>
-  <rect width="64" height="64" rx="16" fill="#0F6E56"/>
-  <rect x="27" y="14" width="10" height="36" rx="4" fill="#ffffff"/>
-  <rect x="14" y="27" width="36" height="10" rx="4" fill="#ffffff"/>
+  <polygon points="32,4 60,32 32,60 4,32" fill="#0F6E56"/>
 </svg>

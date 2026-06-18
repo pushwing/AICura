@@ -1,9 +1,7 @@
 <svg width="130" height="36" viewBox="0 0 130 36" xmlns="http://www.w3.org/2000/svg" role="img">
   <title>AI Cura (Color Background)</title>
-  <!-- Cross mark (translucent on color bg) -->
-  <rect x="0" y="4" width="28" height="28" rx="7" fill="#ffffff" fill-opacity="0.2"/>
-  <rect x="11" y="9" width="5" height="18" rx="1.5" fill="#ffffff"/>
-  <rect x="6" y="14.5" width="16" height="5" rx="1.5" fill="#ffffff"/>
+  <!-- Diamond mark (translucent on color bg) -->
+  <polygon points="14,4 28,18 14,32 0,18" fill="#ffffff" fill-opacity="0.85"/>
   <!-- Wordmark -->
   <text x="36" y="26" font-size="18" font-weight="700" fill="#ffffff" font-family="Inter, Pretendard, sans-serif" letter-spacing="-0.3">AI</text>
   <text x="62" y="26" font-size="18" font-weight="400" fill="#ffffff" fill-opacity="0.85" font-family="Inter, Pretendard, sans-serif">Cura</text>
