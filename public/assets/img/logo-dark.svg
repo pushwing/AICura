@@ -1,0 +1,10 @@
+<svg width="180" height="48" viewBox="0 0 180 48" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>AI Cura (Dark)</title>
+  <!-- Square background -->
+  <rect x="0" y="8" width="32" height="32" rx="8" fill="#1D9E75"/>
+  <!-- Diamond inside -->
+  <polygon points="16,13 27,24 16,35 5,24" fill="#ffffff"/>
+  <!-- Wordmark -->
+  <text x="44" y="33" font-size="22" font-weight="700" fill="#ffffff" font-family="Inter, Pretendard, sans-serif" letter-spacing="-0.5">AI</text>
+  <text x="76" y="33" font-size="22" font-weight="400" fill="#1D9E75" font-family="Inter, Pretendard, sans-serif" letter-spacing="-0.3">Cura</text>
+</svg>

@@ -33,6 +33,7 @@ class JwtLibrary
         ]);
     }
 
+    /** @return array<string, mixed>|false */
     public function validateAccessToken(string $token): array|false
     {
         $payload = $this->decode($token);
@@ -44,6 +45,7 @@ class JwtLibrary
         return $payload;
     }
 
+    /** @return array<string, mixed>|false */
     public function validateRefreshToken(string $token): array|false
     {
         $payload = $this->decode($token);
@@ -55,6 +57,7 @@ class JwtLibrary
         return $payload;
     }
 
+    /** @param array<string, mixed> $payload */
     private function encode(array $payload): string
     {
         $header  = $this->base64url(json_encode(['alg' => 'HS256', 'typ' => 'JWT']));
@@ -64,6 +67,7 @@ class JwtLibrary
         return "$header.$payload.$sig";
     }
 
+    /** @return array<string, mixed>|false */
     private function decode(string $token): array|false
     {
         $parts = explode('.', $token);

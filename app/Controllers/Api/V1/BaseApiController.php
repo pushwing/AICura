@@ -2,14 +2,19 @@
 
 namespace App\Controllers\Api\V1;
 
+use App\Libraries\Auth;
 use CodeIgniter\RESTful\ResourceController;
 
 abstract class BaseApiController extends ResourceController
 {
     protected $format = 'json';
 
-    protected int $authUserId = 0;
+    protected function authUserId(): int
+    {
+        return Auth::userId();
+    }
 
+    /** @param array<string, mixed> $meta */
     protected function success(mixed $data, array $meta = [], int $status = 200): \CodeIgniter\HTTP\ResponseInterface
     {
         $body = ['status' => 'success', 'data' => $data];

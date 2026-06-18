@@ -14,7 +14,7 @@ $routes->group('admin', static function (RouteCollection $routes): void {
     // 인증 없이 접근 가능
     $routes->get('login',  'Admin\AuthController::login');
     $routes->post('login', 'Admin\AuthController::loginProcess');
-    $routes->get('logout', 'Admin\AuthController::logout');
+    $routes->post('logout', 'Admin\AuthController::logout');
 
     // 이하 admin_auth 필터 적용
     $routes->group('', ['filter' => 'admin_auth'], static function (RouteCollection $routes): void {
@@ -33,6 +33,26 @@ $routes->group('admin', static function (RouteCollection $routes): void {
         // 리포트
         $routes->get('reports',           'Admin\ReportController::index');
         $routes->get('reports/campaigns', 'Admin\ReportController::campaigns');
+
+        // 계약 관리
+        // GET  contracts              → index      (메인 계약 목록)
+        // GET  contracts/(:num)       → show       (메인 계약 상세 + 수주계약 목록)
+        // GET  contracts/orders       → orders     (수주계약 전체 목록)
+        // GET  contracts/orders/new   → orderNew   (수주계약 등록 폼)
+        // POST contracts/orders       → orderCreate(수주계약 등록 처리)
+        // GET  contracts/orders/(:num)       → orderShow  (수주계약 상세)
+        // GET  contracts/orders/(:num)/edit  → orderEdit  (수주계약 수정 폼)
+        // POST contracts/orders/(:num)       → orderUpdate(수주계약 수정 처리)
+        // POST contracts/orders/(:num)/deposit-confirm → depositConfirm (입금 확인)
+        $routes->get('contracts',                                     'Admin\ContractController::index');
+        $routes->get('contracts/orders',                              'Admin\ContractController::orders');
+        $routes->get('contracts/orders/new',                          'Admin\ContractController::orderNew');
+        $routes->post('contracts/orders',                             'Admin\ContractController::orderCreate');
+        $routes->get('contracts/orders/(:num)',                       'Admin\ContractController::orderShow/$1');
+        $routes->get('contracts/orders/(:num)/edit',                  'Admin\ContractController::orderEdit/$1');
+        $routes->post('contracts/orders/(:num)',                      'Admin\ContractController::orderUpdate/$1');
+        $routes->post('contracts/orders/(:num)/deposit-confirm',      'Admin\ContractController::depositConfirm/$1');
+        $routes->get('contracts/(:num)',                              'Admin\ContractController::show/$1');
 
         // 사용자 관리
         $routes->resource('users', ['controller' => 'Admin\UserController']);
