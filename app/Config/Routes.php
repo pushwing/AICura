@@ -25,6 +25,9 @@ $routes->group('admin', static function (RouteCollection $routes): void {
         $routes->resource('advertisers', ['controller' => 'Admin\AdvertiserController']);
 
         // 캠페인 관리
+        $routes->get('campaigns/temp',               'Admin\CampaignController::tempList');
+        $routes->get('campaigns/(:num)/history',     'Admin\CampaignController::history/$1');
+        $routes->post('campaigns/(:num)/action',     'Admin\CampaignController::action/$1');
         $routes->resource('campaigns', ['controller' => 'Admin\CampaignController']);
 
         // 소재 관리
