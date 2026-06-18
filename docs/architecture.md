@@ -54,27 +54,57 @@
 
 ## 디렉토리 구조
 
+단일 CI4 설치로 Admin과 API를 함께 운영합니다.
+
 ```
 AICura/
-├── admin/              — CI4 관리자 패널
-│   ├── app/
-│   │   ├── Controllers/
-│   │   ├── Models/
-│   │   ├── Views/
-│   │   └── Config/
-│   └── public/
-│
-├── api/                — REST API (CI4 → 추후 Pure PHP)
-│   ├── app/
-│   │   ├── Controllers/
-│   │   ├── Models/
-│   │   └── Config/
-│   └── public/
-│
-├── assets/             — 브랜드 에셋 (로고 등)
-├── docs/               — 프로젝트 문서
-└── ui/                 — UI 컴포넌트
+├── app/
+│   ├── Controllers/
+│   │   ├── Admin/          — 관리자 컨트롤러 (세션 인증)
+│   │   │   ├── BaseAdminController.php
+│   │   │   ├── AuthController.php
+│   │   │   ├── DashboardController.php
+│   │   │   ├── AdvertiserController.php
+│   │   │   ├── CampaignController.php
+│   │   │   ├── CreativeController.php
+│   │   │   ├── ReportController.php
+│   │   │   ├── UserController.php
+│   │   │   └── SettingController.php
+│   │   └── Api/
+│   │       └── V1/         — REST API 컨트롤러 (JWT 인증)
+│   │           ├── BaseApiController.php
+│   │           ├── AuthController.php
+│   │           ├── CampaignController.php
+│   │           ├── CreativeController.php
+│   │           ├── ReportController.php
+│   │           └── UserController.php
+│   ├── Models/             — Admin·API 공유 모델
+│   ├── Filters/
+│   │   ├── AdminAuthFilter.php   — 세션 인증 필터
+│   │   └── JwtAuthFilter.php     — JWT 인증 필터
+│   ├── Libraries/
+│   │   └── JwtLibrary.php        — JWT 생성·검증
+│   ├── Views/
+│   │   └── admin/          — 관리자 뷰 (API는 JSON 응답, 뷰 없음)
+│   └── Config/
+│       ├── Routes.php      — /admin/* 및 /api/v1/* 라우트 분리
+│       └── Filters.php     — admin_auth / jwt_auth 필터 등록
+├── public/                 — 단일 진입점 (index.php)
+├── assets/                 — 브랜드 에셋 (로고 등)
+├── docs/                   — 프로젝트 문서
+└── ui/                     — UI 컴포넌트
 ```
+
+### 라우트 구조
+
+| 경로 | 인증 | 처리 |
+|------|------|------|
+| `GET  /admin/login` | 없음 | 로그인 페이지 |
+| `POST /admin/login` | 없음 | 로그인 처리 |
+| `*    /admin/*` | `admin_auth` (세션) | 관리자 기능 |
+| `POST /api/v1/auth/login` | 없음 | JWT 발급 |
+| `POST /api/v1/auth/refresh` | 없음 | JWT 갱신 |
+| `*    /api/v1/*` | `jwt_auth` (Bearer) | REST API |
 
 ---
 
