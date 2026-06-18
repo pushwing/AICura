@@ -30,7 +30,6 @@ class CreateContractOrderConnectsTable extends Migration
 
         $this->forge->addKey('id', true);
         $this->forge->addKey('contract_id');
-        $this->forge->addKey('contract_order_id');
         $this->forge->addUniqueKey('contract_order_id');
 
         $this->forge->createTable('contract_order_connects');
