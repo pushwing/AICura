@@ -170,3 +170,21 @@ composer check            # PHPStan + PHPUnit 순차 실행
 | `allowedFields` 없는 Model | 의도치 않은 mass assignment |
 | CSRF 예외 라우트 무분별 추가 | 보호 구멍 |
 | `env()` 없이 Config에 직접 시크릿 작성 | `.env` 관리 원칙 위반 |
+| 뷰에서 Model을 직접 호출해 데이터 조회 | MVC 책임 분리 위반, 테스트·유지보수 불가 |
+
+뷰는 컨트롤러가 전달한 데이터만 렌더링한다.
+
+```php
+// ❌ 금지 — 뷰에서 직접 조회
+$campaigns = new \App\Models\CampaignModel();
+foreach ($campaigns->findAll() as $item) { ... }
+
+// ✅ 올바른 방식 — 컨트롤러에서 전달
+// Controller
+return $this->render('admin/campaigns/index', [
+    'campaigns' => model(CampaignModel::class)->findAll(),
+]);
+
+// View
+foreach ($campaigns as $item) { ... }
+```
