@@ -4,9 +4,44 @@ namespace App\Controllers\Api\V1;
 
 use App\Libraries\JwtLibrary;
 use App\Models\UserModel;
+use OpenApi\Attributes as OA;
 
 class AuthController extends BaseApiController
 {
+    #[OA\Post(
+        path: '/auth/login',
+        summary: '로그인 및 JWT 발급',
+        tags: ['Auth'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['email', 'password'],
+                properties: [
+                    new OA\Property(property: 'email',    type: 'string', format: 'email', example: 'user@aicura.io'),
+                    new OA\Property(property: 'password', type: 'string', format: 'password', example: 'secret1234'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: '로그인 성공',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'status', type: 'string', example: 'success'),
+                        new OA\Property(property: 'data', properties: [
+                            new OA\Property(property: 'access_token',  type: 'string'),
+                            new OA\Property(property: 'refresh_token', type: 'string'),
+                            new OA\Property(property: 'token_type',    type: 'string', example: 'Bearer'),
+                            new OA\Property(property: 'expires_in',    type: 'integer', example: 3600),
+                        ], type: 'object')
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: '이메일 또는 비밀번호 불일치'),
+            new OA\Response(response: 422, description: '유효성 검사 실패'),
+        ]
+    )]
     public function login(): \CodeIgniter\HTTP\ResponseInterface
     {
         $rules = [
@@ -35,11 +70,29 @@ class AuthController extends BaseApiController
         ]);
     }
 
+    #[OA\Post(
+        path: '/auth/refresh',
+        summary: 'Access Token 갱신',
+        tags: ['Auth'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['refresh_token'],
+                properties: [
+                    new OA\Property(property: 'refresh_token', type: 'string'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: '토큰 갱신 성공'),
+            new OA\Response(response: 401, description: '유효하지 않은 리프레시 토큰'),
+        ]
+    )]
     public function refresh(): \CodeIgniter\HTTP\ResponseInterface
     {
         $refreshToken = $this->request->getJSON(true)['refresh_token'] ?? '';
 
-        $jwt = new JwtLibrary();
+        $jwt     = new JwtLibrary();
         $payload = $jwt->validateRefreshToken($refreshToken);
 
         if (!$payload) {
@@ -53,9 +106,18 @@ class AuthController extends BaseApiController
         ]);
     }
 
+    #[OA\Post(
+        path: '/auth/logout',
+        summary: '로그아웃',
+        security: [['bearerAuth' => []]],
+        tags: ['Auth'],
+        responses: [
+            new OA\Response(response: 200, description: '로그아웃 성공'),
+            new OA\Response(response: 401, description: '인증 필요'),
+        ]
+    )]
     public function logout(): \CodeIgniter\HTTP\ResponseInterface
     {
-        // 필요 시 refresh_token DB 폐기 처리
         return $this->success(null);
     }
 }

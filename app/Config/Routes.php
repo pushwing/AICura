@@ -4,6 +4,10 @@ use CodeIgniter\Router\RouteCollection;
 
 /** @var RouteCollection $routes */
 
+// ── API Docs (Swagger UI) ────────────────────────────────
+$routes->get('api/docs',      'Api\DocsController::index');
+$routes->get('api/docs/spec', 'Api\DocsController::spec');
+
 // ── Admin ───────────────────────────────────────────────
 $routes->group('admin', static function (RouteCollection $routes): void {
 
