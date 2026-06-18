@@ -12,7 +12,8 @@ final class ExampleDatabaseTest extends CIUnitTestCase
 {
     use DatabaseTestTrait;
 
-    protected $seed = ExampleSeeder::class;
+    protected $seed     = ExampleSeeder::class;
+    protected $basePath = HOMEPATH . 'tests/_support/Database';
 
     public function testModelFindAll(): void
     {

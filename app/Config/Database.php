@@ -199,6 +199,18 @@ class Database extends Config
         // we don't overwrite live data on accident.
         if (ENVIRONMENT === 'testing') {
             $this->defaultGroup = 'tests';
+
+            // Override tests group with MySQL credentials from .env
+            // DBPrefix is explicitly set to '' — the CI4 default 'db_' causes
+            // table name mismatches between migration-created tables and queries.
+            $this->tests = array_merge($this->tests, [
+                'hostname' => env('database.tests.hostname', '127.0.0.1'),
+                'database' => env('database.tests.database', ':memory:'),
+                'username' => env('database.tests.username', ''),
+                'password' => env('database.tests.password', ''),
+                'DBDriver' => env('database.tests.DBDriver', 'MySQLi'),
+                'DBPrefix' => '',
+            ]);
         }
     }
 }
