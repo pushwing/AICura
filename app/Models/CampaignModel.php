@@ -191,7 +191,7 @@ class CampaignModel extends Model
     {
         $builder = $this->db->table('campaign_histories ch')
             ->select('ch.id, ch.action, ch.status_from, ch.status_to, ch.memo, ch.created_at')
-            ->select('u.name as admin_name', false)
+            ->select('u.username as admin_name', false)
             ->join('users u', 'u.id = ch.admin_user_id', 'left')
             ->where('ch.campaign_id', $campaignId);
 
