@@ -8,7 +8,7 @@ AI 기반 성형·토탈 광고 솔루션 — 앱/웹용 REST API + 관리자 �
 
 | 항목 | 내용 |
 |------|------|
-| **스택** | PHP 8.1+ · CodeIgniter 4 |
+| **스택** | PHP 8.4+ · CodeIgniter 4 · FrankenPHP |
 | **Admin** | CI4 MVC · 세션 인증 · DB 직접 접근 |
 | **API** | REST · JWT 인증 · JSON 응답 |
 | **문서** | Swagger UI (`/api/docs`) |
@@ -33,7 +33,7 @@ cp env .env
 ```ini
 CI_ENVIRONMENT = development
 
-app.baseURL = 'http://localhost:8080'
+app.baseURL = 'http://localhost:8300/'
 
 database.default.hostname = localhost
 database.default.database = aicura
@@ -48,7 +48,7 @@ JWT_SECRET = your-secret-key-here   # 32자 이상 랜덤 문자열 권장
 
 ```bash
 php spark migrate
-php spark serve
+make serve        # FrankenPHP 개발 서버 (포트 8300)
 ```
 
 ---
@@ -71,7 +71,7 @@ php spark serve
 개발 서버 실행 후 브라우저에서 확인합니다.
 
 ```
-http://localhost:8080/api/docs
+http://localhost:8300/api/docs
 ```
 
 ### 정적 스펙 파일 생성 (운영 배포 시)
@@ -182,7 +182,7 @@ AICura/
 ## Spark 커맨드
 
 ```bash
-php spark serve                  # 개발 서버 실행
+make serve                       # FrankenPHP 개발 서버 실행 (포트 8300)
 php spark migrate                # DB 마이그레이션
 php spark migrate:rollback       # 마이그레이션 롤백
 php spark swagger:generate       # OpenAPI 스펙 생성
@@ -220,9 +220,13 @@ gh pr create --base main --head dev --title "release: YYYY-MM-DD"
 
 ## 서버 요구사항
 
-- PHP 8.1 이상
-- MySQL 8.0 이상
-- 확장: `intl` `mbstring` `json` `mysqlnd`
+| 항목 | 버전 | 용도 |
+|------|------|------|
+| FrankenPHP | 1.12+ | 웹 서버 (PHP 8.5 내장) |
+| PHP CLI | 8.4+ | composer · spark · PHPStan |
+| MySQL | 8.0+ | 데이터베이스 |
+
+**필수 PHP 확장**: `intl` `mbstring` `json` `mysqlnd` `curl` `gd` `xml` `zip`
 
 ---
 
