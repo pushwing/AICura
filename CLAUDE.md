@@ -6,7 +6,7 @@ AI 기반 성형·토탈 광고 솔루션. CodeIgniter 4 기반 Admin + REST API
 
 ## 기술 스택
 
-- **언어**: PHP 8.2+
+- **언어**: PHP 8.4+
 - **프레임워크**: CodeIgniter 4
 - **인증**: 세션(Admin) / JWT Bearer(API) — JWT는 외부 라이브러리 없이 `JwtLibrary`(HMAC-SHA256)로 직접 구현
 - **API 문서**: Swagger UI (`/api/docs`) — `zircote/swagger-php`

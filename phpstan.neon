@@ -8,7 +8,7 @@ parameters:
 
     excludePaths:
         - app/Views
-        - app/Config/Boot
+        - app/Config/Boot (?)
 
     bootstrapFiles:
         - vendor/codeigniter4/framework/system/Test/bootstrap.php
