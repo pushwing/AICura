@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Cura — UI Components</title>
+  <link rel="stylesheet" href="aicura.css"/>
+  <style>
+    body { background: #F5F5F3; padding: 40px 24px; }
+    .page { max-width: 880px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px; }
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      color: #9CA3AF;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .showcase { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px; }
+    .showcase-col { display: flex; flex-direction: column; gap: 10px; }
+    .preview-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+    .preview-header svg { flex-shrink: 0; }
+    .preview-header h1 { font-size: 20px; font-weight: 700; color: #0F1923; margin: 0; }
+    .preview-header p  { font-size: 13px; color: #9CA3AF; margin: 0; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    @media (max-width: 600px) {
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="preview-header">
+    <svg width="36" height="36" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <rect width="64" height="64" rx="16" fill="#0F6E56"/>
+      <rect x="27" y="14" width="10" height="36" rx="4" fill="#fff"/>
+      <rect x="14" y="27" width="36" height="10" rx="4" fill="#fff"/>
+    </svg>
+    <div>
+      <h1>AI Cura — UI Components</h1>
+      <p>Design System v1.0 · aicura.css</p>
+    </div>
+  </div>
+
+  <!-- Buttons -->
+  <div>
+    <p class="section-title">Buttons</p>
+    <div class="card">
+      <div class="showcase mb-4">
+        <button class="btn btn-primary">기본 버튼</button>
+        <button class="btn btn-secondary">세컨더리</button>
+        <button class="btn btn-outline">아웃라인</button>
+        <button class="btn btn-ghost">고스트</button>
+        <button class="btn btn-danger">삭제</button>
+      </div>
+      <div class="showcase mb-4">
+        <button class="btn btn-primary btn-sm">소형</button>
+        <button class="btn btn-primary">기본</button>
+        <button class="btn btn-primary btn-lg">대형</button>
+      </div>
+      <div class="showcase">
+        <button class="btn btn-primary" disabled>비활성</button>
+        <button class="btn btn-primary">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          캠페인 추가
+        </button>
+        <button class="btn btn-outline">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          내보내기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Badges -->
+  <div>
+    <p class="section-title">Badges</p>
+    <div class="card">
+      <div class="showcase">
+        <span class="badge badge-success badge-dot">활성</span>
+        <span class="badge badge-info badge-dot">분석중</span>
+        <span class="badge badge-warning badge-dot">검토 필요</span>
+        <span class="badge badge-danger badge-dot">중단</span>
+        <span class="badge badge-neutral">초안</span>
+        <span class="badge badge-success">승인</span>
+        <span class="badge badge-info">처리중</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <div>
+    <p class="section-title">Form</p>
+    <div class="card">
+      <div style="display: flex; flex-direction: column; gap: 20px;">
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">광고주명 <span class="required">*</span></label>
+            <input class="input" type="text" placeholder="예) 서울성형외과"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">업종</label>
+            <select class="select">
+              <option value="">선택하세요</option>
+              <option>성형외과</option>
+              <option>피부과</option>
+              <option>치과</option>
+              <option>일반 의원</option>
+              <option>기타</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">캠페인 목표</label>
+          <input class="input" type="text" placeholder="예) 신규 환자 유입 월 200명"/>
+          <span class="form-hint">구체적인 수치 목표를 입력하면 AI 분석 정확도가 높아집니다.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">예산 범위</label>
+          <div style="display: flex; gap: 8px;">
+            <input class="input" type="number" placeholder="최소" style="flex:1;"/>
+            <input class="input" type="number" placeholder="최대" style="flex:1;"/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">메모</label>
+          <textarea class="textarea" placeholder="추가 요청사항이나 참고사항을 입력하세요."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">오류 상태 예시</label>
+          <input class="input error" type="text" placeholder="필수 항목입니다." value="잘못된 값"/>
+          <span class="form-error">올바른 형식으로 입력해주세요.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">광고 채널 선택</label>
+          <div class="checkbox-group">
+            <label class="checkbox-item"><input type="checkbox" checked/> 네이버 검색광고</label>
+            <label class="checkbox-item"><input type="checkbox" checked/> 카카오 디스플레이</label>
+            <label class="checkbox-item"><input type="checkbox"/> 유튜브 영상광고</label>
+            <label class="checkbox-item"><input type="checkbox"/> 인스타그램</label>
+          </div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button class="btn btn-ghost">취소</button>
+          <button class="btn btn-primary">저장하기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Metric Cards -->
+  <div>
+    <p class="section-title">Metric Cards</p>
+    <div class="grid-4">
+      <div class="metric-card">
+        <p class="metric-label">총 광고비</p>
+        <p class="metric-value">₩2,840만</p>
+        <p class="metric-delta up">▲ 18.4% 전월 대비</p>
+      </div>
+      <div class="metric-card">
+        <p class="metric-label">클릭률 (CTR)</p>
+        <p class="metric-value" style="color: #185FA5;">4.72%</p>
+        <p class="metric-delta up">▲ +1.2%p 업종 평균</p>
+      </div>
+      <div class="metric-card">
+        <p class="metric-label">전환 건수</p>
+        <p class="metric-value">1,284</p>
+        <p class="metric-delta down">▼ 3.1% 전월 대비</p>
+      </div>
+      <div class="metric-card">
+        <p class="metric-label">광고 소재</p>
+        <p class="metric-value">12개</p>
+        <p class="metric-delta" style="color: #9CA3AF;">AI 8 · 수동 4</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card -->
+  <div>
+    <p class="section-title">Cards</p>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">캠페인 현황</span>
+          <span class="badge badge-success badge-dot">활성</span>
+        </div>
+        <p>서울 강남 성형외과 브랜드 인지도 캠페인이 현재 정상 운행 중입니다.</p>
+        <div class="card-footer flex justify-between items-center">
+          <span class="text-sm text-muted">2026.06.01 – 2026.06.30</span>
+          <button class="btn btn-outline btn-sm">상세보기</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="flex items-center gap-2">
+            <div class="avatar avatar-md">이수</div>
+            <div>
+              <p style="font-weight: 600; font-size: 14px; color: #0F1923; margin: 0;">이수진 담당자</p>
+              <p style="font-size: 12px; color: #9CA3AF; margin: 0;">강남점 · 성형외과</p>
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+          <div class="flex justify-between">
+            <span class="text-muted">연락처</span>
+            <span>010-1234-5678</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-muted">이메일</span>
+            <span style="color: #185FA5;">lee@example.com</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-muted">등록일</span>
+            <span>2026.01.15</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alerts -->
+  <div>
+    <p class="section-title">Alerts</p>
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div class="alert alert-success">
+        <span class="alert-icon">✓</span>
+        <div class="alert-body">
+          <p class="alert-title">캠페인이 승인되었습니다.</p>
+          <p style="font-size:13px; margin:0;">광고 집행이 오늘부터 시작됩니다.</p>
+        </div>
+      </div>
+      <div class="alert alert-info">
+        <span class="alert-icon">ℹ</span>
+        <div class="alert-body">
+          <p class="alert-title">AI 소재 분석 완료</p>
+          <p style="font-size:13px; margin:0;">3개 소재의 CTR 예측 결과를 확인하세요.</p>
+        </div>
+      </div>
+      <div class="alert alert-warning">
+        <span class="alert-icon">⚠</span>
+        <div class="alert-body">
+          <p class="alert-title">예산 소진율 85%</p>
+          <p style="font-size:13px; margin:0;">이번 달 종료까지 12일 남았습니다. 예산을 검토하세요.</p>
+        </div>
+      </div>
+      <div class="alert alert-danger">
+        <span class="alert-icon">✕</span>
+        <div class="alert-body">
+          <p class="alert-title">소재 심사 반려</p>
+          <p style="font-size:13px; margin:0;">규정 위반 문구가 포함되어 수정이 필요합니다.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div>
+    <p class="section-title">Table</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>캠페인명</th>
+            <th>채널</th>
+            <th>상태</th>
+            <th>광고비</th>
+            <th>CTR</th>
+            <th>전환</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="font-weight: 500;">강남 리프팅 이벤트</td>
+            <td>네이버</td>
+            <td><span class="badge badge-success badge-dot">활성</span></td>
+            <td>₩4,200,000</td>
+            <td style="color: #0F6E56; font-weight: 600;">5.8%</td>
+            <td>312</td>
+          </tr>
+          <tr>
+            <td style="font-weight: 500;">코 성형 브랜딩</td>
+            <td>카카오</td>
+            <td><span class="badge badge-info badge-dot">분석중</span></td>
+            <td>₩2,100,000</td>
+            <td>3.2%</td>
+            <td>98</td>
+          </tr>
+          <tr>
+            <td style="font-weight: 500;">피부과 신환 유입</td>
+            <td>구글</td>
+            <td><span class="badge badge-warning badge-dot">검토 필요</span></td>
+            <td>₩1,800,000</td>
+            <td>2.9%</td>
+            <td>74</td>
+          </tr>
+          <tr>
+            <td style="font-weight: 500;">여름 이벤트 특가</td>
+            <td>인스타</td>
+            <td><span class="badge badge-neutral">초안</span></td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div>
+    <p class="section-title">Tabs</p>
+    <div class="card">
+      <div class="tabs">
+        <button class="tab active">전체</button>
+        <button class="tab">활성 캠페인</button>
+        <button class="tab">소재 관리</button>
+        <button class="tab">리포트</button>
+      </div>
+      <p class="text-muted text-sm">탭 콘텐츠 영역입니다.</p>
+    </div>
+  </div>
+
+  <!-- Avatars -->
+  <div>
+    <p class="section-title">Avatars</p>
+    <div class="card">
+      <div class="showcase items-center">
+        <div class="avatar avatar-sm">AI</div>
+        <div class="avatar avatar-md">김과</div>
+        <div class="avatar avatar-lg">이수</div>
+        <div class="avatar avatar-lg" style="background: #E6F1FB; color: #185FA5;">박부</div>
+        <div class="avatar avatar-lg" style="background: #FBEAF0; color: #993556;">최원</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
