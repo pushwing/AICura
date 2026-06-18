@@ -6,6 +6,7 @@ use App\Controllers\BaseController;
 
 abstract class BaseAdminController extends BaseController
 {
+    /** @var array<string, mixed> */
     protected array $viewData = [];
 
     public function initController(
@@ -18,8 +19,13 @@ abstract class BaseAdminController extends BaseController
         $this->viewData['authUser'] = session()->get('admin_user');
     }
 
+    /** @param array<string, mixed> $data */
     protected function render(string $view, array $data = []): string
     {
-        return view($view, array_merge($this->viewData, $data));
+        $pageData = array_merge($this->viewData, $data);
+        // 'content' 키는 레이아웃 슬롯 예약어 — $data 충돌을 방지하기 위해 마지막에 덮어씀
+        return view('admin/layout/main', array_merge($pageData, [
+            'content' => view($view, $pageData),
+        ]));
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Filters;
 
+use App\Libraries\Auth;
 use App\Libraries\JwtLibrary;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -29,8 +30,7 @@ class JwtAuthFilter implements FilterInterface
                 ->setJSON(['status' => 'error', 'code' => 'TOKEN_EXPIRED', 'message' => '토큰이 만료되었거나 유효하지 않습니다.']);
         }
 
-        // 컨트롤러에서 $this->request->authUserId 로 접근 가능
-        $request->authUserId = $payload['sub'];
+        Auth::setUserId((int) $payload['sub']);
 
         return null;
     }

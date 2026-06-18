@@ -1,0 +1,20 @@
+includes:
+    - vendor/codeigniter/phpstan-codeigniter/extension.neon
+
+parameters:
+    level: 6
+    paths:
+        - app
+
+    excludePaths:
+        - app/Views
+        - app/Config/Boot
+
+    bootstrapFiles:
+        - vendor/codeigniter4/framework/system/Test/bootstrap.php
+
+    scanDirectories:
+        - vendor/codeigniter4/framework/system
+
+    parallel:
+        maximumNumberOfProcesses: 4

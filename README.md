@@ -191,6 +191,33 @@ php spark routes                 # 등록된 라우트 확인
 
 ---
 
+## Git 워크플로우
+
+```
+feature/* → PR → dev → PR → main
+```
+
+```bash
+# 기능 개발 시작
+git checkout dev && git pull origin dev
+git checkout -b feature/기능명
+
+# 개발 후 PR
+git push origin feature/기능명
+gh pr create --base dev --head feature/기능명
+
+# 배포 (dev → main)
+gh pr create --base main --head dev --title "release: YYYY-MM-DD"
+```
+
+- Merge 방식: **Squash and merge**
+- PR 머지 후 `feature/*` 브랜치 자동 삭제
+- `main` · `dev` 직접 push 금지
+
+자세한 내용: [`docs/git-workflow.md`](docs/git-workflow.md)
+
+---
+
 ## 서버 요구사항
 
 - PHP 8.1 이상
