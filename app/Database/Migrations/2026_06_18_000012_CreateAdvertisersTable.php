@@ -91,8 +91,6 @@ class CreateAdvertisersTable extends Migration
 
     public function down(): void
     {
-        $this->db->query('SET FOREIGN_KEY_CHECKS=0');
         $this->forge->dropTable('advertisers');
-        $this->db->query('SET FOREIGN_KEY_CHECKS=1');
     }
 }
