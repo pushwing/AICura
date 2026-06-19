@@ -60,7 +60,7 @@ class PaymentModel extends Model
     public function getPaymentList(array $params): array
     {
         $builder = $this->db->table('payments p')
-            ->select('p.id, p.type, p.amount, p.result_code, p.status, p.created_at')
+            ->select('p.id, p.type, p.amount, p.result_code, p.trans_no, p.status, p.created_at')
             ->select('h.name as hospital_name', false)
             ->select('co.hospital_name as order_hospital_name', false)
             ->join('hospitals h', 'h.id = p.hospital_id', 'left')
