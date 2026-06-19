@@ -1,6 +1,7 @@
 <?php
 /** @var array<string, mixed>|null $advertiser */
 /** @var array<int, array<string, mixed>> $hospitals */
+/** @var array<int, array<string, mixed>> $parentAdvertisers */
 
 $isEdit  = $advertiser !== null;
 $title   = $isEdit ? '광고주 수정' : '광고주 등록';
@@ -114,17 +115,13 @@ $old = fn(string $key, mixed $default = ''): mixed => old($key, $isEdit ? ($adve
                     <label style="display:block;font-size:14px;font-weight:500;margin-bottom:6px;">모병원</label>
                     <select name="network_parent_id" class="form-control">
                         <option value="">모병원 선택</option>
-                        <?php
-                        // 모병원(is_network=1)인 광고주 목록은 API로 가져오거나 컨트롤러에서 전달할 수 있음
-                        // 현재는 hospital_id를 직접 입력
-                        ?>
-                        <?php if ($isEdit && !empty($advertiser['network_parent_id'])): ?>
-                            <option value="<?= (int) $advertiser['network_parent_id'] ?>" selected>
-                                현재 모병원 ID: <?= (int) $advertiser['network_parent_id'] ?>
+                        <?php foreach ($parentAdvertisers as $p): ?>
+                            <option value="<?= (int) $p['id'] ?>"
+                                <?= (string) $old('network_parent_id') === (string) $p['id'] ? 'selected' : '' ?>>
+                                <?= esc($p['hospital_name']) ?>
                             </option>
-                        <?php endif; ?>
+                        <?php endforeach; ?>
                     </select>
-                    <p style="font-size:12px;color:var(--color-text-muted);margin-top:4px;">모병원(is_network=1)으로 등록된 광고주 ID</p>
                 </div>
 
                 <!-- 상태 -->

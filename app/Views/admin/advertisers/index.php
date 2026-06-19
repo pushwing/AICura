@@ -63,7 +63,13 @@ const columnDefs = [
         field: 'hospital_name',
         headerName: '병원명',
         flex: 2,
-        cellRenderer: (p) => `<a href="/admin/advertisers/${p.data.id}" style="color:var(--color-primary,#0F6E56);text-decoration:none;">${p.value}</a>`,
+        cellRenderer: (p) => {
+            const a = document.createElement('a');
+            a.href = `/admin/advertisers/${p.data.id}`;
+            a.style.cssText = 'color:var(--color-primary,#0F6E56);text-decoration:none;';
+            a.textContent = p.value;
+            return a;
+        },
     },
     { field: 'contact_name',  headerName: '담당자', flex: 1 },
     { field: 'contact_phone', headerName: '연락처', width: 130 },
@@ -94,7 +100,13 @@ const columnDefs = [
         headerName: '액션',
         width: 70,
         sortable: false,
-        cellRenderer: (p) => `<a href="/admin/advertisers/${p.data.id}/edit" style="font-size:12px;color:var(--color-text-muted,#888)">수정</a>`,
+        cellRenderer: (p) => {
+            const a = document.createElement('a');
+            a.href = `/admin/advertisers/${p.data.id}/edit`;
+            a.style.cssText = 'font-size:12px;color:var(--color-text-muted,#888);text-decoration:none;';
+            a.textContent = '수정';
+            return a;
+        },
     },
 ];
 

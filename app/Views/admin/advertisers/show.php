@@ -63,24 +63,31 @@ $kpi = $advertiser['kpi'] ?? ['total_amount' => 0, 'balance' => 0, 'active_campa
         <div class="card-body">
             <h3 style="margin-bottom:16px;font-size:15px;">기본 정보</h3>
             <table style="width:100%;font-size:14px;border-collapse:collapse;">
-                <?php
-                $rows = [
-                    ['병원 ID',     esc((string) $advertiser['hospital_id'])],
-                    ['사업자등록번호', esc($advertiser['business_no'] ?? '-')],
-                    ['네트워크 유형', esc($networkLabels[(int) $advertiser['is_network']] ?? '-')],
-                ];
-                if ((int) $advertiser['is_network'] === 2 && !empty($advertiser['parent'])) {
+                <tr style="border-bottom:1px solid var(--color-border,#eee);">
+                    <th style="width:130px;padding:10px 0;font-weight:500;color:var(--color-text-muted);">병원 ID</th>
+                    <td style="padding:10px 0;"><?= esc((string) $advertiser['hospital_id']) ?></td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--color-border,#eee);">
+                    <th style="width:130px;padding:10px 0;font-weight:500;color:var(--color-text-muted);">사업자등록번호</th>
+                    <td style="padding:10px 0;"><?= esc($advertiser['business_no'] ?? '-') ?></td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--color-border,#eee);">
+                    <th style="width:130px;padding:10px 0;font-weight:500;color:var(--color-text-muted);">네트워크 유형</th>
+                    <td style="padding:10px 0;"><?= esc($networkLabels[(int) $advertiser['is_network']] ?? '-') ?></td>
+                </tr>
+                <?php if ((int) $advertiser['is_network'] === 2 && !empty($advertiser['parent'])):
                     /** @var array<string, mixed> $parent */
                     $parent = $advertiser['parent'];
-                    $rows[] = ['모병원', '<a href="/admin/advertisers/' . (int) $parent['id'] . '" style="color:var(--color-primary,#0F6E56)">' . esc($parent['hospital_name']) . '</a>'];
-                }
-                foreach ($rows as [$label, $value]):
                 ?>
-                    <tr style="border-bottom:1px solid var(--color-border,#eee);">
-                        <th style="width:130px;padding:10px 0;font-weight:500;color:var(--color-text-muted);"><?= esc($label) ?></th>
-                        <td style="padding:10px 0;"><?= $value ?></td>
-                    </tr>
-                <?php endforeach; ?>
+                <tr style="border-bottom:1px solid var(--color-border,#eee);">
+                    <th style="width:130px;padding:10px 0;font-weight:500;color:var(--color-text-muted);">모병원</th>
+                    <td style="padding:10px 0;">
+                        <a href="/admin/advertisers/<?= (int) $parent['id'] ?>" style="color:var(--color-primary,#0F6E56);text-decoration:none;">
+                            <?= esc($parent['hospital_name']) ?>
+                        </a>
+                    </td>
+                </tr>
+                <?php endif; ?>
             </table>
         </div>
     </div>

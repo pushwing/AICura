@@ -65,8 +65,13 @@ class AdvertiserController extends BaseAdminController
     public function new(): string
     {
         return $this->render('admin/advertisers/form', [
-            'advertiser' => null,
-            'hospitals'  => $this->hospitalModel->getActiveList(),
+            'advertiser'        => null,
+            'hospitals'         => $this->hospitalModel->getActiveList(),
+            'parentAdvertisers' => $this->advertiserModel->select('id, hospital_name')
+                ->where('is_network', 1)
+                ->where('status', 1)
+                ->orderBy('hospital_name', 'ASC')
+                ->findAll(),
         ]);
     }
 
@@ -108,6 +113,9 @@ class AdvertiserController extends BaseAdminController
         ];
 
         $id = $this->advertiserModel->insert($data);
+        if ($id === false) {
+            return redirect()->back()->withInput()->with('errors', $this->advertiserModel->errors());
+        }
 
         return redirect()->to('/admin/advertisers/' . $id)
             ->with('success', '광고주가 등록되었습니다.');
@@ -125,8 +133,13 @@ class AdvertiserController extends BaseAdminController
         }
 
         return $this->render('admin/advertisers/form', [
-            'advertiser' => $advertiser,
-            'hospitals'  => $this->hospitalModel->getActiveList(),
+            'advertiser'        => $advertiser,
+            'hospitals'         => $this->hospitalModel->getActiveList(),
+            'parentAdvertisers' => $this->advertiserModel->select('id, hospital_name')
+                ->where('is_network', 1)
+                ->where('status', 1)
+                ->orderBy('hospital_name', 'ASC')
+                ->findAll(),
         ]);
     }
 
@@ -159,7 +172,7 @@ class AdvertiserController extends BaseAdminController
             $networkParentId = null;
         }
 
-        $updateData = array_filter([
+        $updateData = [
             'hospital_name'     => $this->request->getPost('hospital_name'),
             'contact_name'      => $this->request->getPost('contact_name') ?: null,
             'contact_email'     => $this->request->getPost('contact_email') ?: null,
@@ -168,7 +181,7 @@ class AdvertiserController extends BaseAdminController
             'is_network'        => $isNetwork,
             'network_parent_id' => $networkParentId,
             'status'            => (int) $this->request->getPost('status'),
-        ], fn($v) => $v !== null && $v !== '');
+        ];
 
         $this->advertiserModel->update($id, $updateData);
 

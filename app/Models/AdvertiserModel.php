@@ -111,15 +111,15 @@ class AdvertiserModel extends Model
      */
     private function getKpi(int $hospitalId): array
     {
-        $totalAmount = (int) ($this->db->table('contract_orders co')
+        $totalRow = $this->db->table('contract_orders co')
             ->select('IFNULL(SUM(co.ad_price), 0) AS total', false)
             ->join('contract_order_connects coc', 'coc.contract_order_id = co.id')
             ->join('contracts c', 'c.id = coc.contract_id')
             ->where('c.hospital_id', $hospitalId)
             ->where('co.contract_status', 1)
             ->get()
-            ->getRow()
-            ->total ?? 0);
+            ->getRow();
+        $totalAmount = (int) ($totalRow->total ?? 0);
 
         $balanceRow = $this->db->table('deposits d')
             ->select('IFNULL(SUM(CASE WHEN d.is_minus = 0 THEN d.price ELSE -d.price END), 0) AS balance', false)
