@@ -176,16 +176,50 @@ $actionMap = [
 
 <!-- 상태 변경 모달 -->
 <div id="actionModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;">
-    <div style="background:var(--color-bg,#fff);border-radius:12px;padding:24px;min-width:360px;max-width:480px;">
+    <div style="background:var(--color-bg,#fff);border-radius:12px;padding:24px;min-width:400px;max-width:520px;width:100%;">
         <h3 id="modalTitle" style="margin-bottom:16px;font-size:16px;"></h3>
-        <textarea id="actionMemo" placeholder="메모 (선택)" rows="3"
-                  style="width:100%;box-sizing:border-box;padding:8px;border:1px solid var(--color-border);border-radius:6px;font-size:14px;resize:vertical;"></textarea>
+
+        <!-- Tiptap 에디터 래퍼 -->
+        <div style="border:1px solid var(--color-border);border-radius:var(--radius-sm);overflow:hidden;">
+            <!-- 툴바 -->
+            <div style="display:flex;gap:2px;padding:5px 6px;border-bottom:1px solid var(--color-border);background:var(--color-bg-surface);">
+                <button type="button" id="tipBold"
+                        title="굵게 (Ctrl+B)"
+                        style="width:28px;height:28px;border:none;background:transparent;border-radius:4px;cursor:pointer;font-weight:700;font-size:13px;color:var(--color-text);">B</button>
+                <button type="button" id="tipItalic"
+                        title="기울임 (Ctrl+I)"
+                        style="width:28px;height:28px;border:none;background:transparent;border-radius:4px;cursor:pointer;font-style:italic;font-size:13px;color:var(--color-text);">I</button>
+                <button type="button" id="tipBullet"
+                        title="글머리 목록"
+                        style="width:28px;height:28px;border:none;background:transparent;border-radius:4px;cursor:pointer;font-size:15px;color:var(--color-text);">≡</button>
+            </div>
+            <!-- 편집 영역 -->
+            <div id="tiptapMemoEditor"
+                 style="padding:8px 10px;min-height:80px;font-size:14px;line-height:1.6;color:var(--color-text);background:var(--color-bg);"></div>
+        </div>
+
         <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
             <button type="button" onclick="closeModal()" class="btn btn-outline btn-sm">취소</button>
             <button type="button" id="modalConfirm" class="btn btn-primary btn-sm">확인</button>
         </div>
     </div>
 </div>
+
+<!-- Tiptap 에디터 CSS (헤드리스 기본 스타일) -->
+<style>
+#tiptapMemoEditor .tiptap { outline: none; }
+#tiptapMemoEditor .tiptap p { margin: 0 0 4px; }
+#tiptapMemoEditor .tiptap ul { padding-left: 20px; margin: 4px 0; }
+#tiptapMemoEditor .tiptap li { margin: 2px 0; }
+#tiptapMemoEditor .tiptap p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    color: var(--color-text-muted, #aaa);
+    pointer-events: none;
+    float: left;
+    height: 0;
+}
+.tiptap-btn-active { background: var(--color-bg-muted) !important; color: var(--color-primary, #0F6E56) !important; }
+</style>
 
 <script>
 let pendingAction = null;
@@ -200,9 +234,9 @@ const actionTitles = {
 function changeStatus(action) {
     pendingAction = action;
     document.getElementById('modalTitle').textContent = actionTitles[action] ?? action;
-    document.getElementById('actionMemo').value = '';
-    const modal = document.getElementById('actionModal');
-    modal.style.display = 'flex';
+    window.__memoEditor?.commands.clearContent(true);
+    document.getElementById('actionModal').style.display = 'flex';
+    setTimeout(() => window.__memoEditor?.commands.focus(), 50);
 }
 
 function closeModal() {
@@ -213,7 +247,7 @@ function closeModal() {
 document.getElementById('modalConfirm').addEventListener('click', async () => {
     if (!pendingAction) return;
 
-    const memo = document.getElementById('actionMemo').value.trim();
+    const memo = window.__memoEditor ? window.__memoEditor.getHTML() : '';
     const btn  = document.getElementById('modalConfirm');
     btn.disabled = true;
     btn.textContent = '처리 중...';
@@ -246,4 +280,42 @@ document.getElementById('modalConfirm').addEventListener('click', async () => {
 document.getElementById('actionModal').addEventListener('click', (e) => {
     if (e.target === e.currentTarget) closeModal();
 });
+</script>
+
+<!-- Tiptap 에디터 초기화 (ES Module CDN) -->
+<script type="module">
+import { Editor } from 'https://esm.sh/@tiptap/core@2'
+import StarterKit from 'https://esm.sh/@tiptap/starter-kit@2'
+import Placeholder from 'https://esm.sh/@tiptap/extension-placeholder@2'
+
+const editor = new Editor({
+    element: document.getElementById('tiptapMemoEditor'),
+    extensions: [
+        StarterKit,
+        Placeholder.configure({ placeholder: '메모를 입력하세요 (선택)' }),
+    ],
+    content: '',
+})
+
+// 툴바 버튼 연결
+document.getElementById('tipBold').addEventListener('click', () =>
+    editor.chain().focus().toggleBold().run()
+)
+document.getElementById('tipItalic').addEventListener('click', () =>
+    editor.chain().focus().toggleItalic().run()
+)
+document.getElementById('tipBullet').addEventListener('click', () =>
+    editor.chain().focus().toggleBulletList().run()
+)
+
+// 활성 상태 표시
+const updateToolbar = () => {
+    document.getElementById('tipBold').classList.toggle('tiptap-btn-active', editor.isActive('bold'))
+    document.getElementById('tipItalic').classList.toggle('tiptap-btn-active', editor.isActive('italic'))
+    document.getElementById('tipBullet').classList.toggle('tiptap-btn-active', editor.isActive('bulletList'))
+}
+editor.on('transaction', updateToolbar)
+
+// 전역 노출 (일반 script에서 참조)
+window.__memoEditor = editor
 </script>
