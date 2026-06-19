@@ -60,6 +60,18 @@ $routes->group('admin', static function (RouteCollection $routes): void {
         $routes->post('contracts/orders/(:num)/deposit-confirm',      'Admin\ContractController::depositConfirm/$1');
         $routes->get('contracts/(:num)',                              'Admin\ContractController::show/$1');
 
+        // 이벤트 신청 DB 관리
+        // GET  call-requests                       → index       (신청 목록)
+        // GET  call-requests/(:num)                → show        (신청 상세 + 메모)
+        // POST call-requests/(:num)/status         → changeStatus(상태 변경, JSON)
+        // POST call-requests/(:num)/memos          → memoStore   (메모 등록)
+        // POST call-requests/(:num)/memos/(:num)/delete → memoDelete (메모 삭제)
+        $routes->get('call-requests',                            'Admin\CallRequestController::index');
+        $routes->get('call-requests/(:num)',                     'Admin\CallRequestController::show/$1');
+        $routes->post('call-requests/(:num)/status',             'Admin\CallRequestController::changeStatus/$1');
+        $routes->post('call-requests/(:num)/memos',              'Admin\CallRequestController::memoStore/$1');
+        $routes->post('call-requests/(:num)/memos/(:num)/delete', 'Admin\CallRequestController::memoDelete/$1/$2');
+
         // 결제 관리
         $routes->get('payments',                    'Admin\PaymentController::index');
         $routes->get('payments/(:num)',             'Admin\PaymentController::show/$1');
