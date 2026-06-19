@@ -60,6 +60,11 @@ $routes->group('admin', static function (RouteCollection $routes): void {
         $routes->post('contracts/orders/(:num)/deposit-confirm',      'Admin\ContractController::depositConfirm/$1');
         $routes->get('contracts/(:num)',                              'Admin\ContractController::show/$1');
 
+        // 결제 관리
+        $routes->get('payments',                    'Admin\PaymentController::index');
+        $routes->get('payments/(:num)',             'Admin\PaymentController::show/$1');
+        $routes->post('payments/(:num)/refund',     'Admin\PaymentController::refund/$1');
+
         // 사용자 관리
         $routes->resource('users', ['controller' => 'Admin\UserController']);
 

@@ -57,6 +57,11 @@
         <server name="database.tests.username" value="aicura"/>
         <server name="database.tests.password" value="Aicura@2026!Dev"/>
         <server name="database.tests.DBDriver" value="MySQLi"/>
+        <!-- Database configuration: SQLite3 in-memory for fast, isolated tests -->
+        <!-- tests 그룹을 defaultGroup으로 사용: 모델과 시더가 같은 DB 연결 공유 -->
+        <env name="database.defaultGroup" value="tests"/>
+        <env name="database.tests.DBDriver" value="SQLite3"/>
+        <env name="database.tests.database" value=":memory:"/>
         <!-- CSRF: session 방식으로 전환해 withSession() 으로 토큰 주입 가능하게 함 -->
         <server name="security.csrfProtection" value="session"/>
     </php>
