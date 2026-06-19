@@ -25,6 +25,7 @@ class ContractOrderModel extends Model
     protected $table      = 'contract_orders';
     protected $primaryKey = 'id';
     protected $useTimestamps = true;
+    protected $returnType    = 'array';
 
     protected $allowedFields = [
         'hospital_id',
@@ -36,14 +37,34 @@ class ContractOrderModel extends Model
         'contract_status',
         'deposit_date',
         'parent_id',
+        'title',
+        'contract_date',
+        'contract_agree_date',
+        'agree',
+        'deposit_check_id',
+        'main_contract',
+        'is_delete',
+        'purchase_owner_id',
+        'is_network',
+        'hospital_type',
+        'hospital_charge_name',
+        'hospital_charge_phone',
+        'hospital_charge_email',
         'agency_user_id',
         'manage_user_id',
+        'agency_company_name',
+        'agency_company_fee_rate',
+        'agency_company_charge_name',
+        'agency_company_charge_phone',
+        'agency_company_charge_email',
         'tax_charge_name',
         'tax_charge_email',
         'tax_business_no',
         'tax_issue_date',
-        'agency_company_name',
-        'agency_company_fee_rate',
+        'tax_issue_request_date',
+        'ads_count',
+        'ads_count_bonus',
+        'pay_method',
         'memo',
     ];
 
