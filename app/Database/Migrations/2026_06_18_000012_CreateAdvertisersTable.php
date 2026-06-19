@@ -83,12 +83,16 @@ class CreateAdvertisersTable extends Migration
         $this->forge->addKey('status', false, false, 'idx_advertisers_status');
         $this->forge->addKey('is_network', false, false, 'idx_advertisers_is_network');
         $this->forge->addKey('network_parent_id', false, false, 'idx_advertisers_network_parent_id');
+        // Fix #3: DB 레벨 참조 무결성 — hospitals 테이블 선행 생성 (000008) 필수
+        $this->forge->addForeignKey('hospital_id', 'hospitals', 'id', 'RESTRICT', 'RESTRICT');
 
         $this->forge->createTable('advertisers');
     }
 
     public function down(): void
     {
+        $this->db->query('SET FOREIGN_KEY_CHECKS=0');
         $this->forge->dropTable('advertisers');
+        $this->db->query('SET FOREIGN_KEY_CHECKS=1');
     }
 }

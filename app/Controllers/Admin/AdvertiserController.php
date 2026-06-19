@@ -37,16 +37,9 @@ class AdvertiserController extends BaseAdminController
 
         $result = $this->advertiserModel->getList($params);
 
-        $tz  = new \DateTimeZone('Asia/Seoul');
-        $utc = new \DateTimeZone('UTC');
-        $advertisers = array_map(static function (array $row) use ($tz, $utc): array {
-            if (!empty($row['created_at'])) {
-                $dt = new \DateTime($row['created_at'], $utc);
-                $dt->setTimezone($tz);
-                $row['created_at_kst'] = $dt->format('Y-m-d H:i');
-            } else {
-                $row['created_at_kst'] = '-';
-            }
+        // Fix #6: toKst() 헬퍼로 KST 변환 통합
+        $advertisers = array_map(function (array $row): array {
+            $row['created_at_kst'] = !empty($row['created_at']) ? $this->toKst($row['created_at']) : '-';
             return $row;
         }, $result['list']);
 
@@ -68,27 +61,15 @@ class AdvertiserController extends BaseAdminController
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
 
-        $tz  = new \DateTimeZone('Asia/Seoul');
-        $utc = new \DateTimeZone('UTC');
+        // Fix #6: toKst() 헬퍼로 KST 변환 통합
+        $advertiser['created_at_kst'] = !empty($advertiser['created_at']) ? $this->toKst($advertiser['created_at']) : '-';
 
-        if (!empty($advertiser['created_at'])) {
-            $dt = new \DateTime($advertiser['created_at'], $utc);
-            $dt->setTimezone($tz);
-            $advertiser['created_at_kst'] = $dt->format('Y-m-d H:i');
-        } else {
-            $advertiser['created_at_kst'] = '-';
-        }
-
-        $advertiser['contracts'] = array_map(static function (array $c) use ($tz, $utc): array {
-            if (!empty($c['created_at'])) {
-                $dt = new \DateTime($c['created_at'], $utc);
-                $dt->setTimezone($tz);
-                $c['created_at_kst'] = $dt->format('Y-m-d H:i');
-            } else {
-                $c['created_at_kst'] = '-';
-            }
+        /** @var list<array<string, mixed>> $contracts */
+        $contracts = is_array($advertiser['contracts'] ?? null) ? $advertiser['contracts'] : [];
+        $advertiser['contracts'] = array_map(function (array $c): array {
+            $c['created_at_kst'] = !empty($c['created_at']) ? $this->toKst($c['created_at']) : '-';
             return $c;
-        }, $advertiser['contracts'] ?? []);
+        }, $contracts);
 
         return $this->render('admin/advertisers/show', ['advertiser' => $advertiser]);
     }
@@ -97,7 +78,8 @@ class AdvertiserController extends BaseAdminController
     // 광고주 등록 폼
     // ──────────────────────────────────────────────
 
-    public function new(): string
+    // Fix #4: new() → newForm() (new는 PHP 예약어)
+    public function newForm(): string
     {
         return $this->render('admin/advertisers/form', [
             'advertiser'        => null,
@@ -116,8 +98,9 @@ class AdvertiserController extends BaseAdminController
 
     public function create(): ResponseInterface
     {
+        // Fix #3: hospital_id 존재 여부 DB 검증 추가
         $rules = [
-            'hospital_id'   => 'required|integer|greater_than[0]',
+            'hospital_id'   => 'required|integer|greater_than[0]|is_not_unique[hospitals.id]',
             'hospital_name' => 'required|max_length[255]',
             'contact_email' => 'permit_empty|valid_email',
             'is_network'    => 'required|in_list[0,1,2]',
@@ -128,11 +111,13 @@ class AdvertiserController extends BaseAdminController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        $isNetwork       = (int) $this->request->getPost('is_network');
-        $networkParentId = (int) ($this->request->getPost('network_parent_id') ?? 0) ?: null;
+        $isNetwork = (int) $this->request->getPost('is_network');
 
-        if ($isNetwork !== 2) {
-            $networkParentId = null;
+        // Fix #2: is_network === 2 일 때만 parent 설정, 미선택(0·빈값)은 null
+        $networkParentId = null;
+        if ($isNetwork === 2) {
+            $raw             = (int) $this->request->getPost('network_parent_id');
+            $networkParentId = $raw > 0 ? $raw : null;
         }
 
         $data = [
@@ -200,11 +185,13 @@ class AdvertiserController extends BaseAdminController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        $isNetwork       = (int) $this->request->getPost('is_network');
-        $networkParentId = (int) ($this->request->getPost('network_parent_id') ?? 0) ?: null;
+        $isNetwork = (int) $this->request->getPost('is_network');
 
-        if ($isNetwork !== 2) {
-            $networkParentId = null;
+        // Fix #2: is_network === 2 일 때만 parent 설정, 미선택(0·빈값)은 null
+        $networkParentId = null;
+        if ($isNetwork === 2) {
+            $raw             = (int) $this->request->getPost('network_parent_id');
+            $networkParentId = $raw > 0 ? $raw : null;
         }
 
         $updateData = [

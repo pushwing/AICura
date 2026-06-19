@@ -23,6 +23,10 @@ class AdvertiserModel extends Model
         'status',
     ];
 
+    // Fix #1: 광고주 저장 시 KPI 캐시 무효화
+    protected $afterInsert = ['clearKpiCache'];
+    protected $afterUpdate = ['clearKpiCache'];
+
     /** @var array<string, string> */
     protected $validationRules = [
         'hospital_id'   => 'required|integer|greater_than[0]',
@@ -36,12 +40,13 @@ class AdvertiserModel extends Model
 
     /**
      * @param array<string, mixed> $params
-     * @return array<string, mixed>
+     * @return array{list: list<array<string, mixed>>, total: int}
      */
     public function getList(array $params): array
     {
+        // Fix #9: hospital_id는 인덱스 그리드에서 불필요 — 제외하여 노출 최소화
         $builder = $this->db->table('advertisers a')
-            ->select('a.id, a.hospital_id, a.hospital_name, a.contact_name, a.contact_phone, a.is_network, a.status, a.created_at')
+            ->select('a.id, a.hospital_name, a.contact_name, a.contact_phone, a.is_network, a.status, a.created_at')
             ->select('pa.hospital_name AS parent_name', false)
             ->join('advertisers pa', 'pa.id = a.network_parent_id', 'left');
 
@@ -60,17 +65,21 @@ class AdvertiserModel extends Model
         $page  = max(1, (int) ($params['page'] ?? 1));
         $limit = (int) ($params['limit'] ?? 20);
 
+        /** @var list<array<string, mixed>> $list */
         $list = $builder
             ->orderBy('a.id', 'DESC')
             ->limit($limit, ($page - 1) * $limit)
             ->get()
             ->getResultArray();
 
-        return ['list' => $list, 'total' => $total];
+        return ['list' => $list, 'total' => (int) $total];
     }
 
     /**
      * 광고주 상세 + 네트워크 관계 + 계약 목록 + KPI
+     *
+     * Fix #5: 의존 테이블 — contracts(000001), contract_orders(000002),
+     *         contract_order_connects(000003), deposits(000004), campaigns(000006)
      *
      * @return array<string, mixed>|null
      */
@@ -112,10 +121,19 @@ class AdvertiserModel extends Model
     }
 
     /**
-     * @return array<string, mixed>
+     * Fix #1: 집계 쿼리 결과 5분 캐시
+     *
+     * @return array<string, int>
      */
     private function getKpi(int $hospitalId): array
     {
+        $cacheKey = 'advertisers_kpi_' . $hospitalId;
+        /** @var array<string, int>|null $cached */
+        $cached = cache($cacheKey);
+        if (is_array($cached)) {
+            return $cached;
+        }
+
         $totalRow = $this->db->table('contract_orders co')
             ->select('IFNULL(SUM(co.ad_price), 0) AS total', false)
             ->join('contract_order_connects coc', 'coc.contract_order_id = co.id')
@@ -140,10 +158,49 @@ class AdvertiserModel extends Model
             ->where('is_deleted', 0)
             ->countAllResults();
 
-        return [
+        $result = [
             'total_amount'     => $totalAmount,
             'balance'          => $balance,
             'active_campaigns' => $activeCampaigns,
         ];
+
+        cache()->save($cacheKey, $result, 300);
+
+        return $result;
+    }
+
+    /**
+     * afterInsert/afterUpdate 콜백 — KPI 캐시 무효화
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    protected function clearKpiCache(array $data): array
+    {
+        $hospitalId = null;
+
+        /** @var array<string, mixed> $payload */
+        $payload = is_array($data['data'] ?? null) ? $data['data'] : [];
+        if (!empty($payload['hospital_id'])) {
+            $hospitalId = (int) $payload['hospital_id'];
+        } else {
+            $rawId = $data['id'] ?? null;
+            if (is_array($rawId)) {
+                $rawId = $rawId[0] ?? null;
+            }
+            $rowId = is_numeric($rawId) ? (int) $rawId : 0;
+            if ($rowId > 0) {
+                $row = $this->select('hospital_id')->find($rowId);
+                if (is_array($row)) {
+                    $hospitalId = (int) $row['hospital_id'];
+                }
+            }
+        }
+
+        if ($hospitalId !== null) {
+            cache()->delete('advertisers_kpi_' . $hospitalId);
+        }
+
+        return $data;
     }
 }
