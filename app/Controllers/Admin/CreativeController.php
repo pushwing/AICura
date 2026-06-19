@@ -3,14 +3,14 @@
 namespace App\Controllers\Admin;
 
 use App\Models\CampaignModel;
-use App\Models\CreativeHistoryModel;
+use App\Models\CampaignReviewRequestModel;
 use CodeIgniter\HTTP\ResponseInterface;
 
 /**
  * 소재 관리 컨트롤러
  *
- * campaigns 테이블의 t1_image_name, t2_image_name, d_image_json 관리.
- * 캠페인별 광고 크리에이티브(이미지 소재) 등록·수정·삭제.
+ * 이미지 소재(t1, t2, 상세) 수정 — 수정 시 campaign_review_requests 에 기록되고
+ * 기존 campaigns 콘텐츠는 검수 승인 전까지 변경되지 않는다.
  */
 class CreativeController extends BaseAdminController
 {
@@ -49,9 +49,13 @@ class CreativeController extends BaseAdminController
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
 
+        // 검수 대기 중인 이미지 데이터가 있으면 폼에 pre-populate
+        $pending = model(CampaignReviewRequestModel::class)->getLatestPending($id);
+
         return $this->render('admin/creatives/show', [
             'title'    => '소재 상세',
             'campaign' => $campaign,
+            'pending'  => $pending,
         ]);
     }
 
@@ -74,30 +78,33 @@ class CreativeController extends BaseAdminController
             fn($v) => is_string($v) && trim($v) !== ''
         ));
 
-        $afterData = [
+        // 이미지 변경 데이터 — campaigns 에는 직접 쓰지 않고 review request 로 기록
+        $imageData = [
             't1_image_name' => $this->request->getPost('t1_image_name') ?? '',
             't2_image_name' => $this->request->getPost('t2_image_name') ?? '',
             'd_image_json'  => count($dImages) > 0 ? json_encode($dImages, JSON_UNESCAPED_UNICODE) : null,
         ];
 
-        $campaignModel->update($id, array_merge($afterData, ['review_status' => 'pending']));
+        // 나머지 콘텐츠 필드는 기존 approved 데이터 유지 (이미지만 변경하는 경우)
+        $contentData = [];
+        foreach (CampaignReviewRequestModel::CONTENT_FIELDS as $field) {
+            $contentData[$field] = $imageData[$field] ?? $campaign[$field] ?? null;
+        }
 
         /** @var array<string, mixed> $authUser */
         $authUser = session()->get('admin_user');
 
-        model(CreativeHistoryModel::class)->record(
+        model(CampaignReviewRequestModel::class)->record(
             $id,
-            [
-                't1_image_name' => $campaign['t1_image_name'] ?? null,
-                't2_image_name' => $campaign['t2_image_name'] ?? null,
-                'd_image_json'  => $campaign['d_image_json'] ?? null,
-            ],
-            $afterData,
-            (int) ($authUser['id'] ?? 0)
+            $contentData,
+            (int) ($authUser['id'] ?? 0),
+            'update'
         );
 
+        $campaignModel->update($id, ['review_status' => 'pending']);
+
         return redirect()->to('/admin/creatives/' . $id)
-            ->with('success', '소재가 업데이트되었습니다. 검수 대기 상태로 변경되었습니다.');
+            ->with('success', '소재 변경이 검수 요청되었습니다.');
     }
 
     // ──────────────────────────────────────────────
@@ -112,9 +119,22 @@ class CreativeController extends BaseAdminController
     {
         $db      = \Config\Database::connect();
         $builder = $db->table('campaigns c')
-            ->select('c.id, c.ad_title, c.status, c.ad_type, c.channel, c.t1_image_name, c.t2_image_name, c.d_image_json, c.created_at')
+            ->select('c.id, c.status, c.review_status, c.created_at')
+            ->select('COALESCE(c.ad_title, crr.ad_title) AS ad_title', false)
+            ->select('COALESCE(c.ad_type, crr.ad_type) AS ad_type', false)
+            ->select('COALESCE(c.channel, crr.channel) AS channel', false)
+            ->select('COALESCE(c.t1_image_name, crr.t1_image_name) AS t1_image_name', false)
+            ->select('COALESCE(c.t2_image_name, crr.t2_image_name) AS t2_image_name', false)
+            ->select('COALESCE(c.d_image_json, crr.d_image_json) AS d_image_json', false)
             ->select('h.name AS hospital_name', false)
             ->join('hospitals h', 'h.id = c.hospital_id', 'left')
+            ->join(
+                '(SELECT campaign_id, ad_title, ad_type, channel, t1_image_name, t2_image_name, d_image_json'
+                . ' FROM campaign_review_requests crr_sub'
+                . ' WHERE crr_sub.id = (SELECT MAX(id) FROM campaign_review_requests WHERE campaign_id = crr_sub.campaign_id)) crr',
+                'crr.campaign_id = c.id',
+                'left'
+            )
             ->where('c.is_deleted', 0);
 
         if ($params['status'] !== '') {
@@ -123,28 +143,22 @@ class CreativeController extends BaseAdminController
 
         if ($params['keyword'] !== '') {
             $builder->groupStart()
-                ->like('c.ad_title', $params['keyword'])
+                ->like('COALESCE(c.ad_title, crr.ad_title)', $params['keyword'], 'both', null, false)
                 ->orLike('h.name', $params['keyword'])
                 ->groupEnd();
         }
 
         if ($params['has_image'] === '1') {
-            $builder->where('c.t1_image_name IS NOT NULL AND c.t1_image_name != \'\'', null, false);
+            $builder->where('(c.t1_image_name IS NOT NULL AND c.t1_image_name != \'\') OR (crr.t1_image_name IS NOT NULL AND crr.t1_image_name != \'\')', null, false);
         } elseif ($params['has_image'] === '0') {
-            $builder->groupStart()
-                ->where('c.t1_image_name IS NULL', null, false)
-                ->orWhere('c.t1_image_name', '')
-                ->groupEnd();
+            $builder->where('(c.t1_image_name IS NULL OR c.t1_image_name = \'\') AND (crr.t1_image_name IS NULL OR crr.t1_image_name = \'\')', null, false);
         }
 
         $total = (clone $builder)->countAllResults(false);
 
-        $page  = $params['page'];
-        $limit = $params['limit'];
-
         $list = $builder
             ->orderBy('c.id', 'DESC')
-            ->limit($limit, ($page - 1) * $limit)
+            ->limit($params['limit'], ($params['page'] - 1) * $params['limit'])
             ->get()
             ->getResultArray();
 

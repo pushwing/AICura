@@ -3,12 +3,12 @@
 namespace App\Controllers\Admin;
 
 use App\Models\CampaignModel;
-use App\Models\CreativeHistoryModel;
+use App\Models\CampaignReviewRequestModel;
 use CodeIgniter\HTTP\ResponseInterface;
 
 class ReviewController extends BaseAdminController
 {
-    private CreativeHistoryModel $historyModel;
+    private CampaignReviewRequestModel $reviewModel;
     private CampaignModel $campaignModel;
 
     public function initController(
@@ -17,7 +17,7 @@ class ReviewController extends BaseAdminController
         \Psr\Log\LoggerInterface $logger
     ): void {
         parent::initController($request, $response, $logger);
-        $this->historyModel  = model(CreativeHistoryModel::class);
+        $this->reviewModel   = model(CampaignReviewRequestModel::class);
         $this->campaignModel = model(CampaignModel::class);
     }
 
@@ -33,13 +33,13 @@ class ReviewController extends BaseAdminController
             'limit'   => 20,
         ];
 
-        $result = $this->historyModel->getPendingList($params);
+        $result = $this->reviewModel->getPendingList($params);
 
         return $this->render('admin/reviews/index', [
-            'title'    => '검수관리',
-            'reviews'  => $result['list'],
-            'total'    => $result['total'],
-            'params'   => $params,
+            'title'   => '검수관리',
+            'reviews' => $result['list'],
+            'total'   => $result['total'],
+            'params'  => $params,
         ]);
     }
 
@@ -49,14 +49,16 @@ class ReviewController extends BaseAdminController
 
     public function show(int $id): string
     {
-        $history = $this->historyModel->getDetail($id);
-        if ($history === null) {
+        $detail = $this->reviewModel->getDetail($id);
+        if ($detail === null) {
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
 
         return $this->render('admin/reviews/show', [
-            'title'   => '검수 상세',
-            'history' => $history,
+            'title'  => '검수 상세',
+            'detail' => $detail,
+            'adTypes'  => CampaignModel::AD_TYPES,
+            'channels' => CampaignModel::CHANNELS,
         ]);
     }
 
@@ -66,8 +68,8 @@ class ReviewController extends BaseAdminController
 
     public function action(int $id): ResponseInterface
     {
-        $history = $this->historyModel->getDetail($id);
-        if ($history === null) {
+        $detail = $this->reviewModel->getDetail($id);
+        if ($detail === null) {
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
 
@@ -76,24 +78,33 @@ class ReviewController extends BaseAdminController
             return redirect()->back()->with('error', '올바르지 않은 액션입니다.');
         }
 
-        $memo = $this->request->getPost('memo') ?? null;
+        $memo    = $this->request->getPost('memo') ?? null;
 
         /** @var array<string, mixed> $authUser */
         $authUser = session()->get('admin_user');
         $adminId  = (int) ($authUser['id'] ?? 0);
 
         try {
-            $this->historyModel->review($id, $action, $adminId, $memo);
+            if ($action === 'approve') {
+                $contentFields = $this->reviewModel->approve($id, $adminId, $memo);
 
-            $nextReviewStatus = $action === 'approve' ? 'approved' : 'rejected';
-            $this->campaignModel->update($history['campaign_id'], [
-                'review_status' => $nextReviewStatus,
-            ]);
+                // 검수 승인: review request 의 콘텐츠를 campaigns 에 복사
+                $this->campaignModel->update($detail['campaign_id'], array_merge(
+                    $contentFields,
+                    ['review_status' => 'approved']
+                ));
+            } else {
+                $this->reviewModel->reject($id, $adminId, $memo);
+
+                $this->campaignModel->update($detail['campaign_id'], [
+                    'review_status' => 'rejected',
+                ]);
+            }
         } catch (\RuntimeException $e) {
             return redirect()->back()->with('error', $e->getMessage());
         }
 
-        $message = $action === 'approve' ? '소재가 승인되었습니다.' : '소재가 반려되었습니다.';
+        $message = $action === 'approve' ? '검수가 승인되었습니다.' : '검수가 반려되었습니다.';
 
         return redirect()->to('/admin/reviews')
             ->with('success', $message);
