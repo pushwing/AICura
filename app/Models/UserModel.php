@@ -115,7 +115,9 @@ class UserModel extends Model
     {
         $builder = $this->builder();
 
-        if (!empty($params['user_type'])) {
+        if (!empty($params['user_types']) && is_array($params['user_types'])) {
+            $builder->whereIn('user_type', array_map('intval', $params['user_types']));
+        } elseif (!empty($params['user_type'])) {
             $builder->where('user_type', (int) $params['user_type']);
         }
 
