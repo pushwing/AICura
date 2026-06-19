@@ -50,7 +50,6 @@ class UserModel extends Model
     // user_type 상수
     public const TYPE_USER           = 1;   // 일반 사용자
     public const TYPE_OPERATOR       = 2;   // 운영자
-    public const TYPE_ADVERTISER     = 3;   // 광고주
     public const TYPE_HOSPITAL_AD    = 201; // 광고주병원
     public const TYPE_HOSPITAL_GENE  = 202; // 일반병원
     public const TYPE_HOSPITAL_RECV  = 203; // 접수병원
@@ -59,26 +58,6 @@ class UserModel extends Model
     public const TYPE_GENERAL        = 403; // 일반운영자
     public const TYPE_INSTALL        = 404; // 접수설치
     public const TYPE_EXTERNAL       = 405; // 외부운영자
-
-    /**
-     * 어드민 로그인용 — 이메일로 운영자 조회
-     *
-     * @return array<string, mixed>|null
-     */
-    public function findAdminByEmail(string $email): ?array
-    {
-        return $this->where('email', $email)
-            ->whereIn('user_type', [
-                self::TYPE_OPERATOR,
-                self::TYPE_ADMIN,
-                self::TYPE_STATS,
-                self::TYPE_GENERAL,
-                self::TYPE_INSTALL,
-                self::TYPE_EXTERNAL,
-            ])
-            ->where('is_active', 1)
-            ->first();
-    }
 
     /**
      * 어드민 로그인 인증용 — password 포함 조회 ($hidden 우회)
@@ -113,12 +92,16 @@ class UserModel extends Model
      */
     public function getList(array $params): array
     {
-        $builder = $this->builder();
+        $builder = $this->builder()
+            ->where($this->table . '.deleted_at IS NULL', null, false);
 
-        if (!empty($params['user_type'])) {
+        if (!empty($params['user_types']) && is_array($params['user_types'])) {
+            $builder->whereIn('user_type', array_map('intval', $params['user_types']));
+        } elseif (!empty($params['user_type'])) {
             $builder->where('user_type', (int) $params['user_type']);
         }
 
+        // 주의: is_dormant 값은 반전 의미 — 1 = 활성, 0 = 휴면
         if (isset($params['is_dormant']) && $params['is_dormant'] !== '') {
             $builder->where('is_dormant', (int) $params['is_dormant']);
         }
@@ -134,7 +117,7 @@ class UserModel extends Model
         $total = (clone $builder)->countAllResults(false);
 
         $page  = max(1, (int) ($params['page'] ?? 1));
-        $limit = (int) ($params['limit'] ?? 20);
+        $limit = max(1, (int) ($params['limit'] ?? 20));
 
         $list = $builder
             ->select('id, email, username, user_type, where_from, provider, is_agency_account, picture, phone, age, sex, health_point, is_dormant, last_login_at, created_at')
@@ -143,6 +126,6 @@ class UserModel extends Model
             ->get()
             ->getResultArray();
 
-        return ['list' => $list, 'total' => $total];
+        return ['list' => $list, 'total' => (int) $total];
     }
 }
