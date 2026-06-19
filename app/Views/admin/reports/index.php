@@ -30,7 +30,7 @@
             <p style="font-size:1.6rem;font-weight:700;color:var(--color-text);">
                 <?= number_format($kpi['charged']) ?>원
             </p>
-            <p class="text-xs" style="color:var(--color-text-muted);margin-top:4px;">deposits status=2</p>
+            <p class="text-xs" style="color:var(--color-text-muted);margin-top:4px;">입금 확인 기준</p>
         </div>
     </div>
 
@@ -40,7 +40,7 @@
             <p style="font-size:1.6rem;font-weight:700;color:#1D9E75;">
                 <?= number_format($kpi['consumed']) ?>원
             </p>
-            <p class="text-xs" style="color:var(--color-text-muted);margin-top:4px;">deposits status=3</p>
+            <p class="text-xs" style="color:var(--color-text-muted);margin-top:4px;">광고 집행 기준</p>
         </div>
     </div>
 
@@ -50,7 +50,7 @@
             <p style="font-size:1.6rem;font-weight:700;color:#EF4444;">
                 <?= number_format($kpi['refunded']) ?>원
             </p>
-            <p class="text-xs" style="color:var(--color-text-muted);margin-top:4px;">deposits status IN(6,7)</p>
+            <p class="text-xs" style="color:var(--color-text-muted);margin-top:4px;">발행·계약 환불 합산</p>
         </div>
     </div>
 

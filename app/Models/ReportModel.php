@@ -8,6 +8,20 @@ class ReportModel extends Model
 {
     protected $table = 'deposits';
 
+    // AG Grid 클라이언트 페이징 기준 서버 반환 상한 (Fix #2)
+    private const CAMPAIGN_LIST_LIMIT = 1000;
+
+    /**
+     * MONTH() 대신 드라이버별 월 표현식 반환 (Fix #1)
+     * — MySQL: MONTH(col), SQLite3: CAST(strftime('%m', col) AS INTEGER)
+     */
+    private function monthExpr(string $col): string
+    {
+        return str_starts_with($this->db->DBDriver, 'MySQLi')
+            ? "MONTH({$col})"
+            : "CAST(strftime('%m', {$col}) AS INTEGER)";
+    }
+
     /** @return array<string, int> */
     public function getYearKpi(int $year): array
     {
@@ -30,12 +44,15 @@ class ReportModel extends Model
      */
     public function getMonthlyRevenue(int $year): array
     {
+        $m = $this->monthExpr('created_at');
+
         $rows = $this->db->table('deposits')
-            ->select('MONTH(created_at) AS month, IFNULL(SUM(price), 0) AS total', false)
+            ->select("{$m} AS month, IFNULL(SUM(price), 0) AS total", false)
             ->where('status', 2)
-            ->where('YEAR(created_at)', $year)
-            ->groupBy('MONTH(created_at)')
-            ->orderBy('MONTH(created_at)', 'ASC')
+            ->where('created_at >=', "{$year}-01-01 00:00:00")
+            ->where('created_at <=', "{$year}-12-31 23:59:59")
+            ->groupBy($m)
+            ->orderBy($m, 'ASC')
             ->get()
             ->getResultArray();
 
@@ -45,15 +62,15 @@ class ReportModel extends Model
         }
 
         $result = [];
-        for ($m = 1; $m <= 12; $m++) {
-            $result[] = $byMonth[$m] ?? 0;
+        for ($i = 1; $i <= 12; $i++) {
+            $result[] = $byMonth[$i] ?? 0;
         }
 
         return $result;
     }
 
     /**
-     * 캠페인별 DB 소진(status=3) 집계 — AG Grid용 전체 목록
+     * 캠페인별 DB 소진(status=3) 집계 — AG Grid용 목록 (최대 CAMPAIGN_LIST_LIMIT 건)
      *
      * @param array<string, string> $params
      * @return array<int, array<string, mixed>>
@@ -79,7 +96,7 @@ class ReportModel extends Model
             $builder->like('c.ad_title', $params['ad_title']);
         }
 
-        return $builder->get()->getResultArray();
+        return $builder->limit(self::CAMPAIGN_LIST_LIMIT)->get()->getResultArray();
     }
 
     /**
@@ -90,7 +107,8 @@ class ReportModel extends Model
         $row = $this->db->table('deposits')
             ->select('IFNULL(SUM(price), 0) AS total', false)
             ->whereIn('status', $statuses)
-            ->where('YEAR(created_at)', $year)
+            ->where('created_at >=', "{$year}-01-01 00:00:00")
+            ->where('created_at <=', "{$year}-12-31 23:59:59")
             ->get()
             ->getRowArray();
 
