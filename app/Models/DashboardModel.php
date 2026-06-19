@@ -9,12 +9,33 @@ class DashboardModel extends Model
     protected $table = 'contract_orders';
 
     /**
+     * YEAR() / MONTH() 대신 드라이버별 연도·월 표현식 반환
+     * — MySQL: YEAR(col), SQLite3: CAST(strftime('%Y', col) AS INTEGER)
+     */
+    private function yearExpr(string $col): string
+    {
+        return str_starts_with($this->db->DBDriver, 'MySQLi')
+            ? "YEAR({$col})"
+            : "CAST(strftime('%Y', {$col}) AS INTEGER)";
+    }
+
+    private function monthExpr(string $col): string
+    {
+        return str_starts_with($this->db->DBDriver, 'MySQLi')
+            ? "MONTH({$col})"
+            : "CAST(strftime('%m', {$col}) AS INTEGER)";
+    }
+
+    /**
      * 월간 KPI 집계
      *
      * @return array<string, int>
      */
     public function getMonthlyKpi(int $year, int $month): array
     {
+        $startDate = sprintf('%04d-%02d-01 00:00:00', $year, $month);
+        $endDate   = date('Y-m-t 23:59:59', (int) mktime(0, 0, 0, $month, 1, $year));
+
         $totalCampaigns = (int) $this->db->table('campaigns')
             ->where('is_deleted', 0)
             ->countAllResults();
@@ -27,16 +48,16 @@ class DashboardModel extends Model
         $contractRow = $this->db->table('contract_orders')
             ->select('COUNT(*) AS cnt, IFNULL(SUM(ad_price), 0) AS total_price', false)
             ->where('contract_status', 1)
-            ->where('YEAR(created_at)', $year)
-            ->where('MONTH(created_at)', $month)
+            ->where('created_at >=', $startDate)
+            ->where('created_at <=', $endDate)
             ->get()
             ->getRowArray();
 
         $revenueRow = $this->db->table('deposits')
             ->selectSum('price')
             ->where('status', 2)
-            ->where('YEAR(created_at)', $year)
-            ->where('MONTH(created_at)', $month)
+            ->where('created_at >=', $startDate)
+            ->where('created_at <=', $endDate)
             ->get()
             ->getRowArray();
 
@@ -66,21 +87,24 @@ class DashboardModel extends Model
         $startDate = sprintf('%04d-%02d-01', $first['y'], $first['m']);
         $endDate   = date('Y-m-t', mktime(0, 0, 0, $last['m'], 1, $last['y']));
 
+        $y = $this->yearExpr('created_at');
+        $m = $this->monthExpr('created_at');
+
         $contractRows = $this->db->table('contract_orders')
-            ->select('YEAR(created_at) AS y, MONTH(created_at) AS m, COUNT(*) AS cnt, IFNULL(SUM(ad_price), 0) AS total_price', false)
+            ->select("{$y} AS y, {$m} AS m, COUNT(*) AS cnt, IFNULL(SUM(ad_price), 0) AS total_price", false)
             ->where('contract_status', 1)
             ->where('created_at >=', $startDate)
             ->where('created_at <=', $endDate . ' 23:59:59')
-            ->groupBy('YEAR(created_at), MONTH(created_at)')
+            ->groupBy("{$y}, {$m}")
             ->get()
             ->getResultArray();
 
         $revenueRows = $this->db->table('deposits')
-            ->select('YEAR(created_at) AS y, MONTH(created_at) AS m, IFNULL(SUM(price), 0) AS total_price', false)
+            ->select("{$y} AS y, {$m} AS m, IFNULL(SUM(price), 0) AS total_price", false)
             ->where('status', 2)
             ->where('created_at >=', $startDate)
             ->where('created_at <=', $endDate . ' 23:59:59')
-            ->groupBy('YEAR(created_at), MONTH(created_at)')
+            ->groupBy("{$y}, {$m}")
             ->get()
             ->getResultArray();
 

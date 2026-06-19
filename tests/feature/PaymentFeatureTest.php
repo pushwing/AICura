@@ -252,4 +252,60 @@ final class PaymentFeatureTest extends CIUnitTestCase
         // contract_orders.contract_status = 5 (계약환불)
         $this->seeInDatabase('contract_orders', ['id' => 1, 'contract_status' => 5]);
     }
+
+    // ── [F13] 환불 404 — 존재하지 않는 결제 ID ────────
+
+    public function testRefundThrowsPageNotFoundForNonExistentPayment(): void
+    {
+        // CI4 FeatureTestTrait는 PageNotFoundException을 HTTP 응답으로 변환하지 않고 전파
+        $this->expectException(\CodeIgniter\Exceptions\PageNotFoundException::class);
+
+        $this->withSession(self::ADMIN_SESSION)
+             ->post('/admin/payments/9999/refund', [
+                 csrf_token()     => csrf_hash(),
+                 'refund_type'   => '2',
+                 'refund_amount' => '100000',
+             ]);
+    }
+
+    // ── [F14] date_from 날짜 필터 ─────────────────────
+
+    public function testIndexFilterByDateFrom(): void
+    {
+        // 시더 데이터는 오늘 날짜로 생성되므로 today 기준으로 필터하면 포함
+        $today  = date('Y-m-d');
+        $result = $this->withSession(self::ADMIN_SESSION)
+                       ->get('/admin/payments?date_from=' . $today);
+
+        $result->assertStatus(200);
+        $result->assertSee('TRANS001');
+    }
+
+    public function testIndexFilterByDateToExcludesFutureFilter(): void
+    {
+        // date_to를 어제로 설정하면 오늘 생성된 시더 데이터가 제외됨
+        $yesterday = date('Y-m-d', strtotime('-1 day'));
+        $result    = $this->withSession(self::ADMIN_SESSION)
+                          ->get('/admin/payments?date_to=' . $yesterday);
+
+        $result->assertStatus(200);
+        $result->assertDontSee('TRANS001');
+    }
+
+    // ── [F15] 잘못된 refund_type 값 ───────────────────
+
+    public function testRefundFailsWithInvalidRefundType(): void
+    {
+        // in_list[2,5] 위반 — 유효하지 않은 type 값
+        $result = $this->withSession(self::ADMIN_SESSION)
+                       ->post('/admin/payments/1/refund', [
+                           csrf_token()     => csrf_hash(),
+                           'refund_type'   => '3',
+                           'refund_amount' => '100000',
+                       ]);
+
+        $result->assertRedirect();
+        // payments.status는 변경되지 않아야 함
+        $this->seeInDatabase('payments', ['id' => 1, 'status' => 'paid']);
+    }
 }
