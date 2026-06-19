@@ -21,8 +21,11 @@ $routes->group('admin', static function (RouteCollection $routes): void {
         $routes->get('/',           'Admin\DashboardController::index');
         $routes->get('dashboard',   'Admin\DashboardController::index');
 
-        // 광고주 관리
-        $routes->resource('advertisers', ['controller' => 'Admin\AdvertiserController']);
+        // 광고주 관리 — new()는 PHP 예약어이므로 GET /new 를 명시 선언 후 resource에서 제외 (Fix #4)
+        // 폼의 POST + _method=PUT 오버라이드 지원: POST /advertisers/{id} → update
+        $routes->get('advertisers/new', 'Admin\AdvertiserController::newForm');
+        $routes->post('advertisers/(:num)', 'Admin\AdvertiserController::update/$1');
+        $routes->resource('advertisers', ['controller' => 'Admin\AdvertiserController', 'except' => 'new']);
 
         // 캠페인 관리
         $routes->get('campaigns/temp',               'Admin\CampaignController::tempList');
