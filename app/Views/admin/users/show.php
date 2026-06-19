@@ -17,7 +17,7 @@ $backType = match (true) {
     <div style="display:flex;align-items:center;gap:12px;">
         <a href="/admin/users?type=<?= $backType ?>" style="color:var(--color-text-muted);text-decoration:none;">← 목록</a>
         <h1 class="page-title" style="margin:0;">사용자 #<?= (int) $user['id'] ?></h1>
-        <span style="background:var(--color-primary,#0F6E56)20;color:var(--color-primary,#0F6E56);padding:3px 10px;border-radius:4px;font-size:13px;">
+        <span style="background:#0F6E5620;color:var(--color-primary,#0F6E56);padding:3px 10px;border-radius:4px;font-size:13px;">
             <?= esc($typeLabel) ?>
         </span>
         <?php if ($isDormant === 0): ?>

@@ -8,6 +8,9 @@ class UserController extends BaseAdminController
 {
     private UserModel $userModel;
 
+    // 목록 페이지당 행 수
+    private const PER_PAGE = 20;
+
     // user_type 그룹 → 실제 user_type 값 매핑
     private const TYPE_GROUPS = [
         1 => [UserModel::TYPE_USER],
@@ -53,10 +56,13 @@ class UserController extends BaseAdminController
         $subType    = (int) ($this->request->getGet('sub_type') ?? 0);
         $isDormant  = $this->request->getGet('is_dormant') ?? '';
         $searchWord = $this->request->getGet('search_word') ?? '';
+        $page       = max(1, (int) ($this->request->getGet('page') ?? 1));
 
         $params = [
             'is_dormant'  => $isDormant,
             'search_word' => $searchWord,
+            'page'        => $page,
+            'limit'       => self::PER_PAGE,
         ];
 
         if ($subType !== 0 && in_array($subType, self::TYPE_GROUPS[$typeGroup], true)) {
@@ -67,9 +73,14 @@ class UserController extends BaseAdminController
 
         $result = $this->userModel->getList($params);
 
+        $total    = (int) $result['total'];
+        $lastPage = max(1, (int) ceil($total / self::PER_PAGE));
+
         return $this->render('admin/users/index', [
             'users'          => $result['list'],
-            'total'          => $result['total'],
+            'total'          => $total,
+            'page'           => $page,
+            'lastPage'       => $lastPage,
             'typeGroup'      => $typeGroup,
             'subType'        => $subType,
             'isDormant'      => $isDormant,

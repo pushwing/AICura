@@ -101,6 +101,7 @@ class UserModel extends Model
             $builder->where('user_type', (int) $params['user_type']);
         }
 
+        // 주의: is_dormant 값은 반전 의미 — 1 = 활성, 0 = 휴면
         if (isset($params['is_dormant']) && $params['is_dormant'] !== '') {
             $builder->where('is_dormant', (int) $params['is_dormant']);
         }
@@ -115,13 +116,16 @@ class UserModel extends Model
 
         $total = (clone $builder)->countAllResults(false);
 
+        $page  = max(1, (int) ($params['page'] ?? 1));
+        $limit = max(1, (int) ($params['limit'] ?? 20));
+
         $list = $builder
             ->select('id, email, username, user_type, where_from, provider, is_agency_account, picture, phone, age, sex, health_point, is_dormant, last_login_at, created_at')
             ->orderBy('id', 'DESC')
-            ->limit(1000)
+            ->limit($limit, ($page - 1) * $limit)
             ->get()
             ->getResultArray();
 
-        return ['list' => $list, 'total' => $total];
+        return ['list' => $list, 'total' => (int) $total];
     }
 }

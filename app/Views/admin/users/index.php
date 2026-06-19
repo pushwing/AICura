@@ -1,6 +1,8 @@
 <?php
 /** @var array<int, array<string, mixed>> $users */
 /** @var int $total */
+/** @var int $page */
+/** @var int $lastPage */
 /** @var int $typeGroup */
 /** @var int $subType */
 /** @var string $isDormant */
@@ -8,6 +10,19 @@
 /** @var array<int, string> $tabLabels */
 /** @var array<int, list<int>> $typeGroups */
 /** @var array<int, string> $userTypeLabels */
+
+// 필터를 유지한 채 page 만 교체하는 링크 헬퍼
+$pageLink = static function (int $p) use ($typeGroup, $subType, $isDormant, $searchWord): string {
+    $query = array_filter([
+        'type'        => $typeGroup,
+        'sub_type'    => $subType > 0 ? $subType : null,
+        'is_dormant'  => $isDormant !== '' ? $isDormant : null,
+        'search_word' => $searchWord !== '' ? $searchWord : null,
+        'page'        => $p,
+    ], static fn ($v) => $v !== null);
+
+    return '/admin/users?' . http_build_query($query);
+};
 ?>
 <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
     <h1 class="page-title">사용자 관리</h1>
@@ -56,8 +71,36 @@
     총 <strong><?= number_format($total) ?></strong>건
 </p>
 
-<!-- AG Grid -->
+<!-- AG Grid (서버사이드 페이징 — 현재 페이지만 표시) -->
 <div id="userGrid" style="height:600px;" class="ag-theme-alpine"></div>
+
+<!-- 서버사이드 페이지네이션 -->
+<?php if ($lastPage > 1): ?>
+<nav style="display:flex;justify-content:center;align-items:center;gap:6px;margin-top:16px;">
+    <?php if ($page > 1): ?>
+        <a href="<?= esc($pageLink($page - 1), 'attr') ?>" class="btn btn-outline btn-sm">이전</a>
+    <?php endif; ?>
+
+    <?php
+    $start = max(1, $page - 2);
+    $end   = min($lastPage, $page + 2);
+    for ($p = $start; $p <= $end; $p++):
+    ?>
+        <?php if ($p === $page): ?>
+            <span class="btn btn-primary btn-sm"><?= $p ?></span>
+        <?php else: ?>
+            <a href="<?= esc($pageLink($p), 'attr') ?>" class="btn btn-outline btn-sm"><?= $p ?></a>
+        <?php endif; ?>
+    <?php endfor; ?>
+
+    <?php if ($page < $lastPage): ?>
+        <a href="<?= esc($pageLink($page + 1), 'attr') ?>" class="btn btn-outline btn-sm">다음</a>
+    <?php endif; ?>
+</nav>
+<p class="text-sm" style="text-align:center;color:var(--color-text-muted);margin-top:8px;">
+    <?= $page ?> / <?= $lastPage ?> 페이지
+</p>
+<?php endif; ?>
 
 <script>
 const typeLabels = <?= json_encode($userTypeLabels, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>;
@@ -95,11 +138,10 @@ const columnDefs = [
     },
 ];
 
+// 페이징은 서버사이드(아래 페이지네이션)로 처리 — 그리드는 현재 페이지만 표시
 agGrid.createGrid(document.getElementById('userGrid'), {
     columnDefs,
     rowData,
-    pagination: true,
-    paginationPageSize: 20,
     defaultColDef: { resizable: true },
 });
 </script>
