@@ -39,10 +39,11 @@ class PaymentModel extends Model
     ];
 
     public const STATUSES = [
-        'pending'  => ['label' => '입금대기', 'color' => '#f59e0b'],
-        'paid'     => ['label' => '결제완료', 'color' => '#10b981'],
-        'refunded' => ['label' => '환불',     'color' => '#6366f1'],
-        'failed'   => ['label' => '실패',     'color' => '#ef4444'],
+        'pending'          => ['label' => '입금대기',   'color' => '#f59e0b'],
+        'paid'             => ['label' => '결제완료',   'color' => '#10b981'],
+        'partial_refunded' => ['label' => '부분환불',   'color' => '#a855f7'],
+        'refunded'         => ['label' => '환불',       'color' => '#6366f1'],
+        'failed'           => ['label' => '실패',       'color' => '#ef4444'],
     ];
 
     // contract_orders.contract_status → deposits.status 매핑
@@ -117,13 +118,17 @@ class PaymentModel extends Model
     }
 
     /**
-     * 환불 처리 트랜잭션
+     * 환불 처리 트랜잭션 (부분 환불 다회 허용)
      *  ① deposits INSERT (status=6 or 7, is_minus=1) — 원장
      *  ② refunds  INSERT — PG 환불 결과 기록 (감사용)
      *  ③ contract_orders.contract_status 업데이트 (2 or 5)
-     *  ④ payments.status = 'refunded'
+     *  ④ payments.status — 누적 환불액이 결제액 미만이면 'partial_refunded',
+     *     도달하면 'refunded'
      *
-     * @throws \RuntimeException 유효하지 않은 환불 유형
+     * 환불 가능액은 (결제액 − 성공한 기존 환불액 누계) 로 산정하며,
+     * 잔여액에 도달할 때까지 부분 환불을 여러 번 처리할 수 있다.
+     *
+     * @throws \RuntimeException 유효하지 않은 환불 유형·금액
      * @throws \Throwable DB 트랜잭션 오류
      */
     public function processRefund(int $paymentId, int $amount, int $refundType, int $userId): void
@@ -139,9 +144,16 @@ class PaymentModel extends Model
             throw new \RuntimeException('결제 정보를 찾을 수 없습니다.');
         }
 
-        if ($amount <= 0 || $amount > (int) $payment['amount']) {
+        $total           = (int) $payment['amount'];
+        $alreadyRefunded = model(RefundModel::class)->getRefundedTotal($paymentId);
+        $remaining       = $total - $alreadyRefunded;
+
+        if ($amount <= 0 || $amount > $remaining) {
             throw new \RuntimeException('환불 금액이 유효하지 않습니다.');
         }
+
+        // 이번 환불로 누적 환불액이 결제액에 도달하면 전체 환불
+        $isFullyRefunded = ($alreadyRefunded + $amount) >= $total;
 
         $db  = $this->db;
         $now = date('Y-m-d H:i:s');
@@ -183,7 +195,10 @@ class PaymentModel extends Model
 
             $db->table('payments')
                 ->where('id', $paymentId)
-                ->update(['status' => 'refunded', 'updated_at' => $now]);
+                ->update([
+                    'status'     => $isFullyRefunded ? 'refunded' : 'partial_refunded',
+                    'updated_at' => $now,
+                ]);
 
             $db->transCommit();
         } catch (\Throwable $e) {

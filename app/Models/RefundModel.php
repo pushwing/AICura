@@ -52,4 +52,19 @@ class RefundModel extends Model
             ->orderBy('id', 'DESC')
             ->findAll();
     }
+
+    /**
+     * 결제 건의 성공 환불액 누계 (부분 환불 다회 합산)
+     */
+    public function getRefundedTotal(int $paymentId): int
+    {
+        $row = $this->builder()
+            ->selectSum('amount')
+            ->where('payment_id', $paymentId)
+            ->where('result_code', self::RESULT_SUCCESS)
+            ->get()
+            ->getRowArray();
+
+        return $row === null ? 0 : (int) ($row['amount'] ?? 0);
+    }
 }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\PaymentModel;
+use App\Models\RefundModel;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 
@@ -207,9 +208,20 @@ final class PaymentModelDatabaseTest extends CIUnitTestCase
         model(PaymentModel::class)->processRefund(999999, 100000, 2, 1);
     }
 
-    public function testProcessRefundUpdatesPaymentStatusToRefunded(): void
+    public function testProcessRefundPartialSetsPartialRefundedStatus(): void
     {
+        // 부분 환불 (1,100,000 중 500,000) → 'partial_refunded'
         model(PaymentModel::class)->processRefund($this->paymentId, 500000, 2, 1);
+
+        $row = db_connect()->table('payments')->where('id', $this->paymentId)->get()->getRowArray();
+        $this->assertIsArray($row);
+        $this->assertSame('partial_refunded', $row['status']);
+    }
+
+    public function testProcessRefundFullSetsRefundedStatus(): void
+    {
+        // 전액 환불 → 'refunded'
+        model(PaymentModel::class)->processRefund($this->paymentId, 1100000, 5, 1);
 
         $row = db_connect()->table('payments')->where('id', $this->paymentId)->get()->getRowArray();
         $this->assertIsArray($row);
@@ -262,5 +274,36 @@ final class PaymentModelDatabaseTest extends CIUnitTestCase
             'amount'     => 1100000,
             'term_type'  => 1,
         ]);
+    }
+
+    public function testProcessRefundAllowsMultiplePartialsUntilFull(): void
+    {
+        $payments = model(PaymentModel::class);
+        $db       = db_connect();
+
+        // 1차 부분 환불 (잔여 700,000) → 부분환불 유지
+        $payments->processRefund($this->paymentId, 400000, 2, 1);
+        $row = $db->table('payments')->where('id', $this->paymentId)->get()->getRowArray();
+        $this->assertSame('partial_refunded', $row['status']);
+
+        // 2차 부분 환불 (잔여 0) → 누적 1,100,000 = 결제액 → 전액 환불
+        $payments->processRefund($this->paymentId, 700000, 5, 1);
+        $row = $db->table('payments')->where('id', $this->paymentId)->get()->getRowArray();
+        $this->assertSame('refunded', $row['status']);
+
+        // 환불 내역 2건 기록 + 누적액 검증
+        $this->assertSame(2, $db->table('refunds')->where('payment_id', $this->paymentId)->countAllResults());
+        $this->assertSame(1100000, model(RefundModel::class)->getRefundedTotal($this->paymentId));
+    }
+
+    public function testProcessRefundRejectsAmountExceedingRemaining(): void
+    {
+        // 1차 환불 후 잔여 600,000
+        model(PaymentModel::class)->processRefund($this->paymentId, 500000, 2, 1);
+
+        // 잔여액(600,000) 초과 요청은 거부
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('환불 금액이 유효하지 않습니다.');
+        model(PaymentModel::class)->processRefund($this->paymentId, 700000, 5, 1);
     }
 }

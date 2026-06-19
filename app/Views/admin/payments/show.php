@@ -1,11 +1,14 @@
 <?php
 /** @var array<string, mixed> $payment */
 /** @var array<int, array<string, mixed>> $refunds */
+/** @var int $refundedTotal */
+/** @var int $remainingAmount */
 /** @var array<string, array<string, string>> $statuses */
 /** @var array<int, string> $paymentTypes */
 
 $currentStatus = $payment['status'];
 $statusInfo    = $statuses[$currentStatus] ?? ['label' => $currentStatus, 'color' => '#888'];
+// 전액 환불 완료 시에만 환불 처리 차단 — 부분 환불 상태는 잔여액 내에서 추가 환불 허용
 $isRefunded    = $currentStatus === 'refunded';
 
 $refundTypes = [
@@ -123,7 +126,12 @@ $refundTypes = [
 <?php if (!empty($refunds)): ?>
 <div class="card" style="margin-top:20px;">
     <div class="card-body">
-        <h3 style="margin-bottom:12px;font-size:15px;">환불 내역</h3>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;">
+            <h3 style="font-size:15px;">환불 내역</h3>
+            <span style="font-size:13px;color:var(--color-text-muted);">
+                누적 환불 <?= number_format($refundedTotal) ?>원 · 잔여 <?= number_format($remainingAmount) ?>원
+            </span>
+        </div>
         <table style="width:100%;font-size:13px;border-collapse:collapse;">
             <thead>
                 <tr style="border-bottom:1px solid var(--color-border);">
@@ -174,10 +182,10 @@ $refundTypes = [
             </div>
             <div style="margin-bottom:20px;">
                 <label style="display:block;font-size:13px;margin-bottom:6px;color:var(--color-text-muted);">
-                    환불 금액 (최대 <?= number_format((int) $payment['amount']) ?>원)
+                    환불 금액 (잔여 환불 가능액 <?= number_format($remainingAmount) ?>원)
                 </label>
                 <input type="number" name="refund_amount" class="form-control"
-                       min="1" max="<?= (int) $payment['amount'] ?>"
+                       min="1" max="<?= $remainingAmount ?>"
                        placeholder="환불할 금액 입력" required>
             </div>
             <div style="display:flex;justify-content:flex-end;gap:8px;">
