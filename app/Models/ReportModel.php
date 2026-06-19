@@ -51,8 +51,8 @@ class ReportModel extends Model
             ->where('status', 2)
             ->where('created_at >=', "{$year}-01-01 00:00:00")
             ->where('created_at <=', "{$year}-12-31 23:59:59")
-            ->groupBy($m)
-            ->orderBy($m, 'ASC')
+            ->groupBy('month')
+            ->orderBy('month', 'ASC')
             ->get()
             ->getResultArray();
 
