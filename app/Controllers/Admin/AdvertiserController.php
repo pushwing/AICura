@@ -37,8 +37,21 @@ class AdvertiserController extends BaseAdminController
 
         $result = $this->advertiserModel->getList($params);
 
+        $tz  = new \DateTimeZone('Asia/Seoul');
+        $utc = new \DateTimeZone('UTC');
+        $advertisers = array_map(static function (array $row) use ($tz, $utc): array {
+            if (!empty($row['created_at'])) {
+                $dt = new \DateTime($row['created_at'], $utc);
+                $dt->setTimezone($tz);
+                $row['created_at_kst'] = $dt->format('Y-m-d H:i');
+            } else {
+                $row['created_at_kst'] = '-';
+            }
+            return $row;
+        }, $result['list']);
+
         return $this->render('admin/advertisers/index', [
-            'advertisers' => $result['list'],
+            'advertisers' => $advertisers,
             'total'       => $result['total'],
             'params'      => $params,
         ]);
@@ -54,6 +67,28 @@ class AdvertiserController extends BaseAdminController
         if ($advertiser === null) {
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
+
+        $tz  = new \DateTimeZone('Asia/Seoul');
+        $utc = new \DateTimeZone('UTC');
+
+        if (!empty($advertiser['created_at'])) {
+            $dt = new \DateTime($advertiser['created_at'], $utc);
+            $dt->setTimezone($tz);
+            $advertiser['created_at_kst'] = $dt->format('Y-m-d H:i');
+        } else {
+            $advertiser['created_at_kst'] = '-';
+        }
+
+        $advertiser['contracts'] = array_map(static function (array $c) use ($tz, $utc): array {
+            if (!empty($c['created_at'])) {
+                $dt = new \DateTime($c['created_at'], $utc);
+                $dt->setTimezone($tz);
+                $c['created_at_kst'] = $dt->format('Y-m-d H:i');
+            } else {
+                $c['created_at_kst'] = '-';
+            }
+            return $c;
+        }, $advertiser['contracts'] ?? []);
 
         return $this->render('admin/advertisers/show', ['advertiser' => $advertiser]);
     }
@@ -183,7 +218,9 @@ class AdvertiserController extends BaseAdminController
             'status'            => (int) $this->request->getPost('status'),
         ];
 
-        $this->advertiserModel->update($id, $updateData);
+        if ($this->advertiserModel->update($id, $updateData) === false) {
+            return redirect()->back()->withInput()->with('errors', $this->advertiserModel->errors());
+        }
 
         return redirect()->to('/admin/advertisers/' . $id)
             ->with('success', '수정되었습니다.');

@@ -95,7 +95,7 @@ const columnDefs = [
             return `<span style="background:${color}20;color:${color};padding:2px 8px;border-radius:4px;font-size:12px;">${label}</span>`;
         },
     },
-    { field: 'created_at', headerName: '등록일', width: 160 },
+    { field: 'created_at_kst', headerName: '등록일', width: 160 },
     {
         headerName: '액션',
         width: 70,

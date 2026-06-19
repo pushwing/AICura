@@ -102,7 +102,7 @@ $kpi = $advertiser['kpi'] ?? ['total_amount' => 0, 'balance' => 0, 'active_campa
                     ['담당자',  esc($advertiser['contact_name'] ?? '-')],
                     ['이메일',  esc($advertiser['contact_email'] ?? '-')],
                     ['연락처',  esc($advertiser['contact_phone'] ?? '-')],
-                    ['등록일',  esc($advertiser['created_at'] ?? '-')],
+                    ['등록일',  esc($advertiser['created_at_kst'] ?? '-')],
                 ];
                 foreach ($contactRows as [$label, $value]):
                 ?>
@@ -184,7 +184,7 @@ $kpi = $advertiser['kpi'] ?? ['total_amount' => 0, 'balance' => 0, 'active_campa
                         </td>
                         <td style="padding:10px 0;"><?= esc($contract['title']) ?></td>
                         <td style="padding:10px 0;"><?= esc($payTypeLabels[(int) $contract['pay_type']] ?? '-') ?></td>
-                        <td style="padding:10px 0;"><?= esc($contract['created_at']) ?></td>
+                        <td style="padding:10px 0;"><?= esc($contract['created_at_kst'] ?? '-') ?></td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>

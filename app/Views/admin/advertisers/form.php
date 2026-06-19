@@ -3,14 +3,12 @@
 /** @var array<int, array<string, mixed>> $hospitals */
 /** @var array<int, array<string, mixed>> $parentAdvertisers */
 
-$isEdit  = $advertiser !== null;
-$title   = $isEdit ? '광고주 수정' : '광고주 등록';
-$action  = $isEdit ? '/admin/advertisers/' . (int) $advertiser['id'] : '/admin/advertisers';
+$isEdit = $advertiser !== null;
+$title  = $isEdit ? '광고주 수정' : '광고주 등록';
+$action = $isEdit ? '/admin/advertisers/' . (int) $advertiser['id'] : '/admin/advertisers';
 
 /** @var array<string, string> $errors */
 $errors = session('errors') ?? [];
-
-$old = fn(string $key, mixed $default = ''): mixed => old($key, $isEdit ? ($advertiser[$key] ?? $default) : $default);
 ?>
 
 <div class="page-header" style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
@@ -49,7 +47,7 @@ $old = fn(string $key, mixed $default = ''): mixed => old($key, $isEdit ? ($adve
                         <?php foreach ($hospitals as $h): ?>
                             <option value="<?= (int) $h['id'] ?>"
                                     data-name="<?= esc($h['name']) ?>"
-                                <?= (string) $old('hospital_id') === (string) $h['id'] ? 'selected' : '' ?>>
+                                <?= (string) old('hospital_id') === (string) $h['id'] ? 'selected' : '' ?>>
                                 <?= esc($h['name']) ?>
                             </option>
                         <?php endforeach; ?>
@@ -57,80 +55,78 @@ $old = fn(string $key, mixed $default = ''): mixed => old($key, $isEdit ? ($adve
                 <?php endif; ?>
             </div>
 
-            <!-- 병원명 (표시용 / 자동입력) -->
+            <!-- 병원명 -->
             <div style="margin-bottom:20px;">
                 <label style="display:block;font-size:14px;font-weight:500;margin-bottom:6px;">병원명 <span style="color:#ef4444">*</span></label>
                 <input type="text" name="hospital_name" class="form-control" id="hospitalName"
-                       value="<?= esc((string) $old('hospital_name')) ?>"
+                       value="<?= esc((string) old('hospital_name', $isEdit ? ($advertiser['hospital_name'] ?? '') : '')) ?>"
                        placeholder="병원명" maxlength="255" required>
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
-                <!-- 담당자명 -->
                 <div>
                     <label style="display:block;font-size:14px;font-weight:500;margin-bottom:6px;">담당자명</label>
                     <input type="text" name="contact_name" class="form-control"
-                           value="<?= esc((string) $old('contact_name')) ?>"
+                           value="<?= esc((string) old('contact_name', $isEdit ? ($advertiser['contact_name'] ?? '') : '')) ?>"
                            placeholder="담당자명" maxlength="100">
                 </div>
-                <!-- 담당자 전화 -->
                 <div>
                     <label style="display:block;font-size:14px;font-weight:500;margin-bottom:6px;">연락처</label>
                     <input type="text" name="contact_phone" class="form-control"
-                           value="<?= esc((string) $old('contact_phone')) ?>"
+                           value="<?= esc((string) old('contact_phone', $isEdit ? ($advertiser['contact_phone'] ?? '') : '')) ?>"
                            placeholder="010-0000-0000" maxlength="30">
                 </div>
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
-                <!-- 담당자 이메일 -->
                 <div>
                     <label style="display:block;font-size:14px;font-weight:500;margin-bottom:6px;">이메일</label>
                     <input type="email" name="contact_email" class="form-control"
-                           value="<?= esc((string) $old('contact_email')) ?>"
+                           value="<?= esc((string) old('contact_email', $isEdit ? ($advertiser['contact_email'] ?? '') : '')) ?>"
                            placeholder="example@hospital.com" maxlength="255">
                 </div>
-                <!-- 사업자등록번호 -->
                 <div>
                     <label style="display:block;font-size:14px;font-weight:500;margin-bottom:6px;">사업자등록번호</label>
                     <input type="text" name="business_no" class="form-control"
-                           value="<?= esc((string) $old('business_no')) ?>"
+                           value="<?= esc((string) old('business_no', $isEdit ? ($advertiser['business_no'] ?? '') : '')) ?>"
                            placeholder="000-00-00000" maxlength="50">
                 </div>
             </div>
 
+            <?php
+            $currentNetwork  = (string) old('is_network', $isEdit ? ($advertiser['is_network'] ?? 0) : 0);
+            $currentParentId = (string) old('network_parent_id', $isEdit ? ($advertiser['network_parent_id'] ?? '') : '');
+            $currentStatus   = (string) old('status', $isEdit ? ($advertiser['status'] ?? 1) : 1);
+            ?>
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:28px;">
-                <!-- 네트워크 유형 -->
                 <div>
                     <label style="display:block;font-size:14px;font-weight:500;margin-bottom:6px;">네트워크 유형 <span style="color:#ef4444">*</span></label>
                     <select name="is_network" class="form-control" id="networkType" onchange="onNetworkChange(this.value)">
-                        <option value="0" <?= (string) $old('is_network', 0) === '0' ? 'selected' : '' ?>>일반</option>
-                        <option value="1" <?= (string) $old('is_network', 0) === '1' ? 'selected' : '' ?>>네트워크(모)</option>
-                        <option value="2" <?= (string) $old('is_network', 0) === '2' ? 'selected' : '' ?>>네트워크(자)</option>
+                        <option value="0" <?= $currentNetwork === '0' ? 'selected' : '' ?>>일반</option>
+                        <option value="1" <?= $currentNetwork === '1' ? 'selected' : '' ?>>네트워크(모)</option>
+                        <option value="2" <?= $currentNetwork === '2' ? 'selected' : '' ?>>네트워크(자)</option>
                     </select>
                 </div>
 
-                <!-- 모병원 선택 (자병원인 경우) -->
-                <div id="parentWrap" style="display:<?= (string) $old('is_network', 0) === '2' ? 'block' : 'none' ?>;">
+                <div id="parentWrap" style="display:<?= $currentNetwork === '2' ? 'block' : 'none' ?>;">
                     <label style="display:block;font-size:14px;font-weight:500;margin-bottom:6px;">모병원</label>
                     <select name="network_parent_id" class="form-control">
                         <option value="">모병원 선택</option>
                         <?php foreach ($parentAdvertisers as $p): ?>
                             <option value="<?= (int) $p['id'] ?>"
-                                <?= (string) $old('network_parent_id') === (string) $p['id'] ? 'selected' : '' ?>>
+                                <?= $currentParentId === (string) $p['id'] ? 'selected' : '' ?>>
                                 <?= esc($p['hospital_name']) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
                 </div>
 
-                <!-- 상태 -->
                 <div>
                     <label style="display:block;font-size:14px;font-weight:500;margin-bottom:6px;">상태 <span style="color:#ef4444">*</span></label>
                     <select name="status" class="form-control">
-                        <option value="1" <?= (string) $old('status', 1) === '1' ? 'selected' : '' ?>>활성</option>
-                        <option value="2" <?= (string) $old('status', 1) === '2' ? 'selected' : '' ?>>정지</option>
-                        <option value="3" <?= (string) $old('status', 1) === '3' ? 'selected' : '' ?>>탈퇴</option>
+                        <option value="1" <?= $currentStatus === '1' ? 'selected' : '' ?>>활성</option>
+                        <option value="2" <?= $currentStatus === '2' ? 'selected' : '' ?>>정지</option>
+                        <option value="3" <?= $currentStatus === '3' ? 'selected' : '' ?>>탈퇴</option>
                     </select>
                 </div>
             </div>

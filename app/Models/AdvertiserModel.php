@@ -84,14 +84,19 @@ class AdvertiserModel extends Model
         $isNetwork = (int) $advertiser['is_network'];
 
         if ($isNetwork === 1) {
-            $advertiser['children'] = $this->select('id, hospital_name, status')
+            $advertiser['children'] = $this->db->table('advertisers')
+                ->select('id, hospital_name, status')
                 ->where('network_parent_id', $id)
-                ->findAll();
+                ->get()
+                ->getResultArray();
         }
 
         if ($isNetwork === 2 && !empty($advertiser['network_parent_id'])) {
-            $advertiser['parent'] = $this->select('id, hospital_name, status')
-                ->find((int) $advertiser['network_parent_id']);
+            $advertiser['parent'] = $this->db->table('advertisers')
+                ->select('id, hospital_name, status')
+                ->where('id', (int) $advertiser['network_parent_id'])
+                ->get()
+                ->getRowArray();
         }
 
         $advertiser['contracts'] = $this->db->table('contracts')
