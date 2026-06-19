@@ -90,7 +90,8 @@ $routes->group('admin', static function (RouteCollection $routes): void {
         $routes->post('payments/(:num)/refund',     'Admin\PaymentController::refund/$1');
 
         // 사용자 관리
-        $routes->resource('users', ['controller' => 'Admin\UserController']);
+        $routes->get('users',        'Admin\UserController::index');
+        $routes->get('users/(:num)', 'Admin\UserController::show/$1');
 
         // 설정
         $routes->get('settings',  'Admin\SettingController::index');
