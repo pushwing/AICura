@@ -19,6 +19,13 @@ abstract class BaseAdminController extends BaseController
         $this->viewData['authUser'] = session()->get('admin_user');
     }
 
+    protected function toKst(string $datetime): string
+    {
+        $dt = new \DateTime($datetime, new \DateTimeZone('UTC'));
+        $dt->setTimezone(new \DateTimeZone('Asia/Seoul'));
+        return $dt->format('Y-m-d H:i');
+    }
+
     /** @param array<string, mixed> $data */
     protected function render(string $view, array $data = []): string
     {

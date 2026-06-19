@@ -20,6 +20,11 @@ class HospitalModel extends Model
         'is_deleted',
     ];
 
+    // Fix #7: 병원 목록 변경 시 활성 목록 캐시 무효화
+    protected $afterInsert = ['clearActiveListCache'];
+    protected $afterUpdate = ['clearActiveListCache'];
+    protected $afterDelete = ['clearActiveListCache'];
+
     /** @var array<string, string> */
     protected $validationRules = [
         'name'   => 'required|max_length[255]',
@@ -29,7 +34,7 @@ class HospitalModel extends Model
 
     /**
      * @param array<string, mixed> $params
-     * @return array<string, mixed>
+     * @return array{list: list<array<string, mixed>>, total: int}
      */
     public function getList(array $params): array
     {
@@ -55,16 +60,42 @@ class HospitalModel extends Model
             ->get()
             ->getResultArray();
 
-        return ['list' => $list, 'total' => $total];
+        return ['list' => $list, 'total' => (int) $total];
     }
 
-    /** @return array<int, array<string, mixed>> */
+    /**
+     * Fix #7: 결과를 10분 캐시 — 폼 드롭다운용, 변경 빈도 낮음
+     *
+     * @return list<array<string, mixed>>
+     */
     public function getActiveList(): array
     {
-        return $this->select('id, name, type')
+        $cacheKey = 'hospitals_active_list';
+        /** @var list<array<string, mixed>>|null $cached */
+        $cached = cache($cacheKey);
+        if (is_array($cached)) {
+            return $cached;
+        }
+
+        /** @var list<array<string, mixed>> $list */
+        $list = $this->select('id, name, type')
             ->where('is_deleted', 0)
             ->where('status', 'active')
             ->orderBy('name', 'ASC')
             ->findAll();
+
+        cache()->save($cacheKey, $list, 600);
+
+        return $list;
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    protected function clearActiveListCache(array $data): array
+    {
+        cache()->delete('hospitals_active_list');
+        return $data;
     }
 }
