@@ -110,23 +110,61 @@ agGrid.createGrid(document.getElementById('myGrid'), gridOptions);
 
 ### 에디터
 
-리치 텍스트 입력이 필요한 경우 **TinyMCE** 를 사용한다.
+리치 텍스트 입력이 필요한 경우 **Tiptap** 을 사용한다. 빌드 단계 없이 ES 모듈 CDN으로 로드한다.
 
 ```html
-<script src="https://cdn.tiny.cloud/1/{API_KEY}/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>
-<script>
-tinymce.init({
-    selector: 'textarea.editor',
-    language: 'ko_KR',
-    plugins: 'link image lists table code',
-    toolbar: 'undo redo | bold italic | alignleft aligncenter alignright | bullist numlist | link image | code',
-    images_upload_url: '/admin/media/upload',
-});
+<!-- 에디터 컨테이너 + 숨김 input (폼 제출용) -->
+<div id="myEditor" style="min-height:120px;border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:8px;outline:none;"></div>
+<input type="hidden" name="content" id="contentInput">
+
+<script type="module">
+import { Editor } from 'https://esm.sh/@tiptap/core@2'
+import StarterKit from 'https://esm.sh/@tiptap/starter-kit@2'
+
+const editor = new Editor({
+    element: document.getElementById('myEditor'),
+    extensions: [StarterKit],
+    content: '',
+    onUpdate: ({ editor }) => {
+        document.getElementById('contentInput').value = editor.getHTML()
+    },
+})
+
+// 내용 초기화
+editor.commands.clearContent()
+
+// 내용 설정 (기존 데이터 로드 시)
+// editor.commands.setContent('<?= esc($content ?? '') ?>')
+
+// fetch 제출 시 HTML 추출
+// const html = editor.getHTML()
 </script>
 ```
 
-- API Key는 `.env`의 `TINYMCE_API_KEY`에서 관리
+**툴바 버튼 예시** (Tiptap은 헤드리스이므로 직접 구성)
+
+```js
+// 툴바 버튼 → 에디터 커맨드 연결
+document.getElementById('btnBold').addEventListener('click', () =>
+    editor.chain().focus().toggleBold().run()
+)
+document.getElementById('btnItalic').addEventListener('click', () =>
+    editor.chain().focus().toggleItalic().run()
+)
+document.getElementById('btnBullet').addEventListener('click', () =>
+    editor.chain().focus().toggleBulletList().run()
+)
+
+// 활성 상태 표시
+editor.on('transaction', () => {
+    document.getElementById('btnBold').classList.toggle('is-active', editor.isActive('bold'))
+    document.getElementById('btnItalic').classList.toggle('is-active', editor.isActive('italic'))
+})
+```
+
 - 저장 시 출력은 반드시 `esc($content, 'html')` 또는 허용된 태그 화이트리스트 필터 적용
+- 저장된 HTML 불러올 때: `editor.commands.setContent(savedHtml)`
+- 구현 참고: `app/Views/admin/campaigns/show.php` (메모 에디터)
 
 ### 차트
 
