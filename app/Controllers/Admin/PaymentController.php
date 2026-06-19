@@ -3,11 +3,13 @@
 namespace App\Controllers\Admin;
 
 use App\Models\PaymentModel;
+use App\Models\RefundModel;
 use CodeIgniter\HTTP\ResponseInterface;
 
 class PaymentController extends BaseAdminController
 {
     private PaymentModel $paymentModel;
+    private RefundModel $refundModel;
 
     public function initController(
         \CodeIgniter\HTTP\RequestInterface $request,
@@ -16,6 +18,7 @@ class PaymentController extends BaseAdminController
     ): void {
         parent::initController($request, $response, $logger);
         $this->paymentModel = model(PaymentModel::class);
+        $this->refundModel  = model(RefundModel::class);
     }
 
     // ──────────────────────────────────────────────
@@ -57,6 +60,7 @@ class PaymentController extends BaseAdminController
 
         return $this->render('admin/payments/show', [
             'payment'      => $payment,
+            'refunds'      => $this->refundModel->getListByPayment($id),
             'statuses'     => PaymentModel::STATUSES,
             'paymentTypes' => PaymentModel::PAYMENT_TYPES,
         ]);

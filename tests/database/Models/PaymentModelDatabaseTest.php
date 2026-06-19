@@ -79,6 +79,7 @@ final class PaymentModelDatabaseTest extends CIUnitTestCase
     protected function tearDown(): void
     {
         $db = db_connect();
+        $db->table('refunds')->where('payment_id', $this->paymentId)->delete();
         $db->table('deposits')->where('contract_id', $this->contractId)->delete();
         $db->table('payments')->where('id', $this->paymentId)->delete();
         $db->table('contract_orders')->where('id', $this->contractOrderId)->delete();
@@ -235,5 +236,31 @@ final class PaymentModelDatabaseTest extends CIUnitTestCase
         $row = db_connect()->table('contract_orders')->where('id', $this->contractOrderId)->get()->getRowArray();
         $this->assertIsArray($row);
         $this->assertSame(5, (int) $row['contract_status']);
+    }
+
+    public function testProcessRefundInsertsPartialRefundRecord(): void
+    {
+        // 부분 환불 (결제액 1,100,000 중 500,000)
+        model(PaymentModel::class)->processRefund($this->paymentId, 500000, 2, 1);
+
+        $this->seeInDatabase('refunds', [
+            'payment_id'        => $this->paymentId,
+            'contract_order_id' => $this->contractOrderId,
+            'amount'            => 500000,
+            'term_type'         => 2, // 부분
+            'result_code'       => 1, // 성공
+        ]);
+    }
+
+    public function testProcessRefundRecordsFullRefundTermType(): void
+    {
+        // 전액 환불 → term_type = 1 (전체)
+        model(PaymentModel::class)->processRefund($this->paymentId, 1100000, 5, 1);
+
+        $this->seeInDatabase('refunds', [
+            'payment_id' => $this->paymentId,
+            'amount'     => 1100000,
+            'term_type'  => 1,
+        ]);
     }
 }

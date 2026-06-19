@@ -1,10 +1,12 @@
 <?php
 /** @var array<string, mixed> $payment */
+/** @var array<int, array<string, mixed>> $refunds */
 /** @var array<string, array<string, string>> $statuses */
 /** @var array<int, string> $paymentTypes */
 
 $currentStatus = $payment['status'];
 $statusInfo    = $statuses[$currentStatus] ?? ['label' => $currentStatus, 'color' => '#888'];
+$isRefunded    = $currentStatus === 'refunded';
 
 $refundTypes = [
     2 => '발행환불',
@@ -20,7 +22,9 @@ $refundTypes = [
             <?= esc($statusInfo['label']) ?>
         </span>
     </div>
-    <button type="button" class="btn btn-danger btn-sm" onclick="openRefundModal()">환불 처리</button>
+    <?php if (!$isRefunded): ?>
+        <button type="button" class="btn btn-danger btn-sm" onclick="openRefundModal()">환불 처리</button>
+    <?php endif; ?>
 </div>
 
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
@@ -115,7 +119,45 @@ $refundTypes = [
     </div>
 </div>
 
+<!-- 환불 내역 -->
+<?php if (!empty($refunds)): ?>
+<div class="card" style="margin-top:20px;">
+    <div class="card-body">
+        <h3 style="margin-bottom:12px;font-size:15px;">환불 내역</h3>
+        <table style="width:100%;font-size:13px;border-collapse:collapse;">
+            <thead>
+                <tr style="border-bottom:1px solid var(--color-border);">
+                    <th style="padding:8px 0;text-align:left;font-weight:500;color:var(--color-text-muted);">유형</th>
+                    <th style="padding:8px 0;text-align:right;font-weight:500;color:var(--color-text-muted);">금액</th>
+                    <th style="padding:8px 0;text-align:left;font-weight:500;color:var(--color-text-muted);">결과</th>
+                    <th style="padding:8px 0;text-align:left;font-weight:500;color:var(--color-text-muted);">거래번호</th>
+                    <th style="padding:8px 0;text-align:left;font-weight:500;color:var(--color-text-muted);">일시</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($refunds as $r): ?>
+                <tr style="border-bottom:1px solid var(--color-border);">
+                    <td style="padding:8px 0;"><?= (int) $r['term_type'] === 1 ? '전체' : '부분' ?></td>
+                    <td style="padding:8px 0;text-align:right;"><?= number_format((int) $r['amount']) ?>원</td>
+                    <td style="padding:8px 0;">
+                        <?php if ((int) $r['result_code'] === 1): ?>
+                            <span style="color:#10b981;">성공</span>
+                        <?php else: ?>
+                            <span style="color:#ef4444;">실패</span>
+                        <?php endif; ?>
+                    </td>
+                    <td style="padding:8px 0;"><?= esc($r['trans_no'] ?: '-') ?></td>
+                    <td style="padding:8px 0;color:var(--color-text-muted);"><?= esc($r['created_at']) ?></td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+<?php endif; ?>
+
 <!-- 환불 모달 -->
+<?php if (!$isRefunded): ?>
 <div id="refundModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;">
     <div style="background:var(--color-bg,#fff);border-radius:12px;padding:24px;min-width:380px;max-width:480px;">
         <h3 style="margin-bottom:16px;font-size:16px;">환불 처리</h3>
@@ -159,3 +201,4 @@ document.getElementById('refundModal').addEventListener('click', (e) => {
     if (e.target === e.currentTarget) closeRefundModal();
 });
 </script>
+<?php endif; ?>
