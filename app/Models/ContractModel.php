@@ -12,12 +12,32 @@ class ContractModel extends Model
     protected $table      = 'contracts';
     protected $primaryKey = 'id';
     protected $useTimestamps = true;
+    protected $returnType    = 'array';
 
     protected $allowedFields = [
         'hospital_id',
         'hospital_name',
         'title',
         'pay_type',
+        'contract_date',
+        'ad_type',
+        'ad_type2',
+        'main_contract',
+        'use_status',
+        'is_deleted',
+        'term_list_id',
+        'channel_id',
+        'agency_user_id',
+        'manage_user_id',
+        'agency_company_id',
+        'agency_company_name',
+        'hospital_type',
+        'hospital_charge_name',
+        'hospital_charge_phone',
+        'hospital_charge_email',
+        'tax_charge_name',
+        'tax_business_no',
+        'tax_charge_email',
     ];
 
     /** @var array<string, string> */
