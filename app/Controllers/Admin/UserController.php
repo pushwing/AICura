@@ -53,13 +53,10 @@ class UserController extends BaseAdminController
         $subType    = (int) ($this->request->getGet('sub_type') ?? 0);
         $isDormant  = $this->request->getGet('is_dormant') ?? '';
         $searchWord = $this->request->getGet('search_word') ?? '';
-        $page       = max(1, (int) ($this->request->getGet('page') ?? 1));
 
         $params = [
             'is_dormant'  => $isDormant,
             'search_word' => $searchWord,
-            'page'        => $page,
-            'limit'       => 20,
         ];
 
         if ($subType !== 0 && in_array($subType, self::TYPE_GROUPS[$typeGroup], true)) {
@@ -77,7 +74,6 @@ class UserController extends BaseAdminController
             'subType'        => $subType,
             'isDormant'      => $isDormant,
             'searchWord'     => $searchWord,
-            'page'           => $page,
             'tabLabels'      => self::TAB_LABELS,
             'typeGroups'     => self::TYPE_GROUPS,
             'userTypeLabels' => self::USER_TYPE_LABELS,

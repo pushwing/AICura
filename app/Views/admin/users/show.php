@@ -7,9 +7,9 @@ $typeLabel = $userTypeLabels[$userType] ?? (string) $userType;
 $isDormant = (int) $user['is_dormant'];
 
 $backType = match (true) {
-    in_array($userType, [1], true)               => 1,
-    in_array($userType, [401, 402, 403, 404, 405], true) => 2,
-    default                                       => 3,
+    in_array($userType, [1], true)                           => 1,
+    in_array($userType, [2, 401, 402, 403, 404, 405], true) => 2,
+    default                                                  => 3,
 };
 ?>
 

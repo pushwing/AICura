@@ -5,7 +5,6 @@
 /** @var int $subType */
 /** @var string $isDormant */
 /** @var string $searchWord */
-/** @var int $page */
 /** @var array<int, string> $tabLabels */
 /** @var array<int, list<int>> $typeGroups */
 /** @var array<int, string> $userTypeLabels */
