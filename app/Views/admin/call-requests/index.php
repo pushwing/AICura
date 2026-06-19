@@ -36,8 +36,13 @@
 <div id="callRequestGrid" style="height:600px;" class="ag-theme-alpine"></div>
 
 <script>
-const statuses = <?= json_encode($statuses) ?>;
-const rowData  = <?= json_encode($requests) ?>;
+const statuses = <?= json_encode($statuses, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+const rowData  = <?= json_encode($requests, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+
+// HTML 이스케이프 (cellRenderer가 innerHTML로 처리하므로 사용자 입력은 반드시 이스케이프)
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+}[c]));
 
 // 상태별 색상 (1~9)
 const statusColors = {
@@ -51,7 +56,7 @@ const columnDefs = [
         field: 'name',
         headerName: '신청자',
         flex: 1,
-        cellRenderer: (p) => `<a href="/admin/call-requests/${p.data.id}" style="color:var(--color-primary, #0F6E56);text-decoration:none;">${p.value || '(이름없음)'}</a>`,
+        cellRenderer: (p) => `<a href="/admin/call-requests/${Number(p.data.id)}" style="color:var(--color-primary, #0F6E56);text-decoration:none;">${esc(p.value) || '(이름없음)'}</a>`,
     },
     { field: 'phone', headerName: '연락처', width: 140 },
     { field: 'hospital_name', headerName: '병원', flex: 1 },

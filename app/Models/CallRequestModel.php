@@ -151,7 +151,9 @@ class CallRequestModel extends Model
             throw new \RuntimeException('유효하지 않은 상태입니다.');
         }
 
-        $request = $this->select('id, status, confirm_date')->find($id);
+        $request = $this->select('id, status, confirm_date')
+            ->where('is_delete', 0)
+            ->find($id);
         if ($request === null) {
             throw new \RuntimeException('신청 건을 찾을 수 없습니다.');
         }
@@ -172,10 +174,14 @@ class CallRequestModel extends Model
      * 이벤트 신청이 API로 들어오는 순간 호출되도록 설계되었으며,
      * is_charged 플래그로 이중과금을 방지한다. (Admin에서는 자동 호출하지 않음)
      *
+     * 동시 호출 경쟁 조건은 트랜잭션 내 조건부 UPDATE(`WHERE is_charged = 0`)로
+     * 선점하여 차단한다 — 선점에 성공한 호출만 deposits에 1건을 기록한다.
+     *
      * @return bool 실제 과금 발생 여부 (이미 과금/금액 없음/계약 미연결 시 false)
      */
     public function chargeCpa(int $id, int $userId): bool
     {
+        // 사전 검증 (빠른 종료 — 실제 멱등 보장은 아래 조건부 UPDATE)
         $request = $this->find($id);
         if ($request === null || (int) $request['is_charged'] === 1) {
             return false;
@@ -204,6 +210,19 @@ class CallRequestModel extends Model
         $db->transBegin();
 
         try {
+            // 원자적 선점: is_charged 0 → 1. 동시 호출 중 한 건만 성공한다.
+            $db->table('call_requests')
+                ->where('id', $id)
+                ->where('is_charged', 0)
+                ->update(['is_charged' => 1, 'updated_at' => date('Y-m-d H:i:s')]);
+
+            if ($db->affectedRows() === 0) {
+                // 이미 다른 호출이 과금을 선점함 → 이중과금 방지
+                $db->transRollback();
+
+                return false;
+            }
+
             $now = date('Y-m-d H:i:s');
 
             $db->table('deposits')->insert([
@@ -217,8 +236,6 @@ class CallRequestModel extends Model
                 'created_at'        => $now,
                 'updated_at'        => $now,
             ]);
-
-            $this->update($id, ['is_charged' => 1]);
 
             $db->transCommit();
 
