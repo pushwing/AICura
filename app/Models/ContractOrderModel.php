@@ -27,6 +27,25 @@ class ContractOrderModel extends Model
     protected $useTimestamps = true;
     protected $returnType    = 'array';
 
+    /** @var array<int, string> 광고 상품 종류 (ad_type2) */
+    public const AD_TYPE2_LABELS = [
+        1 => '이벤트',
+        2 => '메인배너',
+        3 => '이벤트존메인배너',
+        4 => 'CPM',
+        5 => '기타',
+    ];
+
+    /** @var array<int, string> 수주계약 상태 (contract_status) */
+    public const STATUS_LABELS = [
+        1 => '정상',
+        2 => '발행환불',
+        3 => '발행취소',
+        4 => '계약취소',
+        5 => '계약환불',
+        6 => '이월종료',
+    ];
+
     protected $allowedFields = [
         'hospital_id',
         'hospital_name',

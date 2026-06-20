@@ -94,6 +94,41 @@ class ContractModel extends Model
     }
 
     /**
+     * 병원 ID 목록별 계약 요약 (대행사 계약 관리용)
+     * 각 병원의 정상(contract_status=1) 수주계약 건수·합계금액을 hospital_id로 키 매핑
+     *
+     * @param list<int> $hospitalIds
+     * @return array<int, array{order_count:int, total_price:int}>
+     */
+    public function getSummaryByHospitalIds(array $hospitalIds): array
+    {
+        if ($hospitalIds === []) {
+            return [];
+        }
+
+        $rows = $this->db->table('contracts c')
+            ->select('c.hospital_id')
+            ->select('COUNT(co.id) AS order_count', false)
+            ->select('IFNULL(SUM(co.ad_price), 0) AS total_price', false)
+            ->join('contract_order_connects coc', 'coc.contract_id = c.id', 'left')
+            ->join('contract_orders co', 'co.id = coc.contract_order_id AND co.contract_status = 1', 'left')
+            ->whereIn('c.hospital_id', $hospitalIds)
+            ->groupBy('c.hospital_id')
+            ->get()
+            ->getResultArray();
+
+        $summary = [];
+        foreach ($rows as $row) {
+            $summary[(int) $row['hospital_id']] = [
+                'order_count' => (int) $row['order_count'],
+                'total_price' => (int) $row['total_price'],
+            ];
+        }
+
+        return $summary;
+    }
+
+    /**
      * 계약 상세 (수주계약 목록 포함)
      *
      * @return array<string, mixed>|null
