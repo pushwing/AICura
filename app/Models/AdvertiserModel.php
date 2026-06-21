@@ -266,4 +266,62 @@ class AdvertiserModel extends Model
             ->where('agency_user_id', $agencyUserId)
             ->first();
     }
+
+    /**
+     * 계약 동의 원자적 선점 + 메인 계약 보장 (이슈 #33)
+     *
+     * 동시 요청 경쟁 방어: contract_agreed_at IS NULL 조건부 UPDATE로 단 한 건만 선점한다.
+     * 선점에 성공한 호출만 메인 계약을 동일 트랜잭션 내에서 생성하므로 계약 중복 생성이 방지된다.
+     *
+     * @return bool true=이번 호출이 동의를 선점, false=이미 동의됨(또는 미존재)
+     */
+    public function agreeContract(int $advertiserId, int $hospitalId, string $hospitalName): bool
+    {
+        $db  = $this->db;
+        $now = date('Y-m-d H:i:s');
+
+        $db->transBegin();
+
+        try {
+            // 원자적 선점: contract_agreed_at NULL → 동의 시각. 동시 호출 중 한 건만 성공한다.
+            $db->table('advertisers')
+                ->where('id', $advertiserId)
+                ->where('contract_agreed_at', null)
+                ->update([
+                    'status'             => 1,
+                    'contract_agreed_at' => $now,
+                    'updated_at'         => $now,
+                ]);
+
+            if ($db->affectedRows() === 0) {
+                // 이미 다른 요청이 동의를 선점함 → 중복 처리 방지
+                $db->transRollback();
+
+                return false;
+            }
+
+            // 선점 성공 — 메인 계약이 없을 때만 생성 (수주계약이 연결될 상위 계약)
+            $hasContract = $db->table('contracts')
+                ->where('hospital_id', $hospitalId)
+                ->countAllResults() > 0;
+
+            if (!$hasContract) {
+                $db->table('contracts')->insert([
+                    'hospital_id'   => $hospitalId,
+                    'hospital_name' => $hospitalName,
+                    'title'         => $hospitalName . ' 광고 계약',
+                    'pay_type'      => 1,
+                    'created_at'    => $now,
+                    'updated_at'    => $now,
+                ]);
+            }
+
+            $db->transCommit();
+
+            return true;
+        } catch (\Throwable $e) {
+            $db->transRollback();
+            throw $e;
+        }
+    }
 }
