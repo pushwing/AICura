@@ -104,6 +104,12 @@ class AdvertiserController extends BasePortalController
         }
 
         // 선택적 광고주 계정(owner) 연결 — 이메일이 입력된 경우 병원 유형 계정만 허용
+        //
+        // [신뢰 경계] users 테이블에는 병원 귀속 정보(hospital_id)가 없어 "같은 병원 계정인지"
+        // 교차검증이 불가능하다. 따라서 대행사가 미연결 병원유형 계정을 자신의 광고주에 바인딩하는
+        // 행위는 의도된 워크플로(대행사가 광고주에게 로그인 권한 부여)로 간주한다.
+        // 방어선: ① 병원 유형 계정만 허용(findHospitalUserByEmail), ② 1:1 중복 연결 차단(아래 + 유니크 인덱스).
+        // 무단 선점을 원천 차단하려면 초대/승인 플로우가 필요하며, 이는 별도 범위로 분리한다.
         $ownerUserId = null;
         $ownerEmail  = trim((string) $this->request->getPost('owner_email'));
         if ($ownerEmail !== '') {
