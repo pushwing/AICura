@@ -93,7 +93,11 @@ class AuthController extends BaseController
 
     public function logout(): RedirectResponse
     {
+        // 포털 세션만 제거한 뒤 세션 ID를 재발급해 무효화한다 (세션 고정 공격 방어, 이슈 #35).
+        // regenerate(true)는 현재 $_SESSION 데이터(어드민 동시 로그인 시 admin_user)는
+        // 새 ID로 이전·유지하고 서버측 구(舊) 세션만 파기하므로 어드민 세션에 영향이 없다.
         session()->remove('portal_user');
+        session()->regenerate(true);
 
         return redirect()->to('/portal/login');
     }
