@@ -37,13 +37,14 @@ class AddPortalColumnsToAdvertisers extends Migration
         ]);
 
         $this->db->query('CREATE INDEX idx_advertisers_agency_user_id ON advertisers (agency_user_id)');
-        $this->db->query('CREATE INDEX idx_advertisers_owner_user_id ON advertisers (owner_user_id)');
+        // owner_user_id 는 광고주 본인 계정과 1:1 — 유니크 보장 (NULL 다중 허용: MySQL·SQLite 공통)
+        $this->db->query('CREATE UNIQUE INDEX uniq_advertisers_owner_user_id ON advertisers (owner_user_id)');
     }
 
     public function down(): void
     {
         $this->forge->dropKey('advertisers', 'idx_advertisers_agency_user_id', false);
-        $this->forge->dropKey('advertisers', 'idx_advertisers_owner_user_id', false);
+        $this->forge->dropKey('advertisers', 'uniq_advertisers_owner_user_id', false);
         $this->forge->dropColumn('advertisers', ['agency_user_id', 'owner_user_id', 'contract_agreed_at']);
     }
 }

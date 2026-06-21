@@ -90,8 +90,12 @@ class ContractController extends BasePortalController
             $detail = $this->contractModel->getDetail((int) $contract['id']);
             /** @var list<array<string, mixed>> $rawOrders */
             $rawOrders = is_array($detail['orders'] ?? null) ? $detail['orders'] : [];
-            $orders = array_map(function (array $o) use ($contract): array {
-                $o['balance']        = $this->orderModel->getBalance((int) $contract['id'], (int) $o['id']);
+
+            // 수주계약별 잔액을 단일 쿼리로 일괄 집계 (N+1 방지)
+            $balances = $this->orderModel->getBalancesByContract((int) $contract['id']);
+
+            $orders = array_map(function (array $o) use ($balances): array {
+                $o['balance']        = $balances[(int) $o['id']] ?? 0;
                 $o['created_at_kst'] = !empty($o['created_at']) ? $this->toKst($o['created_at']) : '-';
                 return $o;
             }, $rawOrders);

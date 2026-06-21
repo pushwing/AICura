@@ -185,6 +185,32 @@ class ContractOrderModel extends Model
     }
 
     /**
+     * 계약 단위 잔액 일괄 집계 — 수주계약별 잔액을 단일 쿼리로 계산 (N+1 방지)
+     *
+     * 충전: status IN (2, 4, 12) / 소진: status IN (3, 5, 6, 7, 8, 9, 10, 11)
+     *
+     * @return array<int, int> contract_order_id => 잔액
+     */
+    public function getBalancesByContract(int $contractId): array
+    {
+        $rows = $this->db->table('deposits')
+            ->select('contract_order_id')
+            ->select('SUM(CASE WHEN status IN (2, 4, 12) THEN price ELSE 0 END) AS charged', false)
+            ->select('SUM(CASE WHEN status IN (3, 5, 6, 7, 8, 9, 10, 11) THEN price ELSE 0 END) AS used', false)
+            ->where('contract_id', $contractId)
+            ->groupBy('contract_order_id')
+            ->get()
+            ->getResultArray();
+
+        $balances = [];
+        foreach ($rows as $row) {
+            $balances[(int) $row['contract_order_id']] = (int) $row['charged'] - (int) $row['used'];
+        }
+
+        return $balances;
+    }
+
+    /**
      * 신규 계약 등록 트랜잭션
      * - contracts 테이블에 메인 계약 없으면 생성
      * - contract_orders에 추가계약건 insert

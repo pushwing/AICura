@@ -113,6 +113,15 @@ class AdvertiserController extends BasePortalController
                     ->with('errors', ['owner_email' => '해당 이메일의 광고주 계정을 찾을 수 없습니다.']);
             }
             $ownerUserId = (int) $owner['id'];
+
+            // 광고주 계정은 1:1 — 이미 다른 광고주에 연결된 계정인지 검사
+            $alreadyLinked = $this->advertiserModel
+                ->where('owner_user_id', $ownerUserId)
+                ->countAllResults() > 0;
+            if ($alreadyLinked) {
+                return redirect()->back()->withInput()
+                    ->with('errors', ['owner_email' => '이미 다른 광고주에 연결된 계정입니다.']);
+            }
         }
 
         $data = [
