@@ -134,6 +134,26 @@ final class CampaignModelDatabaseTest extends CIUnitTestCase
         $model->updateStatus($this->campaignId, 'unknown_action');
     }
 
+    public function testGetCreativeListReturnsCorrectStructure(): void
+    {
+        $model  = model(CampaignModel::class);
+        $result = $model->getCreativeList(['page' => 1, 'limit' => 20]);
+
+        $this->assertArrayHasKey('list', $result);
+        $this->assertArrayHasKey('total', $result);
+        $this->assertIsArray($result['list']);
+        $this->assertIsInt($result['total']);
+    }
+
+    public function testGetCreativeListFindsInsertedRecordByKeyword(): void
+    {
+        $model  = model(CampaignModel::class);
+        $result = $model->getCreativeList(['keyword' => '__test_campaign__', 'page' => 1, 'limit' => 20]);
+
+        $ids = array_map('intval', array_column($result['list'], 'id'));
+        $this->assertContains($this->campaignId, $ids);
+    }
+
     public function testGetHistoryListReturnsCorrectStructure(): void
     {
         $model  = model(CampaignModel::class);
