@@ -184,10 +184,16 @@ class ContractController extends BasePortalController
 
         $rules = [
             'ad_type2'  => 'required|in_list[1,2,3,4,5]',
-            'ad_price'  => 'required|integer|greater_than[0]',
+            'ad_price'  => 'required|integer|greater_than[0]|less_than_equal_to[50000000]',
             'pay_type'  => 'required|in_list[1,2]',
         ];
-        if (!$this->validate($rules)) {
+        $messages = [
+            'ad_price' => [
+                'greater_than'        => '충전 금액은 0보다 커야 합니다.',
+                'less_than_equal_to'  => '충전 금액은 1회 5천만 원을 초과할 수 없습니다.',
+            ],
+        ];
+        if (!$this->validate($rules, $messages)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 

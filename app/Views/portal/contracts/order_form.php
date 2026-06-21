@@ -38,8 +38,9 @@ $errors = session('errors') ?? [];
 
             <div style="margin-bottom:20px;">
                 <label style="display:block;font-size:14px;font-weight:500;margin-bottom:6px;">충전 금액(원) <span style="color:#ef4444">*</span></label>
-                <input type="number" name="ad_price" class="form-control" min="1" step="1"
+                <input type="number" name="ad_price" class="form-control" min="1" max="50000000" step="1"
                        value="<?= esc((string) old('ad_price')) ?>" placeholder="예: 1000000" required>
+                <p class="text-sm" style="color:var(--color-text-muted);margin-top:6px;">1회 충전 한도는 최대 5천만 원입니다.</p>
             </div>
 
             <div style="margin-bottom:28px;">
