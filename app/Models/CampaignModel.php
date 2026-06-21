@@ -47,6 +47,7 @@ class CampaignModel extends Model
         'custom3',
         'deliberation_code',
         'status',
+        'review_status',
         'channel',
         'is_deleted',
         'del_date',
@@ -58,9 +59,7 @@ class CampaignModel extends Model
 
     /** @var array<string, string> */
     protected $validationRules = [
-        'ad_title'    => 'required|max_length[255]',
         'hospital_id' => 'required|integer',
-        'ad_type'     => 'required|in_list[1,2,3,4,5]',
         'status'      => 'in_list[pending,active,rejected,ended]',
     ];
 
@@ -93,12 +92,26 @@ class CampaignModel extends Model
      */
     public function getCampaignList(array $params): array
     {
+        // 검수 대기 중인 캠페인은 review request 의 제목을 COALESCE로 표시
         $builder = $this->db->table('campaigns c')
-            ->select('c.id, c.ad_title, c.ad_type, c.status, c.channel, c.ad_start_date, c.ad_end_date, c.db_cost, c.created_at')
+            ->select('c.id, c.status, c.review_status, c.created_at')
+            ->select('COALESCE(c.ad_title, crr.ad_title) AS ad_title', false)
+            ->select('COALESCE(c.ad_type, crr.ad_type) AS ad_type', false)
+            ->select('COALESCE(c.channel, crr.channel) AS channel', false)
+            ->select('COALESCE(c.ad_start_date, crr.ad_start_date) AS ad_start_date', false)
+            ->select('COALESCE(c.ad_end_date, crr.ad_end_date) AS ad_end_date', false)
+            ->select('COALESCE(c.db_cost, crr.db_cost) AS db_cost', false)
             ->select('h.name as hospital_name', false)
             ->select('co.title as contract_name', false)
             ->join('hospitals h', 'h.id = c.hospital_id', 'left')
             ->join('contracts co', 'co.id = c.contract_id', 'left')
+            ->join(
+                '(SELECT campaign_id, ad_title, ad_type, channel, ad_start_date, ad_end_date, db_cost'
+                . ' FROM campaign_review_requests crr_sub'
+                . ' WHERE crr_sub.id = (SELECT MAX(id) FROM campaign_review_requests WHERE campaign_id = crr_sub.campaign_id)) crr',
+                'crr.campaign_id = c.id',
+                'left'
+            )
             ->where('c.is_deleted', 0);
 
         if (!empty($params['status'])) {

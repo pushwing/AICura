@@ -4,6 +4,7 @@ namespace App\Controllers\Admin;
 
 use App\Models\CampaignModel;
 use App\Models\CampaignHistoryModel;
+use App\Models\CampaignReviewRequestModel;
 use App\Models\CampaignTempModel;
 use App\Models\HospitalModel;
 use App\Models\ContractModel;
@@ -13,6 +14,7 @@ class CampaignController extends BaseAdminController
 {
     private CampaignModel $campaignModel;
     private CampaignHistoryModel $historyModel;
+    private CampaignReviewRequestModel $reviewRequestModel;
     private CampaignTempModel $tempModel;
     private HospitalModel $hospitalModel;
     private ContractModel $contractModel;
@@ -23,11 +25,12 @@ class CampaignController extends BaseAdminController
         \Psr\Log\LoggerInterface $logger
     ): void {
         parent::initController($request, $response, $logger);
-        $this->campaignModel = model(CampaignModel::class);
-        $this->historyModel  = model(CampaignHistoryModel::class);
-        $this->tempModel     = model(CampaignTempModel::class);
-        $this->hospitalModel = model(HospitalModel::class);
-        $this->contractModel = model(ContractModel::class);
+        $this->campaignModel      = model(CampaignModel::class);
+        $this->historyModel       = model(CampaignHistoryModel::class);
+        $this->reviewRequestModel = model(CampaignReviewRequestModel::class);
+        $this->tempModel          = model(CampaignTempModel::class);
+        $this->hospitalModel      = model(HospitalModel::class);
+        $this->contractModel      = model(ContractModel::class);
     }
 
     // ──────────────────────────────────────────────
@@ -100,9 +103,9 @@ class CampaignController extends BaseAdminController
     public function create(): ResponseInterface
     {
         $rules = [
-            'ad_title'    => 'required|max_length[255]',
-            'hospital_id' => 'required|integer',
-            'ad_type'     => 'required|in_list[1,2,3,4,5]',
+            'ad_title'      => 'required|max_length[255]',
+            'hospital_id'   => 'required|integer',
+            'ad_type'       => 'required|in_list[1,2,3,4,5]',
             'ad_start_date' => 'required|valid_date[Y-m-d]',
             'ad_end_date'   => 'required|valid_date[Y-m-d]',
             'cost_type'     => 'required|in_list[1,2]',
@@ -113,26 +116,29 @@ class CampaignController extends BaseAdminController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        $data = $this->buildCampaignData();
-        $data['status'] = 'pending';
-
+        $data      = $this->buildCampaignData();
         $imageData = $this->handleImageUploads();
-        $data = array_merge($data, $imageData);
-
-        $id = $this->campaignModel->insert($data, true);
+        $data      = array_merge($data, $imageData);
 
         /** @var array<string, mixed> $authUser */
         $authUser = session()->get('admin_user');
-        $this->historyModel->record(
-            (int) $id,
-            'create',
-            '',
-            'pending',
-            (int) ($authUser['id'] ?? 0)
-        );
+        $adminId  = (int) ($authUser['id'] ?? 0);
+
+        // campaigns 에는 메타데이터만 저장 — 콘텐츠는 검수 승인 후 복사됨
+        $id = $this->campaignModel->insert([
+            'hospital_id'   => $data['hospital_id'],
+            'hospital_type' => $data['hospital_type'],
+            'status'        => 'pending',
+            'review_status' => 'pending',
+        ], true);
+
+        // 모든 콘텐츠 필드 → 검수 요청 테이블
+        $this->reviewRequestModel->record((int) $id, $data, $adminId, 'create');
+
+        $this->historyModel->record((int) $id, 'create', '', 'pending', $adminId);
 
         return redirect()->to('/admin/campaigns/' . $id)
-            ->with('success', '캠페인이 등록되었습니다.');
+            ->with('success', '캠페인이 등록되었습니다. 검수 대기 상태입니다.');
     }
 
     // ──────────────────────────────────────────────
@@ -144,6 +150,16 @@ class CampaignController extends BaseAdminController
         $campaign = $this->campaignModel->find($id);
         if ($campaign === null || $campaign['is_deleted']) {
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        // 폼 pre-populate: 최신 검수 요청 데이터 우선, 없으면 캠페인 승인 데이터
+        $latest = $this->reviewRequestModel->getLatest($id);
+        if ($latest !== null) {
+            foreach (CampaignReviewRequestModel::CONTENT_FIELDS as $field) {
+                if (isset($latest[$field])) {
+                    $campaign[$field] = $latest[$field];
+                }
+            }
         }
 
         return $this->render('admin/campaigns/form', [
@@ -180,22 +196,22 @@ class CampaignController extends BaseAdminController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        $data = $this->buildCampaignData();
-
+        $data      = $this->buildCampaignData();
         $imageData = $this->handleImageUploads($campaign);
-        $data = array_merge($data, $imageData);
-
-        $this->campaignModel->update($id, $data);
+        $data      = array_merge($data, $imageData);
 
         /** @var array<string, mixed> $authUser */
         $authUser = session()->get('admin_user');
-        $this->historyModel->record(
-            $id,
-            'update',
-            $campaign['status'],
-            $campaign['status'],
-            (int) ($authUser['id'] ?? 0)
-        );
+        $adminId  = (int) ($authUser['id'] ?? 0);
+
+        // campaigns 콘텐츠는 검수 승인 전까지 변경하지 않음
+        // review_status 만 pending 으로 표시
+        $this->campaignModel->update($id, ['review_status' => 'pending']);
+
+        // 변경 요청 전체를 검수 테이블에 기록
+        $this->reviewRequestModel->record($id, $data, $adminId, 'update');
+
+        $this->historyModel->record($id, 'update', $campaign['status'], $campaign['status'], $adminId);
 
         return redirect()->to('/admin/campaigns/' . $id)
             ->with('success', '수정되었습니다.');
