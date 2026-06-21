@@ -3,6 +3,11 @@
 <title><?= esc($title ?? 'AICura Admin') ?></title>
 <link rel="icon" href="<?= base_url('favicon.ico') ?>">
 
+<!-- CSRF 토큰 (JS fetch 용) -->
+<meta name="csrf-token" content="<?= csrf_hash() ?>">
+<meta name="csrf-header" content="<?= csrf_header() ?>">
+<script src="<?= base_url('assets/js/csrf.js') ?>"></script>
+
 <!-- Pretendard (Korean + Latin) -->
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">

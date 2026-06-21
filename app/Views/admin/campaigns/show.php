@@ -258,7 +258,7 @@ document.getElementById('modalConfirm').addEventListener('click', async () => {
             headers: {
                 'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': document.cookie.match(/csrf_cookie_name=([^;]+)/)?.[1] ?? '',
+                ...csrfHeaders(),
             },
             body: JSON.stringify({ action: pendingAction, memo }),
         });
