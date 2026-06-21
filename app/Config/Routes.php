@@ -100,6 +100,41 @@ $routes->group('admin', static function (RouteCollection $routes): void {
 });
 
 
+// ── Portal (광고주·광고대행사) ───────────────────────────
+$routes->group('portal', static function (RouteCollection $routes): void {
+
+    // 인증 없이 접근 가능
+    $routes->get('login',   'Portal\AuthController::login');
+    $routes->post('login',  'Portal\AuthController::loginProcess');
+    $routes->post('logout', 'Portal\AuthController::logout');
+
+    // 이하 portal_auth 필터 적용
+    $routes->group('', ['filter' => 'portal_auth'], static function (RouteCollection $routes): void {
+        $routes->get('/',         'Portal\DashboardController::index');
+        $routes->get('dashboard', 'Portal\DashboardController::index');
+
+        // 광고주 관리 (대행사) — new는 (:num)보다 먼저 선언
+        $routes->get('advertisers',          'Portal\AdvertiserController::index');
+        $routes->get('advertisers/new',      'Portal\AdvertiserController::newForm');
+        $routes->post('advertisers',         'Portal\AdvertiserController::create');
+        $routes->get('advertisers/(:num)',   'Portal\AdvertiserController::show/$1');
+
+        // 계약 관리 (광고주 동의·충전 / 대행사 조회)
+        $routes->get('contracts',              'Portal\ContractController::index');
+        $routes->post('contracts/agree',       'Portal\ContractController::agree');
+        $routes->get('contracts/orders/new',   'Portal\ContractController::orderNew');
+        $routes->post('contracts/orders',      'Portal\ContractController::orderCreate');
+
+        // 신청DB 관리 (광고주)
+        $routes->get('call-requests',                              'Portal\CallRequestController::index');
+        $routes->get('call-requests/(:num)',                       'Portal\CallRequestController::show/$1');
+        $routes->post('call-requests/(:num)/status',              'Portal\CallRequestController::changeStatus/$1');
+        $routes->post('call-requests/(:num)/memos',               'Portal\CallRequestController::memoStore/$1');
+        $routes->post('call-requests/(:num)/memos/(:num)/delete', 'Portal\CallRequestController::memoDelete/$1/$2');
+    });
+});
+
+
 // ── API v1 ──────────────────────────────────────────────
 $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static function (RouteCollection $routes): void {
 
