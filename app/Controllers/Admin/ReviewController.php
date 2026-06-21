@@ -84,20 +84,28 @@ class ReviewController extends BaseAdminController
         $authUser = session()->get('admin_user');
         $adminId  = (int) ($authUser['id'] ?? 0);
 
+        $campaignId = (int) $detail['campaign_id'];
+
         try {
             if ($action === 'approve') {
                 $contentFields = $this->reviewModel->approve($id, $adminId, $memo);
 
+                // 다른 pending 요청이 남아있으면 캐시는 pending 유지
+                $cacheStatus = $this->reviewModel->hasPending($campaignId) ? 'pending' : 'approved';
+
                 // 검수 승인: review request 의 콘텐츠를 campaigns 에 복사
-                $this->campaignModel->update($detail['campaign_id'], array_merge(
+                $this->campaignModel->update($campaignId, array_merge(
                     $contentFields,
-                    ['review_status' => 'approved']
+                    ['review_status' => $cacheStatus]
                 ));
             } else {
                 $this->reviewModel->reject($id, $adminId, $memo);
 
-                $this->campaignModel->update($detail['campaign_id'], [
-                    'review_status' => 'rejected',
+                // 다른 pending 요청이 남아있으면 캐시는 pending 유지
+                $cacheStatus = $this->reviewModel->hasPending($campaignId) ? 'pending' : 'rejected';
+
+                $this->campaignModel->update($campaignId, [
+                    'review_status' => $cacheStatus,
                 ]);
             }
         } catch (\RuntimeException $e) {

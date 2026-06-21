@@ -145,6 +145,66 @@ class CampaignModel extends Model
     }
 
     /**
+     * 소재 관리 목록 (페이징, 검색, 상태·소재유무 필터)
+     *
+     * 검수 대기 중인 캠페인은 review request 의 콘텐츠를 COALESCE로 표시한다.
+     *
+     * @param array<string, mixed> $params
+     * @return array<string, mixed>
+     */
+    public function getCreativeList(array $params): array
+    {
+        $builder = $this->db->table('campaigns c')
+            ->select('c.id, c.status, c.review_status, c.created_at')
+            ->select('COALESCE(c.ad_title, crr.ad_title) AS ad_title', false)
+            ->select('COALESCE(c.ad_type, crr.ad_type) AS ad_type', false)
+            ->select('COALESCE(c.channel, crr.channel) AS channel', false)
+            ->select('COALESCE(c.t1_image_name, crr.t1_image_name) AS t1_image_name', false)
+            ->select('COALESCE(c.t2_image_name, crr.t2_image_name) AS t2_image_name', false)
+            ->select('COALESCE(c.d_image_json, crr.d_image_json) AS d_image_json', false)
+            ->select('h.name AS hospital_name', false)
+            ->join('hospitals h', 'h.id = c.hospital_id', 'left')
+            ->join(
+                '(SELECT campaign_id, ad_title, ad_type, channel, t1_image_name, t2_image_name, d_image_json'
+                . ' FROM campaign_review_requests crr_sub'
+                . ' WHERE crr_sub.id = (SELECT MAX(id) FROM campaign_review_requests WHERE campaign_id = crr_sub.campaign_id)) crr',
+                'crr.campaign_id = c.id',
+                'left'
+            )
+            ->where('c.is_deleted', 0);
+
+        if (!empty($params['status'])) {
+            $builder->where('c.status', $params['status']);
+        }
+
+        if (!empty($params['keyword'])) {
+            $builder->groupStart()
+                ->like('COALESCE(c.ad_title, crr.ad_title)', $params['keyword'], 'both', null, false)
+                ->orLike('h.name', $params['keyword'])
+                ->groupEnd();
+        }
+
+        if (($params['has_image'] ?? '') === '1') {
+            $builder->where("(c.t1_image_name IS NOT NULL AND c.t1_image_name != '') OR (crr.t1_image_name IS NOT NULL AND crr.t1_image_name != '')", null, false);
+        } elseif (($params['has_image'] ?? '') === '0') {
+            $builder->where("(c.t1_image_name IS NULL OR c.t1_image_name = '') AND (crr.t1_image_name IS NULL OR crr.t1_image_name = '')", null, false);
+        }
+
+        $total = (clone $builder)->countAllResults(false);
+
+        $page  = max(1, (int) ($params['page'] ?? 1));
+        $limit = (int) ($params['limit'] ?? 20);
+
+        $list = $builder
+            ->orderBy('c.id', 'DESC')
+            ->limit($limit, ($page - 1) * $limit)
+            ->get()
+            ->getResultArray();
+
+        return ['list' => $list, 'total' => $total];
+    }
+
+    /**
      * 캠페인 상세 (JOIN: hospital, contract, packages)
      *
      * @return array<string, mixed>|null

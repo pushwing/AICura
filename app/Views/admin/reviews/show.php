@@ -52,8 +52,10 @@ foreach (\App\Models\CampaignReviewRequestModel::CONTENT_FIELDS as $f) {
 }
 
 /** @param mixed $a @param mixed $b */
-function isChanged(mixed $a, mixed $b): bool {
-    return (string) $a !== (string) $b;
+if (!function_exists('isChanged')) {
+    function isChanged(mixed $a, mixed $b): bool {
+        return (string) $a !== (string) $b;
+    }
 }
 
 $dImagesBefore = [];

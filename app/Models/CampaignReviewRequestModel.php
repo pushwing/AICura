@@ -143,6 +143,19 @@ class CampaignReviewRequestModel extends Model
     }
 
     /**
+     * 캠페인에 아직 처리되지 않은(pending) 검수 요청이 남아있는지 여부.
+     *
+     * 승인/반려는 개별 요청 단위지만 campaigns.review_status 는 캠페인 단위 캐시이므로,
+     * 한 건을 처리한 뒤 다른 pending 요청이 남아있으면 캐시를 pending 으로 유지해야 한다.
+     */
+    public function hasPending(int $campaignId): bool
+    {
+        return $this->where('campaign_id', $campaignId)
+            ->where('review_status', 'pending')
+            ->countAllResults() > 0;
+    }
+
+    /**
      * 캠페인의 최신 요청 (승인 여부 무관) — 어드민 폼 pre-populate용
      *
      * @return array<string, mixed>|null

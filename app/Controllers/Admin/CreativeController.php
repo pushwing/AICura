@@ -28,7 +28,7 @@ class CreativeController extends BaseAdminController
             'limit'      => 20,
         ];
 
-        $result = $this->getCreativeList($params);
+        $result = model(CampaignModel::class)->getCreativeList($params);
 
         return $this->render('admin/creatives/index', [
             'title'     => '소재 관리',
@@ -72,6 +72,16 @@ class CreativeController extends BaseAdminController
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
 
+        // 이미지 필드는 URL 또는 파일명 — 컬럼 길이(VARCHAR 500) 기준 검증
+        $rules = [
+            't1_image_name' => 'permit_empty|max_length[500]',
+            't2_image_name' => 'permit_empty|max_length[500]',
+            'd_images.*'    => 'permit_empty|max_length[500]',
+        ];
+        if (!$this->validate($rules)) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+
         $dImagesRaw = $this->request->getPost('d_images') ?? [];
         $dImages    = array_values(array_filter(
             is_array($dImagesRaw) ? $dImagesRaw : [],
@@ -105,63 +115,5 @@ class CreativeController extends BaseAdminController
 
         return redirect()->to('/admin/creatives/' . $id)
             ->with('success', '소재 변경이 검수 요청되었습니다.');
-    }
-
-    // ──────────────────────────────────────────────
-    // private
-    // ──────────────────────────────────────────────
-
-    /**
-     * @param array<string, mixed> $params
-     * @return array<string, mixed>
-     */
-    private function getCreativeList(array $params): array
-    {
-        $db      = \Config\Database::connect();
-        $builder = $db->table('campaigns c')
-            ->select('c.id, c.status, c.review_status, c.created_at')
-            ->select('COALESCE(c.ad_title, crr.ad_title) AS ad_title', false)
-            ->select('COALESCE(c.ad_type, crr.ad_type) AS ad_type', false)
-            ->select('COALESCE(c.channel, crr.channel) AS channel', false)
-            ->select('COALESCE(c.t1_image_name, crr.t1_image_name) AS t1_image_name', false)
-            ->select('COALESCE(c.t2_image_name, crr.t2_image_name) AS t2_image_name', false)
-            ->select('COALESCE(c.d_image_json, crr.d_image_json) AS d_image_json', false)
-            ->select('h.name AS hospital_name', false)
-            ->join('hospitals h', 'h.id = c.hospital_id', 'left')
-            ->join(
-                '(SELECT campaign_id, ad_title, ad_type, channel, t1_image_name, t2_image_name, d_image_json'
-                . ' FROM campaign_review_requests crr_sub'
-                . ' WHERE crr_sub.id = (SELECT MAX(id) FROM campaign_review_requests WHERE campaign_id = crr_sub.campaign_id)) crr',
-                'crr.campaign_id = c.id',
-                'left'
-            )
-            ->where('c.is_deleted', 0);
-
-        if ($params['status'] !== '') {
-            $builder->where('c.status', $params['status']);
-        }
-
-        if ($params['keyword'] !== '') {
-            $builder->groupStart()
-                ->like('COALESCE(c.ad_title, crr.ad_title)', $params['keyword'], 'both', null, false)
-                ->orLike('h.name', $params['keyword'])
-                ->groupEnd();
-        }
-
-        if ($params['has_image'] === '1') {
-            $builder->where('(c.t1_image_name IS NOT NULL AND c.t1_image_name != \'\') OR (crr.t1_image_name IS NOT NULL AND crr.t1_image_name != \'\')', null, false);
-        } elseif ($params['has_image'] === '0') {
-            $builder->where('(c.t1_image_name IS NULL OR c.t1_image_name = \'\') AND (crr.t1_image_name IS NULL OR crr.t1_image_name = \'\')', null, false);
-        }
-
-        $total = (clone $builder)->countAllResults(false);
-
-        $list = $builder
-            ->orderBy('c.id', 'DESC')
-            ->limit($params['limit'], ($params['page'] - 1) * $params['limit'])
-            ->get()
-            ->getResultArray();
-
-        return ['list' => $list, 'total' => $total];
     }
 }
