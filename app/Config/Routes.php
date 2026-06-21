@@ -33,8 +33,14 @@ $routes->group('admin', static function (RouteCollection $routes): void {
         $routes->post('campaigns/(:num)/action',     'Admin\CampaignController::action/$1');
         $routes->resource('campaigns', ['controller' => 'Admin\CampaignController']);
 
-        // 소재 관리
+        // 소재 관리 (POST /creatives/{id} → update, 폼 메서드 오버라이드)
+        $routes->post('creatives/(:num)', 'Admin\CreativeController::update/$1');
         $routes->resource('creatives', ['controller' => 'Admin\CreativeController']);
+
+        // 검수관리
+        $routes->get('reviews',                       'Admin\ReviewController::index');
+        $routes->get('reviews/(:num)',                'Admin\ReviewController::show/$1');
+        $routes->post('reviews/(:num)/action',        'Admin\ReviewController::action/$1');
 
         // 리포트
         $routes->get('reports',           'Admin\ReportController::index');
