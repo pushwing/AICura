@@ -118,6 +118,11 @@ $routes->group('portal', static function (RouteCollection $routes): void {
         $routes->get('advertisers/new',      'Portal\AdvertiserController::newForm');
         $routes->post('advertisers',         'Portal\AdvertiserController::create');
         $routes->get('advertisers/(:num)',   'Portal\AdvertiserController::show/$1');
+        $routes->post('advertisers/(:num)/invite', 'Portal\AdvertiserController::invite/$1');
+
+        // owner 연결 초대 응답 (광고주)
+        $routes->post('invites/(:num)/accept', 'Portal\InviteController::accept/$1');
+        $routes->post('invites/(:num)/reject', 'Portal\InviteController::reject/$1');
 
         // 계약 관리 (광고주 동의·충전 / 대행사 조회)
         $routes->get('contracts',              'Portal\ContractController::index');

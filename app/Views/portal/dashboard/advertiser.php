@@ -4,17 +4,49 @@
 /** @var string|null $contractName */
 /** @var int $totalCount */
 /** @var int $newCount */
+/** @var array<int, array<string, mixed>> $invites */
+$invites = $invites ?? [];
 ?>
 <div class="page-header">
     <h1 class="page-title">대시보드</h1>
     <span class="text-sm" style="color:var(--color-text-muted)"><?= date('Y년 n월 j일') ?></span>
 </div>
 
-<?php if (!$hasAdvertiser): ?>
-    <div class="alert alert-danger">
-        <span class="alert-icon">!</span>
-        <div class="alert-body">연결된 광고주 정보가 없습니다. 담당 광고대행사 또는 운영팀에 문의해주세요.</div>
+<?php foreach ($invites as $invite): ?>
+    <div class="card" style="margin-bottom:16px;border-left:3px solid var(--color-primary);">
+        <div class="card-body" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+            <div>
+                <p style="font-weight:600;margin-bottom:4px;">광고주 연결 초대</p>
+                <p class="text-sm" style="color:var(--color-text-muted);">
+                    <strong><?= esc($invite['hospital_name']) ?></strong> 광고주 계정 연결 초대가 도착했습니다.
+                    수락하면 해당 광고주의 광고 서비스를 이용할 수 있습니다.
+                    <?php if (!empty($invite['expires_at_kst'])): ?>
+                        <span class="text-xs">(<?= esc($invite['expires_at_kst']) ?> 만료)</span>
+                    <?php endif; ?>
+                </p>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <form action="/portal/invites/<?= (int) $invite['id'] ?>/accept" method="POST" style="margin:0;">
+                    <?= csrf_field() ?>
+                    <button type="submit" class="btn btn-primary btn-sm">수락</button>
+                </form>
+                <form action="/portal/invites/<?= (int) $invite['id'] ?>/reject" method="POST" style="margin:0;"
+                      onsubmit="return confirm('초대를 거절하시겠습니까?');">
+                    <?= csrf_field() ?>
+                    <button type="submit" class="btn btn-outline btn-sm">거절</button>
+                </form>
+            </div>
+        </div>
     </div>
+<?php endforeach; ?>
+
+<?php if (!$hasAdvertiser): ?>
+    <?php if (empty($invites)): ?>
+        <div class="alert alert-danger">
+            <span class="alert-icon">!</span>
+            <div class="alert-body">연결된 광고주 정보가 없습니다. 담당 광고대행사 또는 운영팀에 문의해주세요.</div>
+        </div>
+    <?php endif; ?>
 <?php else: ?>
 
     <?php if (!$agreed): ?>

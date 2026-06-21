@@ -64,7 +64,7 @@ $errors = session('errors') ?? [];
             </div>
 
             <div style="margin-bottom:28px;">
-                <label style="display:block;font-size:14px;font-weight:500;margin-bottom:6px;">광고주 로그인 계정 이메일 <span class="text-xs" style="color:var(--color-text-muted);">(선택 — 입력 시 해당 병원 계정과 연결)</span></label>
+                <label style="display:block;font-size:14px;font-weight:500;margin-bottom:6px;">광고주 로그인 계정 이메일 <span class="text-xs" style="color:var(--color-text-muted);">(선택 — 입력 시 해당 계정에 연결 초대 발송, 당사자 수락 후 확정)</span></label>
                 <input type="email" name="owner_email" class="form-control" value="<?= esc((string) old('owner_email')) ?>" placeholder="advertiser@hospital.com" maxlength="255">
             </div>
 
