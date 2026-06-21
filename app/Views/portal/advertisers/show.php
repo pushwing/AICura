@@ -1,8 +1,11 @@
 <?php
 /** @var array<string, mixed> $advertiser */
+/** @var bool $hasInvite */
 
 $statusLabels = [1 => '활성', 2 => '정지', 3 => '탈퇴'];
-$agreed = !empty($advertiser['contract_agreed_at']);
+$agreed    = !empty($advertiser['contract_agreed_at']);
+$hasOwner  = !empty($advertiser['owner_user_id']);
+$hasInvite = $hasInvite ?? false;
 ?>
 <div class="page-header" style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
     <a href="/portal/advertisers" style="color:var(--color-text-muted);text-decoration:none;">← 목록</a>
@@ -23,10 +26,36 @@ $agreed = !empty($advertiser['contract_agreed_at']);
                     <tr><th>사업자등록번호</th><td><?= esc($advertiser['business_no'] ?? '-') ?></td></tr>
                     <tr><th>상태</th><td><?= esc($statusLabels[(int) $advertiser['status']] ?? '-') ?></td></tr>
                     <tr><th>계약 동의</th><td><?= $agreed ? esc($advertiser['contract_agreed_at_kst']) . ' 동의 완료' : '미동의 (광고주 동의 대기)' ?></td></tr>
-                    <tr><th>광고주 계정 연결</th><td><?= !empty($advertiser['owner_user_id']) ? '연결됨 (user #' . (int) $advertiser['owner_user_id'] . ')' : '미연결' ?></td></tr>
+                    <tr><th>광고주 계정 연결</th><td>
+                        <?php if ($hasOwner): ?>
+                            <span class="badge badge-success">연결됨</span> (user #<?= (int) $advertiser['owner_user_id'] ?>)
+                        <?php elseif ($hasInvite): ?>
+                            <span class="badge badge-warning">초대 응답 대기</span>
+                        <?php else: ?>
+                            미연결
+                        <?php endif; ?>
+                    </td></tr>
                     <tr><th>등록일</th><td><?= esc($advertiser['created_at_kst']) ?></td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 </div>
+
+<?php if (!$hasOwner && !$hasInvite): ?>
+<div class="card" style="margin-top:24px;">
+    <div class="card-header"><span class="card-title">광고주 계정 연결 초대</span></div>
+    <div class="card-body">
+        <p class="text-sm" style="color:var(--color-text-muted);margin-bottom:12px;">
+            광고주 본인의 로그인 계정 이메일로 연결 초대를 보냅니다. 당사자가 수락해야 연결이 확정됩니다.
+        </p>
+        <form action="/portal/advertisers/<?= (int) $advertiser['id'] ?>/invite" method="POST"
+              style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <?= csrf_field() ?>
+            <input type="email" name="owner_email" class="form-control" style="max-width:320px;"
+                   placeholder="advertiser@hospital.com" maxlength="255" required>
+            <button type="submit" class="btn btn-primary">초대 보내기</button>
+        </form>
+    </div>
+</div>
+<?php endif; ?>

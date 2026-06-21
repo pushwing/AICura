@@ -3,9 +3,11 @@
 namespace App\Controllers\Portal;
 
 use App\Models\AdvertiserModel;
+use App\Models\AdvertiserOwnerInviteModel;
 use App\Models\HospitalModel;
 use App\Models\UserModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
+use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\HTTP\ResponseInterface;
 
 /**
@@ -16,6 +18,7 @@ use CodeIgniter\HTTP\ResponseInterface;
 class AdvertiserController extends BasePortalController
 {
     private AdvertiserModel $advertiserModel;
+    private AdvertiserOwnerInviteModel $inviteModel;
 
     public function initController(
         \CodeIgniter\HTTP\RequestInterface $request,
@@ -24,6 +27,7 @@ class AdvertiserController extends BasePortalController
     ): void {
         parent::initController($request, $response, $logger);
         $this->advertiserModel = model(AdvertiserModel::class);
+        $this->inviteModel     = model(AdvertiserOwnerInviteModel::class);
     }
 
     public function index(): string
@@ -65,8 +69,9 @@ class AdvertiserController extends BasePortalController
         $advertiser['contract_agreed_at_kst'] = !empty($advertiser['contract_agreed_at']) ? $this->toKst($advertiser['contract_agreed_at']) : '';
 
         return $this->render('portal/advertisers/show', [
-            'pageTitle'  => '광고주 상세',
-            'advertiser' => $advertiser,
+            'pageTitle'    => '광고주 상세',
+            'advertiser'   => $advertiser,
+            'hasInvite'    => $this->inviteModel->hasPendingForAdvertiser($id),
         ]);
     }
 
@@ -103,31 +108,17 @@ class AdvertiserController extends BasePortalController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        // 선택적 광고주 계정(owner) 연결 — 이메일이 입력된 경우 병원 유형 계정만 허용
-        //
-        // [신뢰 경계] users 테이블에는 병원 귀속 정보(hospital_id)가 없어 "같은 병원 계정인지"
-        // 교차검증이 불가능하다. 따라서 대행사가 미연결 병원유형 계정을 자신의 광고주에 바인딩하는
-        // 행위는 의도된 워크플로(대행사가 광고주에게 로그인 권한 부여)로 간주한다.
-        // 방어선: ① 병원 유형 계정만 허용(findHospitalUserByEmail), ② 1:1 중복 연결 차단(아래 + 유니크 인덱스).
-        // 무단 선점을 원천 차단하려면 초대/승인 플로우가 필요하며, 이는 별도 범위로 분리한다.
-        $ownerUserId = null;
-        $ownerEmail  = trim((string) $this->request->getPost('owner_email'));
+        // 광고주 계정(owner) 연결 — 즉시 바인딩하지 않고 초대를 생성한다 (이슈 #38).
+        // owner_user_id 는 당사자가 로그인 후 초대를 수락해야 확정된다.
+        // 이메일이 입력된 경우 등록 전에 초대 대상(병원유형·미연결 계정)을 먼저 검증한다.
+        $ownerEmail   = trim((string) $this->request->getPost('owner_email'));
+        $inviteeId    = null;
         if ($ownerEmail !== '') {
-            $owner = model(UserModel::class)->findHospitalUserByEmail($ownerEmail);
-            if ($owner === null) {
-                return redirect()->back()->withInput()
-                    ->with('errors', ['owner_email' => '해당 이메일의 광고주 계정을 찾을 수 없습니다.']);
+            $resolved = $this->resolveInvitee($ownerEmail);
+            if (isset($resolved['error'])) {
+                return redirect()->back()->withInput()->with('errors', ['owner_email' => $resolved['error']]);
             }
-            $ownerUserId = (int) $owner['id'];
-
-            // 광고주 계정은 1:1 — 이미 다른 광고주에 연결된 계정인지 검사
-            $alreadyLinked = $this->advertiserModel
-                ->where('owner_user_id', $ownerUserId)
-                ->countAllResults() > 0;
-            if ($alreadyLinked) {
-                return redirect()->back()->withInput()
-                    ->with('errors', ['owner_email' => '이미 다른 광고주에 연결된 계정입니다.']);
-            }
+            $inviteeId = $resolved['userId'];
         }
 
         $data = [
@@ -140,7 +131,7 @@ class AdvertiserController extends BasePortalController
             'is_network'         => 0,
             'status'             => 1,
             'agency_user_id'     => $this->userId(),
-            'owner_user_id'      => $ownerUserId,
+            'owner_user_id'      => null,
             'contract_agreed_at' => null,
         ];
 
@@ -149,7 +140,75 @@ class AdvertiserController extends BasePortalController
             return redirect()->back()->withInput()->with('errors', $this->advertiserModel->errors());
         }
 
+        if ($inviteeId !== null) {
+            $this->inviteModel->createInvite((int) $id, $this->userId(), $inviteeId, $ownerEmail);
+
+            return redirect()->to('/portal/advertisers/' . $id)
+                ->with('success', '광고주가 등록되었습니다. 광고주 계정에 연결 초대를 보냈으며, 당사자 수락 후 연결이 확정됩니다.');
+        }
+
         return redirect()->to('/portal/advertisers/' . $id)
             ->with('success', '광고주가 등록되었습니다. 광고주의 계약 동의 후 사용 가능 상태가 됩니다.');
+    }
+
+    /**
+     * 기존 광고주에 owner 연결 초대 발송 (이슈 #38)
+     */
+    public function invite(int $id): RedirectResponse
+    {
+        $this->requireAgency();
+
+        $advertiser = $this->advertiserModel->findOwnedByAgency($id, $this->userId());
+        if ($advertiser === null) {
+            throw PageNotFoundException::forPageNotFound();
+        }
+
+        $back = redirect()->to('/portal/advertisers/' . $id);
+
+        if (!empty($advertiser['owner_user_id'])) {
+            return $back->with('error', '이미 광고주 계정이 연결되어 있습니다.');
+        }
+        if ($this->inviteModel->hasPendingForAdvertiser($id)) {
+            return $back->with('error', '이미 응답 대기 중인 초대가 있습니다.');
+        }
+
+        // create()와 동일한 검증 경로 통일
+        if (!$this->validate(['owner_email' => 'required|valid_email|max_length[255]'])) {
+            return $back->with('error', '올바른 이메일을 입력해주세요.');
+        }
+
+        $ownerEmail = trim((string) $this->request->getPost('owner_email'));
+        $resolved   = $this->resolveInvitee($ownerEmail);
+        if (isset($resolved['error'])) {
+            return $back->with('error', $resolved['error']);
+        }
+
+        $this->inviteModel->createInvite($id, $this->userId(), $resolved['userId'], $ownerEmail);
+
+        return $back->with('success', '연결 초대를 보냈습니다. 당사자 수락 후 연결이 확정됩니다.');
+    }
+
+    /**
+     * 초대 대상 계정 해석 — 병원유형·미연결 계정만 허용
+     *
+     * @return array{userId: int}|array{error: string}
+     */
+    private function resolveInvitee(string $email): array
+    {
+        $owner = model(UserModel::class)->findHospitalUserByEmail($email);
+        if ($owner === null) {
+            return ['error' => '해당 이메일의 광고주 계정을 찾을 수 없습니다.'];
+        }
+        $ownerUserId = (int) $owner['id'];
+
+        // 광고주 계정은 1:1 — 이미 다른 광고주에 연결된 계정인지 검사
+        $alreadyLinked = $this->advertiserModel
+            ->where('owner_user_id', $ownerUserId)
+            ->countAllResults() > 0;
+        if ($alreadyLinked) {
+            return ['error' => '이미 다른 광고주에 연결된 계정입니다.'];
+        }
+
+        return ['userId' => $ownerUserId];
     }
 }

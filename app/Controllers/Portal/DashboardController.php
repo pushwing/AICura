@@ -3,6 +3,7 @@
 namespace App\Controllers\Portal;
 
 use App\Models\AdvertiserModel;
+use App\Models\AdvertiserOwnerInviteModel;
 use App\Models\CallRequestModel;
 use App\Models\ContractModel;
 
@@ -69,6 +70,15 @@ class DashboardController extends BasePortalController
             $newCount   = $callModel->where('hospital_id', $hospitalId)->where('is_delete', 0)->where('status', 1)->countAllResults();
         }
 
+        // 수신한 owner 연결 초대 (이슈 #38) — owner는 1:1이라 이미 연결된 광고주는 유효 초대가 없으므로 미연결 시에만 조회
+        $invites = [];
+        if ($advertiserId === null) {
+            $invites = array_map(function (array $row): array {
+                $row['expires_at_kst'] = !empty($row['expires_at']) ? $this->toKst($row['expires_at']) : '';
+                return $row;
+            }, model(AdvertiserOwnerInviteModel::class)->findPendingForInvitee($this->userId()));
+        }
+
         return $this->render('portal/dashboard/advertiser', [
             'pageTitle'     => '대시보드',
             'hasAdvertiser' => $advertiserId !== null,
@@ -76,6 +86,7 @@ class DashboardController extends BasePortalController
             'contractName'  => $contractName,
             'totalCount'    => $totalCount,
             'newCount'      => $newCount,
+            'invites'       => $invites,
         ]);
     }
 }
