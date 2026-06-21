@@ -126,7 +126,7 @@ document.getElementById('statusApply').addEventListener('click', async (e) => {
             headers: {
                 'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': document.cookie.match(/csrf_cookie_name=([^;]+)/)?.[1] ?? '',
+                ...csrfHeaders(),
             },
             body: JSON.stringify({ status }),
         });
