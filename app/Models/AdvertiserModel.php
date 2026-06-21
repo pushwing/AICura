@@ -21,6 +21,9 @@ class AdvertiserModel extends Model
         'is_network',
         'network_parent_id',
         'status',
+        'agency_user_id',
+        'owner_user_id',
+        'contract_agreed_at',
     ];
 
     // Fix #1: 광고주 저장 시 KPI 캐시 무효화
@@ -202,5 +205,65 @@ class AdvertiserModel extends Model
         }
 
         return $data;
+    }
+
+    // ──────────────────────────────────────────────
+    // 포털 스코프 조회 (이슈 #32)
+    // ──────────────────────────────────────────────
+
+    /**
+     * 특정 대행사가 소유한 광고주 목록 (검색·페이징)
+     *
+     * @param array<string, mixed> $params
+     * @return array{list: list<array<string, mixed>>, total: int}
+     */
+    public function getListByAgency(int $agencyUserId, array $params): array
+    {
+        $builder = $this->db->table('advertisers a')
+            ->select('a.id, a.hospital_id, a.hospital_name, a.contact_name, a.contact_phone, a.status, a.contract_agreed_at, a.created_at')
+            ->where('a.agency_user_id', $agencyUserId);
+
+        if (!empty($params['hospital_name'])) {
+            $builder->like('a.hospital_name', $params['hospital_name']);
+        }
+        if (isset($params['status']) && $params['status'] !== '') {
+            $builder->where('a.status', (int) $params['status']);
+        }
+
+        $total = (clone $builder)->countAllResults(false);
+
+        $page  = max(1, (int) ($params['page'] ?? 1));
+        $limit = max(1, (int) ($params['limit'] ?? 20));
+
+        /** @var list<array<string, mixed>> $list */
+        $list = $builder
+            ->orderBy('a.id', 'DESC')
+            ->limit($limit, ($page - 1) * $limit)
+            ->get()
+            ->getResultArray();
+
+        return ['list' => $list, 'total' => (int) $total];
+    }
+
+    /**
+     * 광고주 본인 로그인 계정으로 광고주 레코드 조회 (없으면 null)
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findByOwner(int $ownerUserId): ?array
+    {
+        return $this->where('owner_user_id', $ownerUserId)->first();
+    }
+
+    /**
+     * 대행사 소유 + 단건 조회 (소유권 검증용)
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findOwnedByAgency(int $id, int $agencyUserId): ?array
+    {
+        return $this->where('id', $id)
+            ->where('agency_user_id', $agencyUserId)
+            ->first();
     }
 }

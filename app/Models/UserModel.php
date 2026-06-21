@@ -84,6 +84,50 @@ class UserModel extends Model
             ->getRowArray() ?: null;
     }
 
+    /** @var list<int> 포털(광고주) 로그인 허용 병원 유형 */
+    public const PORTAL_HOSPITAL_TYPES = [
+        self::TYPE_HOSPITAL_AD,
+        self::TYPE_HOSPITAL_GENE,
+        self::TYPE_HOSPITAL_RECV,
+    ];
+
+    /**
+     * 포털 로그인 인증용 — password 포함 조회 ($hidden 우회)
+     *
+     * 허용 대상: 광고대행사(is_agency_account=1) 또는 병원 유형(201~203)
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findPortalForAuth(string $email): ?array
+    {
+        return $this->db->table($this->table)
+            ->select('id, email, username, user_type, is_agency_account, password, is_active, created_at')
+            ->where('email', $email)
+            ->groupStart()
+                ->where('is_agency_account', 1)
+                ->orWhereIn('user_type', self::PORTAL_HOSPITAL_TYPES)
+            ->groupEnd()
+            ->where('is_active', 1)
+            ->where('deleted_at IS NULL', null, false)
+            ->limit(1)
+            ->get()
+            ->getRowArray() ?: null;
+    }
+
+    /**
+     * 광고주 계정(병원 유형) 이메일 조회 — 대행사 광고주 등록 시 owner 연결용
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findHospitalUserByEmail(string $email): ?array
+    {
+        return $this->select('id, email, username, user_type')
+            ->where('email', $email)
+            ->whereIn('user_type', self::PORTAL_HOSPITAL_TYPES)
+            ->where('is_active', 1)
+            ->first();
+    }
+
     /**
      * 목록 조회 (user_type 필터, 검색, 페이징)
      *

@@ -27,6 +27,25 @@ class ContractOrderModel extends Model
     protected $useTimestamps = true;
     protected $returnType    = 'array';
 
+    /** @var array<int, string> 광고 상품 종류 (ad_type2) */
+    public const AD_TYPE2_LABELS = [
+        1 => '이벤트',
+        2 => '메인배너',
+        3 => '이벤트존메인배너',
+        4 => 'CPM',
+        5 => '기타',
+    ];
+
+    /** @var array<int, string> 수주계약 상태 (contract_status) */
+    public const STATUS_LABELS = [
+        1 => '정상',
+        2 => '발행환불',
+        3 => '발행취소',
+        4 => '계약취소',
+        5 => '계약환불',
+        6 => '이월종료',
+    ];
+
     protected $allowedFields = [
         'hospital_id',
         'hospital_name',
@@ -163,6 +182,32 @@ class ContractOrderModel extends Model
             ->getRowArray()['price'];
 
         return $charged - $used;
+    }
+
+    /**
+     * 계약 단위 잔액 일괄 집계 — 수주계약별 잔액을 단일 쿼리로 계산 (N+1 방지)
+     *
+     * 충전: status IN (2, 4, 12) / 소진: status IN (3, 5, 6, 7, 8, 9, 10, 11)
+     *
+     * @return array<int, int> contract_order_id => 잔액
+     */
+    public function getBalancesByContract(int $contractId): array
+    {
+        $rows = $this->db->table('deposits')
+            ->select('contract_order_id')
+            ->select('SUM(CASE WHEN status IN (2, 4, 12) THEN price ELSE 0 END) AS charged', false)
+            ->select('SUM(CASE WHEN status IN (3, 5, 6, 7, 8, 9, 10, 11) THEN price ELSE 0 END) AS used', false)
+            ->where('contract_id', $contractId)
+            ->groupBy('contract_order_id')
+            ->get()
+            ->getResultArray();
+
+        $balances = [];
+        foreach ($rows as $row) {
+            $balances[(int) $row['contract_order_id']] = (int) $row['charged'] - (int) $row['used'];
+        }
+
+        return $balances;
     }
 
     /**
