@@ -131,24 +131,17 @@ class ContractController extends BasePortalController
         if ($advertiser === null) {
             return redirect()->to('/portal/contracts')->with('error', '광고주 정보를 찾을 수 없습니다.');
         }
-        if (!empty($advertiser['contract_agreed_at'])) {
+
+        // 경쟁 조건 방어: 조건부 UPDATE로 동의를 선점하고, 선점한 호출만 메인 계약을 생성한다 (이슈 #33)
+        $agreed = $this->advertiserModel->agreeContract(
+            $advertiserId,
+            $hospitalId,
+            (string) $advertiser['hospital_name']
+        );
+
+        if (!$agreed) {
             return redirect()->to('/portal/contracts')->with('error', '이미 계약에 동의하셨습니다.');
         }
-
-        // 메인 계약이 없으면 생성 (수주계약이 연결될 상위 계약)
-        if ($this->contractModel->findByHospital($hospitalId) === null) {
-            $this->contractModel->insert([
-                'hospital_id'   => $hospitalId,
-                'hospital_name' => $advertiser['hospital_name'],
-                'title'         => $advertiser['hospital_name'] . ' 광고 계약',
-                'pay_type'      => 1,
-            ]);
-        }
-
-        $this->advertiserModel->update($advertiserId, [
-            'status'             => 1,
-            'contract_agreed_at' => date('Y-m-d H:i:s'),
-        ]);
 
         return redirect()->to('/portal/contracts')->with('success', '계약에 동의했습니다. 이제 광고 충전(수주계약)을 신청할 수 있습니다.');
     }
