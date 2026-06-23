@@ -139,7 +139,9 @@ class UserModel extends Model
         $builder = $this->builder()
             ->where($this->table . '.deleted_at IS NULL', null, false);
 
-        if (!empty($params['user_types']) && is_array($params['user_types'])) {
+        if (!empty($params['is_agency'])) {
+            $builder->where('is_agency_account', 1);
+        } elseif (!empty($params['user_types']) && is_array($params['user_types'])) {
             $builder->whereIn('user_type', array_map('intval', $params['user_types']));
         } elseif (!empty($params['user_type'])) {
             $builder->where('user_type', (int) $params['user_type']);
