@@ -170,6 +170,9 @@ class CallRequestController extends BasePortalController
             'memo'            => $this->request->getPost('memo'),
         ]);
 
+        // 새 메모 반영해 재분석 — 큐 적재만 하고 즉시 응답 (leads:analyze가 소비)
+        $this->callRequestModel->enqueueAnalysis($id);
+
         return redirect()->to('/portal/call-requests/' . $id)
             ->with('success', '메모가 등록되었습니다.');
     }
