@@ -108,9 +108,11 @@ $routes->group('admin', static function (RouteCollection $routes): void {
         $routes->get('users',        'Admin\UserController::index');
         $routes->get('users/(:num)', 'Admin\UserController::show/$1');
 
-        // 설정
-        $routes->get('settings',  'Admin\SettingController::index');
-        $routes->post('settings', 'Admin\SettingController::update');
+        // 설정 (이슈 #63) — 내 계정(프로필·비밀번호) + 시스템 설정
+        $routes->get('settings',           'Admin\SettingController::index');
+        $routes->post('settings/profile',  'Admin\SettingController::updateProfile');
+        $routes->post('settings/password', 'Admin\SettingController::updatePassword');
+        $routes->post('settings/system',   'Admin\SettingController::updateSystem');
     });
 });
 

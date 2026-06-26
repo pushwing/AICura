@@ -15,9 +15,11 @@ use CodeIgniter\Model;
  * 데이터 경로: deposits.contract_id → contracts.hospital_id ← advertisers.hospital_id
  *
  * deposits.status (ReportModel과 동일):
- *   충전(+): 2 계약충전 / 4 기타충전 / 12 이월충전
+ *   충전(+): 2 계약충전 / 12 이월충전
  *   소진(-): 3 DB소진 / 5 기타- / 8 기타소진 / 9 발행취소 / 10 계약취소 / 11 이월소진
  *   환불(-): 6 발행환불 / 7 계약환불
+ *   CPA 환불 복원: 4 — 신청DB 환불요청 승인 시 소진을 상계(−)하는 거래. 충전이 아니라
+ *                  소진 차감으로 집계해 전체 충전금에 포함하지 않는다.
  * call_requests.status: 7 내원완료
  */
 class PortalReportModel extends Model
@@ -64,7 +66,7 @@ class PortalReportModel extends Model
     {
         $row = $this->db->table('deposits d')
             ->select($this->statusSum(self::STATUS_CHARGED) . ' AS charged', false)
-            ->select($this->statusSum(self::STATUS_CONSUMED) . ' AS consumed', false)
+            ->select($this->statusSum(self::STATUS_CONSUMED, self::STATUS_CPA_REFUND) . ' AS consumed', false)
             ->select($this->statusSum(self::STATUS_REFUNDED) . ' AS refunded', false)
             ->select($this->statusSum(self::STATUS_CPA_REFUND) . ' AS cpa_refunded', false)
             ->join('contracts c', 'c.id = d.contract_id', 'inner')
@@ -199,7 +201,7 @@ class PortalReportModel extends Model
         $depRows = $this->db->table('advertisers a')
             ->select('a.id AS advertiser_id, a.hospital_id, a.hospital_name', false)
             ->select($this->statusSumForYear(self::STATUS_CHARGED, $yearCol, $year) . ' AS charged', false)
-            ->select($this->statusSumForYear(self::STATUS_CONSUMED, $yearCol, $year) . ' AS consumed', false)
+            ->select($this->statusSumForYear(self::STATUS_CONSUMED, $yearCol, $year, self::STATUS_CPA_REFUND) . ' AS consumed', false)
             ->select($this->statusSumForYear(self::STATUS_REFUNDED, $yearCol, $year) . ' AS refunded', false)
             ->select($this->statusSumForYear(self::STATUS_CPA_REFUND, $yearCol, $year) . ' AS cpa_refunded', false)
             ->join('contracts c', 'c.hospital_id = a.hospital_id', 'left')
@@ -305,25 +307,43 @@ class PortalReportModel extends Model
     /**
      * 상태 집합 합계 SELECT 표현식 (연도 조건은 호출부 WHERE에서 처리)
      *
+     * $contra 상태는 −price로 합산해 상계(소진 차감)에 사용한다.
+     *
      * @param array<int, int> $statuses
+     * @param array<int, int> $contra
      */
-    private function statusSum(array $statuses): string
+    private function statusSum(array $statuses, array $contra = []): string
     {
         $list = implode(', ', array_map('intval', $statuses));
+        $expr = "CASE WHEN d.status IN ({$list}) THEN d.price";
 
-        return "IFNULL(SUM(CASE WHEN d.status IN ({$list}) THEN d.price ELSE 0 END), 0)";
+        if ($contra !== []) {
+            $contraList = implode(', ', array_map('intval', $contra));
+            $expr .= " WHEN d.status IN ({$contraList}) THEN -d.price";
+        }
+
+        return "IFNULL(SUM({$expr} ELSE 0 END), 0)";
     }
 
     /**
      * 상태 집합 + 연도 조건을 CASE 안에 포함한 합계 표현식
      * (LEFT JOIN 집계에서 연도를 WHERE에 두면 매출 없는 광고주가 누락되므로 CASE로 처리)
      *
+     * $contra 상태는 −price로 합산해 상계(소진 차감)에 사용한다.
+     *
      * @param array<int, int> $statuses
+     * @param array<int, int> $contra
      */
-    private function statusSumForYear(array $statuses, string $yearCol, int $year): string
+    private function statusSumForYear(array $statuses, string $yearCol, int $year, array $contra = []): string
     {
         $list = implode(', ', array_map('intval', $statuses));
+        $expr = "CASE WHEN d.status IN ({$list}) AND {$yearCol} = {$year} THEN d.price";
 
-        return "IFNULL(SUM(CASE WHEN d.status IN ({$list}) AND {$yearCol} = {$year} THEN d.price ELSE 0 END), 0)";
+        if ($contra !== []) {
+            $contraList = implode(', ', array_map('intval', $contra));
+            $expr .= " WHEN d.status IN ({$contraList}) AND {$yearCol} = {$year} THEN -d.price";
+        }
+
+        return "IFNULL(SUM({$expr} ELSE 0 END), 0)";
     }
 }
