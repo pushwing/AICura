@@ -52,21 +52,22 @@ class ReportModel extends Model
     /**
      * 연간 매출 KPI (충전·소진·환불·CPA환불·잔액)
      *
-     * cpa_refunded(신청DB 환불요청 승인 복원액)는 소진을 상계하는 거래이므로 충전에서 제외하고
-     * 소진(consumed)에서 차감한다. 별도 표시용 정보 지표로도 함께 노출한다.
+     * 충전·소진은 CPA 환불 복원(상계, status 4)을 제외한 순액으로 노출한다.
+     * status 4는 잘못 차감된 CPA를 잔액으로 되돌리는 상계 거래이므로 충전·소진 양쪽에서 동액 차감하며,
+     * 그 결과 잔액 항등식(잔액 = 충전 − 소진 − 환불)은 그대로 유지된다. cpa_refunded는 상계 규모 표시용 지표.
      *
      * @return array{charged: int, consumed: int, refunded: int, cpa_refunded: int, balance: int}
      */
     public function getYearKpi(int $year): array
     {
         $charged     = $this->sumByStatuses(self::STATUS_CHARGED, $year);
-        $cpaRefunded = $this->sumByStatuses(self::STATUS_CPA_REFUND, $year);
-        $consumed    = $this->sumByStatuses(self::STATUS_CONSUMED, $year) - $cpaRefunded;
+        $consumed    = $this->sumByStatuses(self::STATUS_CONSUMED, $year);
         $refunded    = $this->sumByStatuses(self::STATUS_REFUNDED, $year);
+        $cpaRefunded = $this->sumByStatuses(self::STATUS_CPA_REFUND, $year);
 
         return [
-            'charged'      => $charged,
-            'consumed'     => $consumed,
+            'charged'      => $charged - $cpaRefunded,
+            'consumed'     => $consumed - $cpaRefunded,
             'refunded'     => $refunded,
             'cpa_refunded' => $cpaRefunded,
             'balance'      => $charged - $consumed - $refunded,
@@ -80,18 +81,17 @@ class ReportModel extends Model
      */
     public function getMonthlyRevenue(int $year): array
     {
-        $consumed    = $this->monthlySumByStatuses(self::STATUS_CONSUMED, $year);
-        $cpaRefunded = $this->monthlySumByStatuses(self::STATUS_CPA_REFUND, $year);
+        $charged  = $this->monthlySumByStatuses(self::STATUS_CHARGED, $year);
+        $consumed = $this->monthlySumByStatuses(self::STATUS_CONSUMED, $year);
+        $cpa      = $this->monthlySumByStatuses(self::STATUS_CPA_REFUND, $year);
 
-        // CPA 환불 복원(status 4)은 소진 상계이므로 월별 소진에서 차감
-        foreach ($consumed as $i => $value) {
-            $consumed[$i] = $value - $cpaRefunded[$i];
+        // CPA 환불 복원(상계, status 4)을 충전·소진 양쪽에서 차감해 순액 그래프로 노출
+        for ($i = 0; $i < 12; $i++) {
+            $charged[$i]  -= $cpa[$i];
+            $consumed[$i] -= $cpa[$i];
         }
 
-        return [
-            'charged'  => $this->monthlySumByStatuses(self::STATUS_CHARGED, $year),
-            'consumed' => $consumed,
-        ];
+        return ['charged' => $charged, 'consumed' => $consumed];
     }
 
     /**
@@ -136,9 +136,14 @@ class ReportModel extends Model
      */
     public function getDailyStats(string $date, ?array $hospitalIds = null): array
     {
+        $charged  = $this->sumByStatusesBetween(self::STATUS_CHARGED, $date, $date, $hospitalIds);
+        $consumed = $this->sumByStatusesBetween(self::STATUS_CONSUMED, $date, $date, $hospitalIds);
+        $cpa      = $this->sumByStatusesBetween(self::STATUS_CPA_REFUND, $date, $date, $hospitalIds);
+
+        // CPA 환불 복원(상계, status 4)을 충전·소진 양쪽에서 차감해 순액으로 노출 (리포트 KPI와 동일)
         return [
-            'charged'  => $this->sumByStatusesBetween(self::STATUS_CHARGED, $date, $date, $hospitalIds),
-            'consumed' => $this->sumByStatusesBetween(self::STATUS_CONSUMED, $date, $date, $hospitalIds),
+            'charged'  => $charged - $cpa,
+            'consumed' => $consumed - $cpa,
             'refunded' => $this->sumByStatusesBetween(self::STATUS_REFUNDED, $date, $date, $hospitalIds),
         ];
     }
@@ -154,10 +159,12 @@ class ReportModel extends Model
         $charged  = $this->sumByStatusesBetween(self::STATUS_CHARGED, $fromDate, $toDate, $hospitalIds);
         $consumed = $this->sumByStatusesBetween(self::STATUS_CONSUMED, $fromDate, $toDate, $hospitalIds);
         $refunded = $this->sumByStatusesBetween(self::STATUS_REFUNDED, $fromDate, $toDate, $hospitalIds);
+        $cpa      = $this->sumByStatusesBetween(self::STATUS_CPA_REFUND, $fromDate, $toDate, $hospitalIds);
 
+        // CPA 환불 복원(상계, status 4)을 충전·소진 양쪽에서 차감 — 잔액 항등식은 유지
         return [
-            'charged'  => $charged,
-            'consumed' => $consumed,
+            'charged'  => $charged - $cpa,
+            'consumed' => $consumed - $cpa,
             'refunded' => $refunded,
             'balance'  => $charged - $consumed - $refunded,
         ];
@@ -169,7 +176,8 @@ class ReportModel extends Model
      * AI 소진보고서용. charged > 0 이고 (balance / charged) <= $thresholdRatio 인 병원을
      * 잔액 비율 오름차순으로 정렬해 돌려준다.
      *
-     * 충전: status IN (2, 4, 12) / 소진: status IN (3, 5, 6, 7, 8, 9, 10, 11)
+     * 충전·소진은 CPA 환불 복원(상계, status 4)을 양쪽에서 차감한 순액 기준이다(리포트 KPI와 동일).
+     * 원자료 충전: status IN (2, 4, 12) / 소진: status IN (3, 5, 6, 7, 8, 9, 10, 11)
      *
      * @param list<int>|null $hospitalIds 집계 대상 병원 한정 (null이면 전체)
      * @return array<int, array{hospital_id: int, hospital_name: string, charged: int, used: int, balance: int, ratio: float}>
@@ -184,6 +192,7 @@ class ReportModel extends Model
             ->select('h.id AS hospital_id, h.name AS hospital_name', false)
             ->select('SUM(CASE WHEN d.status IN (2, 4, 12) THEN d.price ELSE 0 END) AS charged', false)
             ->select('SUM(CASE WHEN d.status IN (3, 5, 6, 7, 8, 9, 10, 11) THEN d.price ELSE 0 END) AS used', false)
+            ->select('SUM(CASE WHEN d.status = 4 THEN d.price ELSE 0 END) AS cpa_refunded', false)
             ->join('contracts c', 'c.id = d.contract_id', 'inner')
             ->join('hospitals h', 'h.id = c.hospital_id', 'inner')
             ->groupBy('h.id, h.name')
@@ -197,8 +206,16 @@ class ReportModel extends Model
 
         $result = [];
         foreach ($rows as $row) {
-            $charged = (int) $row['charged'];
-            $used    = (int) $row['used'];
+            // CPA 환불 복원(상계, status 4)을 충전·소진 양쪽에서 차감한 순액으로 비율 산정
+            $cpa     = (int) $row['cpa_refunded'];
+            $charged = (int) $row['charged'] - $cpa;
+            $used    = (int) $row['used'] - $cpa;
+
+            // 순 충전금이 0 이하면(상계만 존재) 비율 산정 불가 — 제외
+            if ($charged <= 0) {
+                continue;
+            }
+
             $balance = $charged - $used;
             $ratio   = $balance / $charged;
 

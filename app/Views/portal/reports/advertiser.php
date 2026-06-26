@@ -2,7 +2,7 @@
 /** @var int $year */
 /** @var list<int> $years */
 /** @var bool $hasHospital */
-/** @var array{charged:int, consumed:int, refunded:int, balance:int} $kpi */
+/** @var array{charged:int, consumed:int, refunded:int, cpa_refunded:int, balance:int} $kpi */
 /** @var array{requested:int, visited:int} $call */
 /** @var list<string> $labels */
 /** @var array<int, int> $charged */
@@ -15,6 +15,7 @@ $kpiCards = [
     ['label' => '충전 합계', 'value' => $kpi['charged'],  'unit' => '원', 'color' => '#0F6E56'],
     ['label' => '소진 합계', 'value' => $kpi['consumed'], 'unit' => '원', 'color' => '#1D9E75'],
     ['label' => '환불 합계', 'value' => $kpi['refunded'], 'unit' => '원', 'color' => '#ef4444'],
+    ['label' => 'CPA 환불', 'value' => $kpi['cpa_refunded'], 'unit' => '원', 'color' => '#f59e0b'],
     ['label' => '잔액',     'value' => $kpi['balance'],  'unit' => '원', 'color' => '#6366f1'],
     ['label' => '신청 건수', 'value' => $call['requested'], 'unit' => '건', 'color' => 'var(--color-text)'],
     ['label' => '내원완료', 'value' => $call['visited'],    'unit' => '건', 'color' => '#0ea5e9'],
@@ -47,7 +48,7 @@ $kpiCards = [
 <?php else: ?>
 
     <!-- KPI 카드 -->
-    <div style="display:grid;grid-template-columns:repeat(6, 1fr);gap:12px;margin-bottom:20px;">
+    <div style="display:grid;grid-template-columns:repeat(7, 1fr);gap:12px;margin-bottom:20px;">
         <?php foreach ($kpiCards as $card): ?>
             <div class="card"><div class="card-body">
                 <p style="font-size:13px;color:var(--color-text-muted);margin:0 0 8px;"><?= esc($card['label']) ?></p>

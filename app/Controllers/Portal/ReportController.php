@@ -56,7 +56,7 @@ class ReportController extends BasePortalController
                 'year'         => $year,
                 'years'        => $this->yearOptions(),
                 'hasHospital'  => false,
-                'kpi'          => ['charged' => 0, 'consumed' => 0, 'refunded' => 0, 'balance' => 0],
+                'kpi'          => ['charged' => 0, 'consumed' => 0, 'refunded' => 0, 'cpa_refunded' => 0, 'balance' => 0],
                 'call'         => ['requested' => 0, 'visited' => 0],
                 'labels'       => $this->monthLabels(),
                 'charged'      => array_fill(0, 12, 0),
