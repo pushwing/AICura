@@ -1,11 +1,13 @@
 <?php
 /** @var array<string, mixed> $advertiser */
 /** @var bool $hasInvite */
+/** @var array<string, mixed>|null $agencyInfo 갑(광고대행사) 정보 */
 
 $statusLabels = [1 => '활성', 2 => '정지', 3 => '탈퇴'];
 $agreed    = !empty($advertiser['contract_agreed_at']);
 $hasOwner  = !empty($advertiser['owner_user_id']);
 $hasInvite = $hasInvite ?? false;
+$agencyInfo = $agencyInfo ?? null;
 ?>
 <div class="page-header" style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
     <a href="/portal/advertisers" style="color:var(--color-text-muted);text-decoration:none;">← 목록</a>
@@ -40,6 +42,20 @@ $hasInvite = $hasInvite ?? false;
             </table>
         </div>
     </div>
+</div>
+
+<!-- 표준 광고대행 계약서 (광고주 화면과 동일, 조회 전용) -->
+<div style="margin-top:24px;">
+    <?= view('portal/contracts/_standard_contract', [
+        'agreed'      => $agreed,
+        'agreedAtKst' => $advertiser['contract_agreed_at_kst'] ?: null,
+        'gabName'     => $agencyInfo['agency_company_name'] ?? null,
+        'gabCharge'   => $agencyInfo['agency_company_charge_name'] ?? null,
+        'eulName'     => $advertiser['hospital_name'] ?? '',
+        'eulBizNo'    => $advertiser['business_no'] ?? null,
+        'eulCharge'   => $advertiser['contact_name'] ?? null,
+        'readonly'    => true,
+    ]) ?>
 </div>
 
 <?php if (!$hasOwner && !$hasInvite): ?>
