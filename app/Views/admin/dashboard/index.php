@@ -4,6 +4,7 @@
 /** @var int    $monthlyContractCount */
 /** @var int    $monthlyContractAmount */
 /** @var int    $monthlyRevenue */
+/** @var int    $totalBalance */
 /** @var array<int, string> $chartLabels */
 /** @var array<int, int>    $chartContractCounts */
 /** @var array<int, int>    $chartContractAmounts */
@@ -15,7 +16,7 @@
 </div>
 
 <!-- KPI 카드 -->
-<div class="grid grid-cols-4 gap-4" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;">
+<div class="grid grid-cols-5 gap-4" style="display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:28px;">
 
     <div class="card">
         <div class="card-body">
@@ -56,6 +57,16 @@
                 <?= number_format($monthlyRevenue) ?>원
             </p>
             <p class="text-xs" style="color:var(--color-text-muted);margin-top:4px;">입금 확인 기준</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <p class="text-sm" style="color:var(--color-text-muted);margin-bottom:6px;">전체 잔액</p>
+            <p class="text-3xl font-bold" style="font-size:2rem;font-weight:700;color:#0F6E56;">
+                <?= number_format($totalBalance) ?>원
+            </p>
+            <p class="text-xs" style="color:var(--color-text-muted);margin-top:4px;">충전 − 소진(차감)</p>
         </div>
     </div>
 

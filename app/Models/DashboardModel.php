@@ -71,6 +71,23 @@ class DashboardModel extends Model
     }
 
     /**
+     * 전체 잔액 (충전 − 소진) — deposits 원장 누계
+     *
+     * 충전: status IN (2, 4, 12) / 소진: status IN (3, 5, 6, 7, 8, 9, 10, 11)
+     * (ContractOrderModel 잔액 계산과 동일한 status 집합)
+     */
+    public function getTotalBalance(): int
+    {
+        $row = $this->db->table('deposits')
+            ->select('IFNULL(SUM(CASE WHEN status IN (2, 4, 12) THEN price ELSE 0 END), 0) AS charged', false)
+            ->select('IFNULL(SUM(CASE WHEN status IN (3, 5, 6, 7, 8, 9, 10, 11) THEN price ELSE 0 END), 0) AS used', false)
+            ->get()
+            ->getRowArray();
+
+        return (int) ($row['charged'] ?? 0) - (int) ($row['used'] ?? 0);
+    }
+
+    /**
      * 최근 N개월 월별 계약/매출 추이
      *
      * @param array<int, array{y: int, m: int}> $months
