@@ -117,7 +117,10 @@ class ReportController extends BasePortalController
             throw PageNotFoundException::forPageNotFound();
         }
 
-        return view('reports/ai_show', ['report' => $report]);
+        return view('reports/ai_show', [
+            'report'      => $report,
+            'contentHtml' => (new \App\Libraries\MarkdownRenderer())->toSafeHtml((string) $report['content']),
+        ]);
     }
 
     /**

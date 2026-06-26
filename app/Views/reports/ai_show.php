@@ -3,9 +3,10 @@
  * AI 보고서 상세 — 새창 standalone 페이지 (이슈 #65)
  *
  * @var array<string, mixed> $report
+ * @var string $contentHtml 서버에서 GFM 마크다운→안전 HTML로 변환된 본문 (MarkdownRenderer)
  *
- * 본문(content)은 AI가 생성한 마크다운. 클라이언트에서 marked로 파싱하고
- * DOMPurify로 새니타이즈한 뒤 렌더한다(XSS 방어).
+ * 본문은 서버(league/commonmark, html_input=escape)에서 변환·새니타이즈되므로
+ * 외부 CDN 스크립트 없이 렌더된다.
  */
 $typeLabel = ($report['type'] ?? '') === 'consumption' ? '소진 보고서' : '매출 현황 보고서';
 ?>
@@ -18,8 +19,6 @@ $typeLabel = ($report['type'] ?? '') === 'consumption' ? '소진 보고서' : '�
     <link rel="icon" href="<?= base_url('favicon.ico') ?>">
     <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
     <link rel="stylesheet" href="<?= base_url('assets/css/aicura.css') ?>">
-    <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
     <style>
         body { font-family: 'Pretendard', sans-serif; background: #f7f8fa; margin: 0; padding: 32px 16px; color: #1a1a1a; }
         .report-wrap { max-width: 820px; margin: 0 auto; background: #fff; border-radius: 12px; padding: 40px 48px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
@@ -46,19 +45,11 @@ $typeLabel = ($report['type'] ?? '') === 'consumption' ? '소진 보고서' : '�
             <h1><?= esc($report['title']) ?></h1>
             <p class="meta"><?= esc($report['report_date']) ?> 기준 · 생성 <?= esc($report['created_at']) ?></p>
         </div>
-        <div class="report-body" id="reportBody"></div>
+        <!-- 본문은 서버에서 안전 HTML로 변환됨 (MarkdownRenderer) -->
+        <div class="report-body"><?= $contentHtml ?></div>
     </div>
     <div class="report-actions">
         <button type="button" onclick="window.print()">인쇄 / PDF 저장</button>
     </div>
-
-    <script>
-        (function () {
-            // JSON_HEX_TAG로 </script> 브레이크아웃 차단, marked 파싱 후 DOMPurify로 새니타이즈
-            const raw = <?= json_encode((string) $report['content'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?>;
-            const html = DOMPurify.sanitize(marked.parse(raw));
-            document.getElementById('reportBody').innerHTML = html;
-        })();
-    </script>
 </body>
 </html>

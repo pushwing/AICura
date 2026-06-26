@@ -70,7 +70,10 @@ class ReportController extends BaseAdminController
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
 
-        return view('reports/ai_show', ['report' => $report]);
+        return view('reports/ai_show', [
+            'report'      => $report,
+            'contentHtml' => (new \App\Libraries\MarkdownRenderer())->toSafeHtml((string) $report['content']),
+        ]);
     }
 
     /**
