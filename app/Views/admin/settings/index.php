@@ -66,12 +66,22 @@
         <form action="/admin/settings/system" method="POST">
             <?= csrf_field() ?>
             <?php foreach ($settingKeys as $key => $label): ?>
+                <?php if (in_array($key, \App\Models\SettingModel::BOOLEAN_KEYS, true)): ?>
+                <div class="form-group" style="margin-bottom:16px;max-width:520px;">
+                    <label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                        <input type="checkbox" name="<?= esc($key) ?>" value="1"
+                               <?= (old($key, $settings[$key] ?? '') === '1') ? 'checked' : '' ?>>
+                        <?= esc($label) ?>
+                    </label>
+                </div>
+                <?php else: ?>
                 <div class="form-group" style="margin-bottom:16px;max-width:520px;">
                     <label class="form-label"><?= esc($label) ?></label>
                     <input type="<?= $key === 'admin_email' ? 'email' : 'text' ?>"
                            name="<?= esc($key) ?>" class="form-control"
                            value="<?= esc(old($key, $settings[$key] ?? '')) ?>">
                 </div>
+                <?php endif; ?>
             <?php endforeach; ?>
             <button type="submit" class="btn btn-primary btn-sm">설정 저장</button>
         </form>

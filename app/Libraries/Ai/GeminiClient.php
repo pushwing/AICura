@@ -6,24 +6,24 @@ use CodeIgniter\HTTP\ResponseInterface;
 use RuntimeException;
 
 /**
- * Groq AI Chat Completions 클라이언트 (이슈 #65)
+ * Google Gemini generateContent 클라이언트 (이슈 #71)
  *
- * OpenAI 호환 엔드포인트(/openai/v1/chat/completions)를 호출한다.
+ * Generative Language API(/v1beta/models/{model}:generateContent)를 호출한다.
  * 외부 라이브러리 없이 CI4 CURLRequest 서비스로 직접 구현한다.
  *
- *   GROQ_API_KEY  필수 — Groq 콘솔에서 발급
- *   GROQ_MODEL    선택 — 기본 llama-3.3-70b-versatile
- *   GROQ_TIMEOUT  선택 — 호출 타임아웃(초), 기본 30
+ *   GEMINI_API_KEY  필수 — Google AI Studio에서 발급
+ *   GEMINI_MODEL    선택 — 기본 gemini-2.0-flash
+ *   GEMINI_TIMEOUT  선택 — 호출 타임아웃(초), 기본 30
  *
- * 레이트리밋(429)·일시 서버 오류(5xx)는 지수 백오프로 재시도한다.
- * 배치 커맨드가 다수 스코프를 연속 호출할 때 429로 줄줄이 실패하는 것을 막는다.
+ * 시스템 프롬프트는 systemInstruction, JSON 모드는 generationConfig.responseMimeType
+ * 으로 전달한다. 레이트리밋(429)·일시 서버 오류(5xx)는 지수 백오프로 재시도한다.
  */
-class GroqClient implements AiClientInterface
+class GeminiClient implements AiClientInterface
 {
-    private const ENDPOINT      = 'https://api.groq.com/openai/v1/chat/completions';
-    private const DEFAULT_MODEL = 'llama-3.3-70b-versatile';
+    private const ENDPOINT_TEMPLATE = 'https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent';
+    private const DEFAULT_MODEL      = 'gemini-2.0-flash';
 
-    /** 응답 토큰 상한 — 보고서 본문이 잘리지 않을 만큼 충분, 과금 폭주 방지 */
+    /** 응답 토큰 상한 — 위반 플래그 JSON이 잘리지 않을 만큼 충분, 과금 폭주 방지 */
     private const MAX_TOKENS = 2048;
 
     /** 429·5xx 재시도 횟수 (총 시도 = MAX_RETRIES + 1) */
@@ -38,9 +38,9 @@ class GroqClient implements AiClientInterface
 
     public function __construct()
     {
-        $this->apiKey  = (string) env('GROQ_API_KEY', '');
-        $this->model   = (string) env('GROQ_MODEL', self::DEFAULT_MODEL);
-        $this->timeout = max(5, (int) env('GROQ_TIMEOUT', 30));
+        $this->apiKey  = (string) env('GEMINI_API_KEY', '');
+        $this->model   = (string) env('GEMINI_MODEL', self::DEFAULT_MODEL);
+        $this->timeout = max(5, (int) env('GEMINI_TIMEOUT', 30));
     }
 
     public function isConfigured(): bool
@@ -60,7 +60,7 @@ class GroqClient implements AiClientInterface
         /** @var array<string, mixed>|null $decoded */
         $decoded = json_decode($content, true);
         if (! is_array($decoded)) {
-            throw new RuntimeException('Groq API JSON 응답을 파싱하지 못했습니다.');
+            throw new RuntimeException('Gemini API JSON 응답을 파싱하지 못했습니다.');
         }
 
         return $decoded;
@@ -70,7 +70,7 @@ class GroqClient implements AiClientInterface
     private function request(string $systemPrompt, string $userPrompt, bool $json): string
     {
         if (! $this->isConfigured()) {
-            throw new RuntimeException('GROQ_API_KEY가 설정되지 않았습니다.');
+            throw new RuntimeException('GEMINI_API_KEY가 설정되지 않았습니다.');
         }
 
         for ($attempt = 0; ; $attempt++) {
@@ -86,7 +86,7 @@ class GroqClient implements AiClientInterface
             $retryable = $status === 429 || $status >= 500;
             if ($retryable && $attempt < self::MAX_RETRIES) {
                 $wait = $this->backoffSeconds($response, $attempt);
-                log_message('warning', 'Groq API {status} — {wait}초 후 재시도 ({n}/{max})', [
+                log_message('warning', 'Gemini API {status} — {wait}초 후 재시도 ({n}/{max})', [
                     'status' => $status,
                     'wait'   => $wait,
                     'n'      => $attempt + 1,
@@ -97,15 +97,15 @@ class GroqClient implements AiClientInterface
                 continue;
             }
 
-            log_message('error', 'Groq API 오류 [{status}]: {body}', [
+            log_message('error', 'Gemini API 오류 [{status}]: {body}', [
                 'status' => $status,
                 'body'   => $body,
             ]);
-            throw new RuntimeException("Groq API 응답 오류 (HTTP {$status})");
+            throw new RuntimeException("Gemini API 응답 오류 (HTTP {$status})");
         }
     }
 
-    private function send(string $systemPrompt, string $userPrompt, bool $json = false): ResponseInterface
+    private function send(string $systemPrompt, string $userPrompt, bool $json): ResponseInterface
     {
         $client = service('curlrequest', [
             'baseURI'     => '',
@@ -113,26 +113,29 @@ class GroqClient implements AiClientInterface
             'http_errors' => false,
         ]);
 
-        $payload = [
-            'model'       => $this->model,
-            'temperature' => 0.4,
-            'max_tokens'  => self::MAX_TOKENS,
-            'messages'    => [
-                ['role' => 'system', 'content' => $systemPrompt],
-                ['role' => 'user',   'content' => $userPrompt],
-            ],
+        /** @var array<string, mixed> $generationConfig */
+        $generationConfig = [
+            'temperature'     => 0.4,
+            'maxOutputTokens' => self::MAX_TOKENS,
         ];
-
         if ($json) {
-            $payload['response_format'] = ['type' => 'json_object'];
+            $generationConfig['responseMimeType'] = 'application/json';
         }
 
-        return $client->post(self::ENDPOINT, [
+        return $client->post(sprintf(self::ENDPOINT_TEMPLATE, $this->model), [
             'headers' => [
-                'Authorization' => 'Bearer ' . $this->apiKey,
-                'Content-Type'  => 'application/json',
+                'Content-Type'    => 'application/json',
+                'x-goog-api-key'  => $this->apiKey,
             ],
-            'json' => $payload,
+            'json' => [
+                'systemInstruction' => [
+                    'parts' => [['text' => $systemPrompt]],
+                ],
+                'contents' => [
+                    ['role' => 'user', 'parts' => [['text' => $userPrompt]]],
+                ],
+                'generationConfig' => $generationConfig,
+            ],
         ]);
     }
 
@@ -151,10 +154,10 @@ class GroqClient implements AiClientInterface
     {
         /** @var array<string, mixed>|null $decoded */
         $decoded = json_decode($body, true);
-        $content = $decoded['choices'][0]['message']['content'] ?? null;
+        $content = $decoded['candidates'][0]['content']['parts'][0]['text'] ?? null;
 
         if (! is_string($content) || $content === '') {
-            throw new RuntimeException('Groq API 응답에서 본문을 추출하지 못했습니다.');
+            throw new RuntimeException('Gemini API 응답에서 본문을 추출하지 못했습니다.');
         }
 
         return trim($content);

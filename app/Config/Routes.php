@@ -41,6 +41,7 @@ $routes->group('admin', static function (RouteCollection $routes): void {
         $routes->get('reviews',                       'Admin\ReviewController::index');
         $routes->get('reviews/(:num)',                'Admin\ReviewController::show/$1');
         $routes->post('reviews/(:num)/action',        'Admin\ReviewController::action/$1');
+        $routes->post('reviews/(:num)/recheck',       'Admin\ReviewController::recheck/$1');
 
         // 리포트
         $routes->get('reports',           'Admin\ReportController::index');

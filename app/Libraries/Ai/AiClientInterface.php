@@ -18,9 +18,22 @@ interface AiClientInterface
     public function isConfigured(): bool;
 
     /**
-     * 시스템·사용자 프롬프트로 단일 응답 생성
+     * 시스템·사용자 프롬프트로 단일 텍스트(산문) 응답 생성
      *
      * @throws RuntimeException 미설정·HTTP 오류·응답 파싱 실패 시
      */
     public function complete(string $systemPrompt, string $userPrompt): string;
+
+    /**
+     * 시스템·사용자 프롬프트로 단일 JSON 응답 생성·디코드
+     *
+     * 공급자의 JSON 모드(response_format / responseMimeType)를 사용해
+     * 구조화 응답을 받아 연관 배열로 반환한다. 위반 플래그처럼
+     * 기계 판독이 필요한 출력에 사용한다.
+     *
+     * @return array<string, mixed>
+     *
+     * @throws RuntimeException 미설정·HTTP 오류·JSON 파싱 실패 시
+     */
+    public function completeJson(string $systemPrompt, string $userPrompt): array;
 }
