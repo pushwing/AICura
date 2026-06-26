@@ -237,4 +237,96 @@ final class UserModelDatabaseTest extends CIUnitTestCase
         // soft deleted 제외 3건이 검색됨
         $this->assertSame(count($result['list']), $result['total']);
     }
+
+    // ── is_agency 필터 (대행사 탭) ─────────────────────
+
+    public function testGetListIsAgencyFilterReturnsOnlyAgencyAccounts(): void
+    {
+        $db  = db_connect();
+        $now = date('Y-m-d H:i:s');
+        $db->table('users')->insert([
+            'email'             => '__user_agency__@test.invalid',
+            'user_type'         => UserModel::TYPE_USER,
+            'is_agency_account' => 1,
+            'is_dormant'        => 1,
+            'is_active'         => 1,
+            'username'          => '__대행사__',
+            'created_at'        => $now,
+            'updated_at'        => $now,
+        ]);
+        $this->insertedIds[] = (int) $db->insertID();
+
+        $result = model(UserModel::class)->getList(['is_agency' => 1]);
+
+        $emails = array_column($result['list'], 'email');
+        $this->assertContains('__user_agency__@test.invalid', $emails);
+        // 일반/관리자 계정은 제외
+        $this->assertNotContains('__user_general__@test.invalid', $emails);
+    }
+
+    public function testGetListGeneralTabExcludesAgencyAccounts(): void
+    {
+        $db  = db_connect();
+        $now = date('Y-m-d H:i:s');
+        // user_type=1(일반)이지만 대행사 플래그가 켜진 계정
+        $db->table('users')->insert([
+            'email'             => '__user_type1_agency__@test.invalid',
+            'user_type'         => UserModel::TYPE_USER,
+            'is_agency_account' => 1,
+            'is_dormant'        => 1,
+            'is_active'         => 1,
+            'username'          => '__타입1대행사__',
+            'created_at'        => $now,
+            'updated_at'        => $now,
+        ]);
+        $this->insertedIds[] = (int) $db->insertID();
+
+        // 일반 사용자 탭 = user_type IN [1], 대행사 제외
+        $result = model(UserModel::class)->getList(['user_types' => [UserModel::TYPE_USER]]);
+
+        $emails = array_column($result['list'], 'email');
+        $this->assertNotContains('__user_type1_agency__@test.invalid', $emails);
+        // 순수 일반 사용자는 그대로 노출
+        $this->assertContains('__user_general__@test.invalid', $emails);
+    }
+
+    // ── createHospitalOwner / emailExists ─────────────
+
+    public function testCreateHospitalOwnerCreatesActiveHospitalAccount(): void
+    {
+        $model = model(UserModel::class);
+
+        $id = $model->createHospitalOwner('__owner_new__@test.invalid', 'secret12345', '__오너__', '010-2222-3333');
+        $this->assertIsInt($id);
+        $this->insertedIds[] = $id;
+
+        $user = $model->find($id);
+        $this->assertNotNull($user);
+        $this->assertSame(UserModel::TYPE_HOSPITAL_AD, (int) $user['user_type']);
+        $this->assertSame(1, (int) $user['is_active']);
+    }
+
+    public function testCreateHospitalOwnerHashesPassword(): void
+    {
+        $model = model(UserModel::class);
+
+        $id = $model->createHospitalOwner('__owner_hash__@test.invalid', 'secret12345', null, null);
+        $this->assertIsInt($id);
+        $this->insertedIds[] = $id;
+
+        // $hidden 우회 조회로 password 해시 확인
+        $row = $model->findPortalForAuth('__owner_hash__@test.invalid');
+        $this->assertNotNull($row);
+        $this->assertTrue(password_verify('secret12345', (string) $row['password']));
+    }
+
+    public function testEmailExistsTrueForInsertedUser(): void
+    {
+        $this->assertTrue(model(UserModel::class)->emailExists('__user_general__@test.invalid'));
+    }
+
+    public function testEmailExistsFalseForUnknownEmail(): void
+    {
+        $this->assertFalse(model(UserModel::class)->emailExists('__nobody_xyz__@test.invalid'));
+    }
 }

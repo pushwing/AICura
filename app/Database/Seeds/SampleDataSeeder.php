@@ -17,9 +17,64 @@ class SampleDataSeeder extends Seeder
         $now = date('Y-m-d H:i:s');
 
         $this->insertHospitals($now);
-        $this->insertAdvertisers($now);
+        $links = $this->insertUsers($now);
+        $this->insertAdvertisers($now, $links);
         $this->insertContractsAndOrders($now);
         $this->insertCampaigns($now);
+    }
+
+    /**
+     * 광고주(병원 유형) 로그인 계정 + 대행사 계정 생성
+     *
+     * advertisers.owner_user_id(광고주 본인 계정) / agency_user_id(대행사) 연결에 사용한다.
+     * 사용자 관리 화면의 '광고주/병원' 탭·'대행사' 탭에 데이터가 표시되도록 한다.
+     *
+     * @return array{owners: array<int, int>, agency: int}  owners: hospital_id → user_id
+     */
+    private function insertUsers(string $now): array
+    {
+        $password = password_hash('password1234', PASSWORD_DEFAULT);
+
+        // 대행사 계정 1건
+        $this->db->table('users')->insert([
+            'email'             => 'agency@aicura.test',
+            'password'          => $password,
+            'username'          => '에이스광고대행',
+            'user_type'         => 1,
+            'is_agency_account' => 1,
+            'phone'             => '010-7000-0001',
+            'is_dormant'        => 1,
+            'is_active'         => 1,
+            'created_at'        => $now,
+            'updated_at'        => $now,
+        ]);
+        $agencyId = (int) $this->db->insertID();
+
+        // 광고주병원(user_type=201) 계정 — advertisers.hospital_id 와 매핑
+        $owners = [
+            1 => ['email' => 'gangnam@aicura.test',  'username' => '강남성형외과 담당',    'phone' => '010-1234-5678'],
+            2 => ['email' => 'network@aicura.test',  'username' => '서울네트워크 담당',    'phone' => '010-9999-0000'],
+            3 => ['email' => 'bundang@aicura.test',  'username' => '분당자병원 담당',      'phone' => '010-1111-2222'],
+        ];
+
+        $ownerIds = [];
+        foreach ($owners as $hospitalId => $info) {
+            $this->db->table('users')->insert([
+                'email'             => $info['email'],
+                'password'          => $password,
+                'username'          => $info['username'],
+                'user_type'         => 201, // 광고주병원
+                'is_agency_account' => 0,
+                'phone'             => $info['phone'],
+                'is_dormant'        => 1,
+                'is_active'         => 1,
+                'created_at'        => $now,
+                'updated_at'        => $now,
+            ]);
+            $ownerIds[$hospitalId] = (int) $this->db->insertID();
+        }
+
+        return ['owners' => $ownerIds, 'agency' => $agencyId];
     }
 
     private function insertHospitals(string $now): void
@@ -65,8 +120,14 @@ class SampleDataSeeder extends Seeder
         }
     }
 
-    private function insertAdvertisers(string $now): void
+    /**
+     * @param array{owners: array<int, int>, agency: int} $links
+     */
+    private function insertAdvertisers(string $now, array $links): void
     {
+        $owners = $links['owners'];
+        $agency = $links['agency'];
+
         $advertisers = [
             [
                 'id'                => 1,
@@ -78,6 +139,8 @@ class SampleDataSeeder extends Seeder
                 'business_no'       => '123-45-67890',
                 'is_network'        => 0,
                 'network_parent_id' => null,
+                'agency_user_id'    => $agency,             // 대행사 소유
+                'owner_user_id'     => $owners[1] ?? null,
                 'status'            => 1,
                 'created_at'        => $now,
                 'updated_at'        => $now,
@@ -92,6 +155,8 @@ class SampleDataSeeder extends Seeder
                 'business_no'       => '999-88-77777',
                 'is_network'        => 1,
                 'network_parent_id' => null,
+                'agency_user_id'    => $agency,             // 대행사 소유
+                'owner_user_id'     => $owners[2] ?? null,
                 'status'            => 1,
                 'created_at'        => $now,
                 'updated_at'        => $now,
@@ -106,6 +171,8 @@ class SampleDataSeeder extends Seeder
                 'business_no'       => null,
                 'is_network'        => 2,
                 'network_parent_id' => 2,
+                'agency_user_id'    => null,                // 대행사 미연결(직접 광고주)
+                'owner_user_id'     => $owners[3] ?? null,
                 'status'            => 1,
                 'created_at'        => $now,
                 'updated_at'        => $now,

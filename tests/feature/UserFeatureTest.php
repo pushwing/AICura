@@ -18,7 +18,7 @@ use CodeIgniter\Test\FeatureTestTrait;
  *   [F7]  index search_word 필터 → 200
  *   [F8]  show 존재하지 않는 ID → PageNotFoundException
  *   [F9]  show 존재하는 사용자 → 200 + 이메일 표시
- *   [F10] index 잘못된 type 값 → 1로 보정 (200)
+ *   [F10] index 잘못된 type 값 → 기본 탭(2)으로 보정 (200)
  *
  * @internal
  */
@@ -39,10 +39,11 @@ final class UserFeatureTest extends CIUnitTestCase
     {
         parent::setUp();
 
+        // 자가 회원가입이 없어 '일반 사용자' 탭은 제거됨 — 기본 노출 탭(운영자) 유형으로 픽스처 구성
         $now = date('Y-m-d H:i:s');
         db_connect()->table('users')->insert([
             'email'      => '__feature_user__@test.invalid',
-            'user_type'  => UserModel::TYPE_USER,
+            'user_type'  => UserModel::TYPE_ADMIN,
             'is_dormant' => 1,
             'is_active'  => 1,
             'username'   => '__feature_user__',
@@ -167,10 +168,10 @@ final class UserFeatureTest extends CIUnitTestCase
                        ->get('/admin/users/' . $this->testUserId);
 
         $result->assertStatus(200);
-        $result->assertSee('일반 사용자');
+        $result->assertSee('관리자');
     }
 
-    // ── [F10] type 범위 초과 → 1로 보정 ──────────────
+    // ── [F10] type 범위 초과 → 기본 탭(2)으로 보정 ────
 
     public function testIndexClampsTypeOutOfRange(): void
     {

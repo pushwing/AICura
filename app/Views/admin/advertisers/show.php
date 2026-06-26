@@ -102,6 +102,9 @@ $kpi = $advertiser['kpi'] ?? ['total_amount' => 0, 'balance' => 0, 'active_campa
                     ['담당자',  esc($advertiser['contact_name'] ?? '-')],
                     ['이메일',  esc($advertiser['contact_email'] ?? '-')],
                     ['연락처',  esc($advertiser['contact_phone'] ?? '-')],
+                    ['로그인 계정', !empty($advertiser['owner_email'])
+                        ? esc($advertiser['owner_email'])
+                        : '<span style="color:#9ca3af;">미연결</span>'],
                     ['등록일',  esc($advertiser['created_at_kst'] ?? '-')],
                 ];
                 foreach ($contactRows as [$label, $value]):
