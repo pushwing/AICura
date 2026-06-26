@@ -28,6 +28,7 @@ class CallRequestModel extends Model
         'status',
         'is_charged',
         'confirm_date',
+        'reserved_at',
         'name',
         'phone',
         'content',
@@ -63,6 +64,21 @@ class CallRequestModel extends Model
         1 => '안드로이드',
         2 => 'iOS',
         3 => '웹',
+    ];
+
+    /** 예약 상태 — 변경 시 예약 일시 입력 필수 */
+    public const STATUS_RESERVED = 5;
+
+    /**
+     * @var array<int, string> 환불요청을 유발하는 상태 (중복/결번/취소)
+     *
+     * 광고주가 이 상태로 변경하면 운영자에게 환불요청이 생성되고, 운영자 처리 전까지
+     * 광고주의 추가 상태 변경이 잠긴다. (이슈 #52)
+     */
+    public const REFUND_STATUSES = [
+        3 => '취소',
+        8 => '중복',
+        9 => '결번',
     ];
 
     /**
@@ -141,11 +157,15 @@ class CallRequestModel extends Model
     /**
      * 상태 변경 (9단계 중 유효한 값으로만)
      *
-     * 미확인(1)에서 다른 상태로 처음 전환되는 시점에 confirm_date를 기록한다.
+     * - 미확인(1)에서 다른 상태로 처음 전환되는 시점에 confirm_date를 기록한다.
+     * - 예약(5)으로 변경 시 예약 일시($reservedAt)를 함께 저장한다.
+     * - 모든 상태 전환은 call_memos에 시스템 메모로 히스토리를 남긴다. (이슈 #52)
      *
-     * @throws \RuntimeException 신청 건 없음 또는 유효하지 않은 상태
+     * @param string|null $reservedAt 예약 일시 (Y-m-d H:i[:s]) — 예약 상태일 때 필수
+     * @param int|null    $memoUserId 변경 주체 user id (히스토리 메모 작성자)
+     * @throws \RuntimeException 신청 건 없음·유효하지 않은 상태·예약 일시 누락
      */
-    public function changeStatus(int $id, int $status): void
+    public function changeStatus(int $id, int $status, ?string $reservedAt = null, ?int $memoUserId = null): void
     {
         if (!isset(self::STATUSES[$status])) {
             throw new \RuntimeException('유효하지 않은 상태입니다.');
@@ -158,14 +178,63 @@ class CallRequestModel extends Model
             throw new \RuntimeException('신청 건을 찾을 수 없습니다.');
         }
 
-        $update = ['status' => $status];
+        $fromStatus = (int) $request['status'];
+        $update     = ['status' => $status];
 
         // 최초 확인 시점 기록 (미확인 → 확인 계열)
-        if ((int) $request['status'] === 1 && $status !== 1 && empty($request['confirm_date'])) {
+        if ($fromStatus === 1 && $status !== 1 && empty($request['confirm_date'])) {
             $update['confirm_date'] = date('Y-m-d H:i:s');
         }
 
+        // 예약 상태 전환 — 예약 일시 필수
+        if ($status === self::STATUS_RESERVED) {
+            $normalized = $this->normalizeReservedAt($reservedAt);
+            if ($normalized === null) {
+                throw new \RuntimeException('예약 상태는 예약 일시를 입력해야 합니다.');
+            }
+            $update['reserved_at'] = $normalized;
+        }
+
         $this->update($id, $update);
+
+        $this->recordStatusHistory($id, $fromStatus, $status, $update['reserved_at'] ?? null, $memoUserId);
+    }
+
+    /**
+     * 예약 일시 정규화 — 유효한 datetime이면 'Y-m-d H:i:s', 아니면 null.
+     */
+    private function normalizeReservedAt(?string $reservedAt): ?string
+    {
+        if ($reservedAt === null || trim($reservedAt) === '') {
+            return null;
+        }
+
+        $ts = strtotime($reservedAt);
+        if ($ts === false) {
+            return null;
+        }
+
+        return date('Y-m-d H:i:s', $ts);
+    }
+
+    /**
+     * 상태 전환 히스토리를 call_memos에 시스템 메모로 기록한다.
+     */
+    private function recordStatusHistory(int $id, int $fromStatus, int $toStatus, ?string $reservedAt, ?int $memoUserId): void
+    {
+        $fromLabel = self::STATUSES[$fromStatus] ?? (string) $fromStatus;
+        $toLabel   = self::STATUSES[$toStatus] ?? (string) $toStatus;
+
+        $memo = sprintf('[상태변경] %s → %s', $fromLabel, $toLabel);
+        if ($reservedAt !== null) {
+            $memo .= ' (예약 ' . $reservedAt . ')';
+        }
+
+        model(CallMemoModel::class)->insert([
+            'call_request_id' => $id,
+            'user_id'         => $memoUserId ?: null,
+            'memo'            => $memo,
+        ]);
     }
 
     /**

@@ -76,11 +76,16 @@ class CallRequestController extends BaseAdminController
 
     public function changeStatus(int $id): ResponseInterface
     {
-        $body   = $this->request->getJSON(true);
-        $status = (int) ($body['status'] ?? 0);
+        $body       = $this->request->getJSON(true);
+        $status     = (int) ($body['status'] ?? 0);
+        $reservedAt = isset($body['reserved_at']) ? (string) $body['reserved_at'] : null;
+
+        /** @var array<string, mixed> $authUser */
+        $authUser = session()->get('admin_user');
+        $adminId  = (int) ($authUser['id'] ?? 0) ?: null;
 
         try {
-            $this->callRequestModel->changeStatus($id, $status);
+            $this->callRequestModel->changeStatus($id, $status, $reservedAt, $adminId);
         } catch (\RuntimeException $e) {
             return $this->response->setStatusCode(422)
                 ->setJSON(['success' => false, 'message' => $e->getMessage()]);

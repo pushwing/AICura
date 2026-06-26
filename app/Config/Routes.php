@@ -95,6 +95,11 @@ $routes->group('admin', static function (RouteCollection $routes): void {
         $routes->get('payments/(:num)',             'Admin\PaymentController::show/$1');
         $routes->post('payments/(:num)/refund',     'Admin\PaymentController::refund/$1');
 
+        // 환불요청 관리 (이슈 #52) — 신청DB 상태변경(중복/결번/취소)에 따른 차감 복원 처리
+        $routes->get('refund-requests',                  'Admin\RefundRequestController::index');
+        $routes->post('refund-requests/(:num)/approve',  'Admin\RefundRequestController::approve/$1');
+        $routes->post('refund-requests/(:num)/reject',   'Admin\RefundRequestController::reject/$1');
+
         // 사용자 관리
         $routes->get('users',        'Admin\UserController::index');
         $routes->get('users/(:num)', 'Admin\UserController::show/$1');
