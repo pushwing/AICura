@@ -10,7 +10,10 @@ use CodeIgniter\Model;
  *  - 매출 리포트: deposits 원장 기준 월별 충전/소진 집계
  *  - 캠페인 리포트: call_requests 기준 신청 건수·내원완료 통계
  *
- * deposits.status: 2 계약충전 / 3 DB소진 / 6 발행환불 / 7 계약환불
+ * deposits.status (ContractOrderModel·DashboardModel 잔액 집계와 동일한 status 집합):
+ *   충전(+): 2 계약충전 / 4 기타충전(관리자 수동·CPA 환불 복원) / 12 이월충전
+ *   소진(-): 3 DB소진 / 5 기타- / 8 기타소진 / 9 발행취소 / 10 계약취소 / 11 이월소진
+ *   환불(-): 6 발행환불 / 7 계약환불  (소진과 별도 KPI로 노출)
  * call_requests.status: 7 내원완료
  */
 class ReportModel extends Model
@@ -18,9 +21,12 @@ class ReportModel extends Model
     protected $table      = 'deposits';
     protected $returnType = 'array';
 
-    private const STATUS_CHARGED  = [2];    // 계약충전
-    private const STATUS_CONSUMED = [3];    // DB소진
-    private const STATUS_REFUNDED = [6, 7]; // 발행환불 + 계약환불
+    // 충전 — 계약충전 + 기타충전(CPA 환불 복원 포함) + 이월충전
+    private const STATUS_CHARGED  = [2, 4, 12];
+    // 소진 — DB소진·기타차감·취소·이월소진 (환불 6·7은 별도 집계로 제외)
+    private const STATUS_CONSUMED = [3, 5, 8, 9, 10, 11];
+    // 환불 — 발행환불 + 계약환불 (별도 KPI)
+    private const STATUS_REFUNDED = [6, 7];
 
     /**
      * 드라이버별 연도 표현식 (MySQL: YEAR / SQLite3: strftime)
