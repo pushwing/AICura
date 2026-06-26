@@ -106,6 +106,28 @@ final class ReportModelDatabaseTest extends CIUnitTestCase
         $this->assertSame(600000, $kpi['balance']); // 1,000,000 - 300,000 - 100,000
     }
 
+    public function testGetYearKpiExcludesCpaRefundFromChargedAndConsumed(): void
+    {
+        // CPA 환불 복원(상계, status 4) 50,000 추가 — 충전·소진 양쪽에서 차감되어야 한다.
+        db_connect()->table('deposits')->insert([
+            'status'            => 4,
+            'is_minus'          => 0,
+            'contract_id'       => $this->contractId,
+            'contract_order_id' => $this->contractOrder,
+            'price'             => 50000,
+            'created_at'        => date('Y-m-d H:i:s'),
+            'updated_at'        => date('Y-m-d H:i:s'),
+        ]);
+
+        $kpi = model(ReportModel::class)->getYearKpi($this->year);
+
+        $this->assertSame(1000000, $kpi['charged']);      // 1,050,000(raw 2+4) - 50,000(상계)
+        $this->assertSame(250000, $kpi['consumed']);      // 300,000 - 50,000(상계)
+        $this->assertSame(100000, $kpi['refunded']);
+        $this->assertSame(50000, $kpi['cpa_refunded']);
+        $this->assertSame(650000, $kpi['balance']);       // 1,000,000 - 250,000 - 100,000
+    }
+
     public function testGetMonthlyRevenueReturnsTwelveElements(): void
     {
         $monthly = model(ReportModel::class)->getMonthlyRevenue($this->year);

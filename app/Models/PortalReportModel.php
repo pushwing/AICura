@@ -55,8 +55,8 @@ class PortalReportModel extends Model
     /**
      * 병원 연간 매출 KPI (충전·소진·환불·CPA환불·잔액)
      *
-     * cpa_refunded(신청DB 환불요청 승인 복원액)는 충전(status 4)에 이미 포함돼 잔액에 반영되므로
-     * 별도 표시용 정보 지표다. 잔액 항등식에서 중복 차감하지 않는다. (운영자 리포트와 동일)
+     * 충전·소진은 CPA 환불 복원(상계, status 4)을 제외한 순액으로 노출한다. (운영자 리포트와 동일)
+     * status 4는 충전·소진 양쪽에서 동액 차감하므로 잔액 항등식(잔액 = 충전 − 소진 − 환불)은 유지된다.
      *
      * @return array{charged: int, consumed: int, refunded: int, cpa_refunded: int, balance: int}
      */
@@ -76,12 +76,13 @@ class PortalReportModel extends Model
         $charged  = (int) ($row['charged'] ?? 0);
         $consumed = (int) ($row['consumed'] ?? 0);
         $refunded = (int) ($row['refunded'] ?? 0);
+        $cpa      = (int) ($row['cpa_refunded'] ?? 0);
 
         return [
-            'charged'      => $charged,
-            'consumed'     => $consumed,
+            'charged'      => $charged - $cpa,
+            'consumed'     => $consumed - $cpa,
             'refunded'     => $refunded,
-            'cpa_refunded' => (int) ($row['cpa_refunded'] ?? 0),
+            'cpa_refunded' => $cpa,
             'balance'      => $charged - $consumed - $refunded,
         ];
     }
@@ -99,6 +100,7 @@ class PortalReportModel extends Model
             ->select($monthExpr . ' AS month', false)
             ->select($this->statusSum(self::STATUS_CHARGED) . ' AS charged', false)
             ->select($this->statusSum(self::STATUS_CONSUMED) . ' AS consumed', false)
+            ->select($this->statusSum(self::STATUS_CPA_REFUND) . ' AS cpa_refunded', false)
             ->join('contracts c', 'c.id = d.contract_id', 'inner')
             ->where('c.hospital_id', $hospitalId)
             ->where($this->yearExpr('d.created_at'), $year)
@@ -111,8 +113,10 @@ class PortalReportModel extends Model
         foreach ($rows as $row) {
             $idx = (int) $row['month'] - 1;
             if ($idx >= 0 && $idx < 12) {
-                $charged[$idx]  = (int) $row['charged'];
-                $consumed[$idx] = (int) $row['consumed'];
+                // CPA 환불 복원(상계, status 4)을 충전·소진 양쪽에서 차감해 순액으로 노출
+                $cpa            = (int) $row['cpa_refunded'];
+                $charged[$idx]  = (int) $row['charged'] - $cpa;
+                $consumed[$idx] = (int) $row['consumed'] - $cpa;
             }
         }
 
@@ -241,16 +245,18 @@ class PortalReportModel extends Model
             $charged    = (int) $row['charged'];
             $consumed   = (int) $row['consumed'];
             $refunded   = (int) $row['refunded'];
+            $cpa        = (int) $row['cpa_refunded'];
             $call       = $callByHospital[$hospitalId] ?? ['requested' => 0, 'visited' => 0];
 
             $result[] = [
                 'advertiser_id' => (int) $row['advertiser_id'],
                 'hospital_id'   => $hospitalId,
                 'hospital_name' => (string) ($row['hospital_name'] ?? ''),
-                'charged'       => $charged,
-                'consumed'      => $consumed,
+                // 충전·소진은 CPA 환불 복원(상계, status 4) 차감한 순액. 잔액은 raw 기준이라 항등식 유지.
+                'charged'       => $charged - $cpa,
+                'consumed'      => $consumed - $cpa,
                 'refunded'      => $refunded,
-                'cpa_refunded'  => (int) $row['cpa_refunded'],
+                'cpa_refunded'  => $cpa,
                 'balance'       => $charged - $consumed - $refunded,
                 'requested'     => $call['requested'],
                 'visited'       => $call['visited'],

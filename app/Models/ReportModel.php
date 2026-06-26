@@ -50,22 +50,24 @@ class ReportModel extends Model
     /**
      * 연간 매출 KPI (충전·소진·환불·CPA환불·잔액)
      *
-     * cpa_refunded(신청DB 환불요청 승인 복원액)는 충전(status 4)에 이미 포함돼 잔액에 반영되므로
-     * 별도 표시용 정보 지표다. 잔액 항등식에서 중복 차감하지 않는다.
+     * 충전·소진은 CPA 환불 복원(상계, status 4)을 제외한 순액으로 노출한다.
+     * status 4는 잘못 차감된 CPA를 잔액으로 되돌리는 상계 거래이므로 충전·소진 양쪽에서 동액 차감하며,
+     * 그 결과 잔액 항등식(잔액 = 충전 − 소진 − 환불)은 그대로 유지된다. cpa_refunded는 상계 규모 표시용 지표.
      *
      * @return array{charged: int, consumed: int, refunded: int, cpa_refunded: int, balance: int}
      */
     public function getYearKpi(int $year): array
     {
-        $charged  = $this->sumByStatuses(self::STATUS_CHARGED, $year);
-        $consumed = $this->sumByStatuses(self::STATUS_CONSUMED, $year);
-        $refunded = $this->sumByStatuses(self::STATUS_REFUNDED, $year);
+        $charged     = $this->sumByStatuses(self::STATUS_CHARGED, $year);
+        $consumed    = $this->sumByStatuses(self::STATUS_CONSUMED, $year);
+        $refunded    = $this->sumByStatuses(self::STATUS_REFUNDED, $year);
+        $cpaRefunded = $this->sumByStatuses(self::STATUS_CPA_REFUND, $year);
 
         return [
-            'charged'      => $charged,
-            'consumed'     => $consumed,
+            'charged'      => $charged - $cpaRefunded,
+            'consumed'     => $consumed - $cpaRefunded,
             'refunded'     => $refunded,
-            'cpa_refunded' => $this->sumByStatuses(self::STATUS_CPA_REFUND, $year),
+            'cpa_refunded' => $cpaRefunded,
             'balance'      => $charged - $consumed - $refunded,
         ];
     }
@@ -77,10 +79,17 @@ class ReportModel extends Model
      */
     public function getMonthlyRevenue(int $year): array
     {
-        return [
-            'charged'  => $this->monthlySumByStatuses(self::STATUS_CHARGED, $year),
-            'consumed' => $this->monthlySumByStatuses(self::STATUS_CONSUMED, $year),
-        ];
+        $charged  = $this->monthlySumByStatuses(self::STATUS_CHARGED, $year);
+        $consumed = $this->monthlySumByStatuses(self::STATUS_CONSUMED, $year);
+        $cpa      = $this->monthlySumByStatuses(self::STATUS_CPA_REFUND, $year);
+
+        // CPA 환불 복원(상계, status 4)을 충전·소진 양쪽에서 차감해 순액 그래프로 노출
+        for ($i = 0; $i < 12; $i++) {
+            $charged[$i]  -= $cpa[$i];
+            $consumed[$i] -= $cpa[$i];
+        }
+
+        return ['charged' => $charged, 'consumed' => $consumed];
     }
 
     /**
