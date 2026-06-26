@@ -1,0 +1,15 @@
+{
+    "require": {
+        "guzzlehttp/guzzle": "^6.3",
+        "fluent/logger": "^1.0",
+        "squizlabs/php_codesniffer": "^3.2",
+        "aws/aws-sdk-php": "^3.53",
+        "monolog/monolog": "^1.24",
+        "pulse00/monolog-parser": "^0.0.3"
+    },
+    "autoload": {
+        "psr-4" : {
+            "AdminApi\\Libraries\\" : ["application/libraries/"]
+        }
+    }
+}
