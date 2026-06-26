@@ -4,6 +4,7 @@ namespace App\Controllers\Portal;
 
 use App\Models\AdvertiserModel;
 use App\Models\AdvertiserOwnerInviteModel;
+use App\Models\ContractOrderModel;
 use App\Models\HospitalModel;
 use App\Models\UserModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
@@ -68,10 +69,15 @@ class AdvertiserController extends BasePortalController
         $advertiser['created_at_kst']        = !empty($advertiser['created_at']) ? $this->toKst($advertiser['created_at']) : '-';
         $advertiser['contract_agreed_at_kst'] = !empty($advertiser['contract_agreed_at']) ? $this->toKst($advertiser['contract_agreed_at']) : '';
 
+        // 표준계약서 갑(광고대행사) 정보 — 광고주 계약 화면과 동일하게 노출
+        $agencyInfo = model(ContractOrderModel::class)
+            ->findAgencyInfoByHospital((int) $advertiser['hospital_id']);
+
         return $this->render('portal/advertisers/show', [
             'pageTitle'    => '광고주 상세',
             'advertiser'   => $advertiser,
             'hasInvite'    => $this->inviteModel->hasPendingForAdvertiser($id),
+            'agencyInfo'   => $agencyInfo,
         ]);
     }
 
