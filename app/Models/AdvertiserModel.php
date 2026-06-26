@@ -246,6 +246,82 @@ class AdvertiserModel extends Model
     }
 
     /**
+     * 대행사별 집계 — 소유 광고주 수 + 계약(수주) 건수·총액
+     *
+     * 어드민 사용자 관리 '대행사' 탭/상세에서 사용. 현재 페이지의 대행사 계정 ID 목록만
+     * 받아 단일 쿼리로 집계하여 N+1을 방지한다.
+     *
+     * @param list<int> $agencyUserIds
+     * @return array<int, array{advertiser_count: int, order_count: int, total_price: int}>
+     */
+    public function getAgencyStats(array $agencyUserIds): array
+    {
+        if ($agencyUserIds === []) {
+            return [];
+        }
+
+        $rows = $this->db->table('advertisers a')
+            ->select('a.agency_user_id')
+            ->select('COUNT(DISTINCT a.id) AS advertiser_count', false)
+            ->select('COUNT(co.id) AS order_count', false)
+            ->select('IFNULL(SUM(co.ad_price), 0) AS total_price', false)
+            ->join('contracts c', 'c.hospital_id = a.hospital_id', 'left')
+            ->join('contract_order_connects coc', 'coc.contract_id = c.id', 'left')
+            ->join('contract_orders co', 'co.id = coc.contract_order_id AND co.contract_status = 1', 'left')
+            ->whereIn('a.agency_user_id', array_map('intval', $agencyUserIds))
+            ->groupBy('a.agency_user_id')
+            ->get()
+            ->getResultArray();
+
+        $stats = [];
+        foreach ($rows as $row) {
+            $stats[(int) $row['agency_user_id']] = [
+                'advertiser_count' => (int) $row['advertiser_count'],
+                'order_count'      => (int) $row['order_count'],
+                'total_price'      => (int) $row['total_price'],
+            ];
+        }
+
+        return $stats;
+    }
+
+    /**
+     * 특정 대행사 소유 광고주 목록 + 광고주별 계약 요약 (어드민 상세용)
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function getOwnedWithContractSummary(int $agencyUserId): array
+    {
+        /** @var list<array<string, mixed>> $advertisers */
+        $advertisers = $this->db->table('advertisers')
+            ->select('id, hospital_id, hospital_name, contact_name, status, contract_agreed_at, created_at')
+            ->where('agency_user_id', $agencyUserId)
+            ->orderBy('id', 'DESC')
+            ->get()
+            ->getResultArray();
+
+        if ($advertisers === []) {
+            return [];
+        }
+
+        /** @var list<int> $hospitalIds */
+        $hospitalIds = array_values(array_unique(array_map(
+            static fn (array $a): int => (int) $a['hospital_id'],
+            $advertisers
+        )));
+
+        $summary = model(ContractModel::class)->getSummaryByHospitalIds($hospitalIds);
+
+        return array_map(static function (array $a) use ($summary): array {
+            $s = $summary[(int) $a['hospital_id']] ?? ['order_count' => 0, 'total_price' => 0];
+            $a['order_count'] = $s['order_count'];
+            $a['total_price'] = $s['total_price'];
+            $a['agreed']      = !empty($a['contract_agreed_at']);
+            return $a;
+        }, $advertisers);
+    }
+
+    /**
      * 광고주 본인 로그인 계정으로 광고주 레코드 조회 (없으면 null)
      *
      * @return array<string, mixed>|null

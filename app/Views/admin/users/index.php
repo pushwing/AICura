@@ -7,6 +7,7 @@
 /** @var int $subType */
 /** @var string $isDormant */
 /** @var string $searchWord */
+/** @var bool $isAgency */
 /** @var array<int, string> $tabLabels */
 /** @var array<int, list<int>> $typeGroups */
 /** @var array<int, string> $userTypeLabels */
@@ -43,7 +44,7 @@ $pageLink = static function (int $p) use ($typeGroup, $subType, $isDormant, $sea
 <form method="GET" action="/admin/users" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
     <input type="hidden" name="type" value="<?= $typeGroup ?>">
 
-    <?php if ($typeGroup > 1): ?>
+    <?php if ($typeGroup > 1 && isset($typeGroups[$typeGroup])): ?>
     <select name="sub_type" class="form-control" style="width:160px;">
         <option value="">전체 유형</option>
         <?php foreach ($typeGroups[$typeGroup] as $typeVal): ?>
@@ -105,17 +106,26 @@ $pageLink = static function (int $p) use ($typeGroup, $subType, $isDormant, $sea
 <script>
 const typeLabels = <?= json_encode($userTypeLabels, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>;
 const rowData    = <?= json_encode($users, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>;
+const isAgency   = <?= $isAgency ? 'true' : 'false' ?>;
+
+const won = (v) => '₩' + Number(v || 0).toLocaleString();
+
+const agencyColumns = [
+    { field: 'advertiser_count', headerName: '소유 광고주', width: 110, valueFormatter: (p) => Number(p.value || 0).toLocaleString() + '개' },
+    { field: 'order_count', headerName: '계약 건수', width: 100, valueFormatter: (p) => Number(p.value || 0).toLocaleString() + '건' },
+    { field: 'total_price', headerName: '총 계약금액', width: 150, valueFormatter: (p) => won(p.value) },
+];
 
 const columnDefs = [
     { field: 'id', headerName: 'ID', width: 80, sortable: true },
     { field: 'email', headerName: '이메일', flex: 1, minWidth: 180 },
     { field: 'username', headerName: '이름', width: 120 },
-    {
+    ...(isAgency ? agencyColumns : [{
         field: 'user_type',
         headerName: '유형',
         width: 130,
         valueFormatter: (p) => typeLabels[p.value] ?? p.value,
-    },
+    }]),
     { field: 'phone', headerName: '전화번호', width: 130 },
     {
         field: 'is_dormant',

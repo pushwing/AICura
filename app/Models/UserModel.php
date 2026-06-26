@@ -129,6 +129,39 @@ class UserModel extends Model
     }
 
     /**
+     * 광고주(병원 유형) 포털 로그인 계정 생성 — 비밀번호 해시 처리 포함
+     *
+     * 어드민 광고주 등록 시 owner 계정을 함께 생성할 때 사용한다.
+     *
+     * @return int|false 생성된 user id, 실패 시 false
+     */
+    public function createHospitalOwner(string $email, string $plainPassword, ?string $username, ?string $phone): int|false
+    {
+        $data = [
+            'email'             => $email,
+            'password'          => password_hash($plainPassword, PASSWORD_DEFAULT),
+            'username'          => $username ?: null,
+            'user_type'         => self::TYPE_HOSPITAL_AD,
+            'is_agency_account' => 0,
+            'phone'             => $phone ?: null,
+            'is_dormant'        => 1, // 1 = 활성 (반전 의미)
+            'is_active'         => 1,
+        ];
+
+        $id = $this->insert($data, true);
+
+        return $id === false ? false : (int) $id;
+    }
+
+    /**
+     * 이메일 중복 여부 (soft delete 제외)
+     */
+    public function emailExists(string $email): bool
+    {
+        return $this->where('email', $email)->countAllResults() > 0;
+    }
+
+    /**
      * 목록 조회 (user_type 필터, 검색, 페이징)
      *
      * @param array<string, mixed> $params
@@ -139,10 +172,17 @@ class UserModel extends Model
         $builder = $this->builder()
             ->where($this->table . '.deleted_at IS NULL', null, false);
 
-        if (!empty($params['user_types']) && is_array($params['user_types'])) {
-            $builder->whereIn('user_type', array_map('intval', $params['user_types']));
-        } elseif (!empty($params['user_type'])) {
-            $builder->where('user_type', (int) $params['user_type']);
+        if (!empty($params['is_agency'])) {
+            $builder->where('is_agency_account', 1);
+        } else {
+            // 대행사 계정은 '대행사' 탭에서만 노출 — 다른 탭에서는 제외
+            $builder->where('is_agency_account', 0);
+
+            if (!empty($params['user_types']) && is_array($params['user_types'])) {
+                $builder->whereIn('user_type', array_map('intval', $params['user_types']));
+            } elseif (!empty($params['user_type'])) {
+                $builder->where('user_type', (int) $params['user_type']);
+            }
         }
 
         // 주의: is_dormant 값은 반전 의미 — 1 = 활성, 0 = 휴면
