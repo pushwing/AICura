@@ -1,5 +1,5 @@
 <?php return \CodeIgniter\PHPStan\Database\Schema\Schema::__set_state(array(
-   'hash' => '5317e0836b32563d58158179f2027724804803f7f42113462e1990c083694f1d',
+   'hash' => '64c947fd5e866fba128d927c2f31fc8053c071c8b3f2cd271d51205377b49385',
    'tables' => 
   array (
     'contracts' => 
@@ -5014,6 +5014,219 @@
            'name' => 'processed_at',
            'type' => 'DATETIME',
            'nullable' => true,
+           'primaryKey' => false,
+           'default' => NULL,
+        )),
+        'created_at' => 
+        \CodeIgniter\PHPStan\Database\Schema\Column::__set_state(array(
+           'name' => 'created_at',
+           'type' => 'DATETIME',
+           'nullable' => true,
+           'primaryKey' => false,
+           'default' => NULL,
+        )),
+        'updated_at' => 
+        \CodeIgniter\PHPStan\Database\Schema\Column::__set_state(array(
+           'name' => 'updated_at',
+           'type' => 'DATETIME',
+           'nullable' => true,
+           'primaryKey' => false,
+           'default' => NULL,
+        )),
+      ),
+    )),
+    'ai_reports' => 
+    \CodeIgniter\PHPStan\Database\Schema\Table::__set_state(array(
+       'name' => 'ai_reports',
+       'columns' => 
+      array (
+        'id' => 
+        \CodeIgniter\PHPStan\Database\Schema\Column::__set_state(array(
+           'name' => 'id',
+           'type' => 'INTEGER',
+           'nullable' => true,
+           'primaryKey' => true,
+           'default' => NULL,
+        )),
+        'type' => 
+        \CodeIgniter\PHPStan\Database\Schema\Column::__set_state(array(
+           'name' => 'type',
+           'type' => 'VARCHAR',
+           'nullable' => false,
+           'primaryKey' => false,
+           'default' => NULL,
+        )),
+        'title' => 
+        \CodeIgniter\PHPStan\Database\Schema\Column::__set_state(array(
+           'name' => 'title',
+           'type' => 'VARCHAR',
+           'nullable' => false,
+           'primaryKey' => false,
+           'default' => NULL,
+        )),
+        'content' => 
+        \CodeIgniter\PHPStan\Database\Schema\Column::__set_state(array(
+           'name' => 'content',
+           'type' => 'MEDIUMTEXT',
+           'nullable' => false,
+           'primaryKey' => false,
+           'default' => NULL,
+        )),
+        'report_date' => 
+        \CodeIgniter\PHPStan\Database\Schema\Column::__set_state(array(
+           'name' => 'report_date',
+           'type' => 'DATE',
+           'nullable' => false,
+           'primaryKey' => false,
+           'default' => NULL,
+        )),
+        'meta' => 
+        \CodeIgniter\PHPStan\Database\Schema\Column::__set_state(array(
+           'name' => 'meta',
+           'type' => 'TEXT',
+           'nullable' => true,
+           'primaryKey' => false,
+           'default' => NULL,
+        )),
+        'created_at' => 
+        \CodeIgniter\PHPStan\Database\Schema\Column::__set_state(array(
+           'name' => 'created_at',
+           'type' => 'DATETIME',
+           'nullable' => true,
+           'primaryKey' => false,
+           'default' => NULL,
+        )),
+        'updated_at' => 
+        \CodeIgniter\PHPStan\Database\Schema\Column::__set_state(array(
+           'name' => 'updated_at',
+           'type' => 'DATETIME',
+           'nullable' => true,
+           'primaryKey' => false,
+           'default' => NULL,
+        )),
+        'scope_type' => 
+        \CodeIgniter\PHPStan\Database\Schema\Column::__set_state(array(
+           'name' => 'scope_type',
+           'type' => 'VARCHAR',
+           'nullable' => true,
+           'primaryKey' => false,
+           'default' => '\'global\'',
+        )),
+        'scope_id' => 
+        \CodeIgniter\PHPStan\Database\Schema\Column::__set_state(array(
+           'name' => 'scope_id',
+           'type' => 'BIGINT',
+           'nullable' => true,
+           'primaryKey' => false,
+           'default' => NULL,
+        )),
+      ),
+    )),
+    'settings' => 
+    \CodeIgniter\PHPStan\Database\Schema\Table::__set_state(array(
+       'name' => 'settings',
+       'columns' => 
+      array (
+        'id' => 
+        \CodeIgniter\PHPStan\Database\Schema\Column::__set_state(array(
+           'name' => 'id',
+           'type' => 'INTEGER',
+           'nullable' => true,
+           'primaryKey' => true,
+           'default' => NULL,
+        )),
+        'setting_key' => 
+        \CodeIgniter\PHPStan\Database\Schema\Column::__set_state(array(
+           'name' => 'setting_key',
+           'type' => 'VARCHAR',
+           'nullable' => false,
+           'primaryKey' => false,
+           'default' => NULL,
+        )),
+        'setting_value' => 
+        \CodeIgniter\PHPStan\Database\Schema\Column::__set_state(array(
+           'name' => 'setting_value',
+           'type' => 'TEXT',
+           'nullable' => true,
+           'primaryKey' => false,
+           'default' => NULL,
+        )),
+        'created_at' => 
+        \CodeIgniter\PHPStan\Database\Schema\Column::__set_state(array(
+           'name' => 'created_at',
+           'type' => 'DATETIME',
+           'nullable' => true,
+           'primaryKey' => false,
+           'default' => NULL,
+        )),
+        'updated_at' => 
+        \CodeIgniter\PHPStan\Database\Schema\Column::__set_state(array(
+           'name' => 'updated_at',
+           'type' => 'DATETIME',
+           'nullable' => true,
+           'primaryKey' => false,
+           'default' => NULL,
+        )),
+      ),
+    )),
+    'creative_compliance_checks' => 
+    \CodeIgniter\PHPStan\Database\Schema\Table::__set_state(array(
+       'name' => 'creative_compliance_checks',
+       'columns' => 
+      array (
+        'id' => 
+        \CodeIgniter\PHPStan\Database\Schema\Column::__set_state(array(
+           'name' => 'id',
+           'type' => 'INTEGER',
+           'nullable' => true,
+           'primaryKey' => true,
+           'default' => NULL,
+        )),
+        'campaign_id' => 
+        \CodeIgniter\PHPStan\Database\Schema\Column::__set_state(array(
+           'name' => 'campaign_id',
+           'type' => 'BIGINT',
+           'nullable' => false,
+           'primaryKey' => false,
+           'default' => NULL,
+        )),
+        'review_request_id' => 
+        \CodeIgniter\PHPStan\Database\Schema\Column::__set_state(array(
+           'name' => 'review_request_id',
+           'type' => 'BIGINT',
+           'nullable' => true,
+           'primaryKey' => false,
+           'default' => NULL,
+        )),
+        'risk_level' => 
+        \CodeIgniter\PHPStan\Database\Schema\Column::__set_state(array(
+           'name' => 'risk_level',
+           'type' => 'VARCHAR',
+           'nullable' => false,
+           'primaryKey' => false,
+           'default' => NULL,
+        )),
+        'flags' => 
+        \CodeIgniter\PHPStan\Database\Schema\Column::__set_state(array(
+           'name' => 'flags',
+           'type' => 'JSON',
+           'nullable' => false,
+           'primaryKey' => false,
+           'default' => NULL,
+        )),
+        'checked_text' => 
+        \CodeIgniter\PHPStan\Database\Schema\Column::__set_state(array(
+           'name' => 'checked_text',
+           'type' => 'MEDIUMTEXT',
+           'nullable' => false,
+           'primaryKey' => false,
+           'default' => NULL,
+        )),
+        'model' => 
+        \CodeIgniter\PHPStan\Database\Schema\Column::__set_state(array(
+           'name' => 'model',
+           'type' => 'VARCHAR',
+           'nullable' => false,
            'primaryKey' => false,
            'default' => NULL,
         )),
