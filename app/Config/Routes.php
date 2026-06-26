@@ -185,9 +185,6 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
         // 캠페인
         $routes->resource('campaigns', ['controller' => 'CampaignController']);
 
-        // 광고 소재
-        $routes->resource('creatives', ['controller' => 'CreativeController']);
-
         // 리포트
         $routes->get('reports/summary',  'ReportController::summary');
         $routes->get('reports/campaigns/(:num)', 'ReportController::campaign/$1');
