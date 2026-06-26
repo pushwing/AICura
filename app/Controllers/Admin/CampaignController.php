@@ -11,6 +11,7 @@ use App\Models\ContractModel;
 use App\Models\EventCategoryModel;
 use App\Models\SettingModel;
 use App\Services\AiComplianceService;
+use App\Services\AiCopyService;
 use CodeIgniter\HTTP\ResponseInterface;
 use Throwable;
 
@@ -346,8 +347,60 @@ class CampaignController extends BaseAdminController
     }
 
     // ──────────────────────────────────────────────
+    // AI 광고 카피 추천 (이슈 #73) — POST, JSON 응답
+    // ──────────────────────────────────────────────
+
+    /**
+     * 키워드·병원유형·카테고리로 제목 후보 3개 + 상세문구(HTML)를 생성한다.
+     * 사용자가 버튼을 눌러 즉시 결과를 봐야 하므로 동기 호출(단발성)이며,
+     * 서비스 레이어에서 동일 입력 캐시로 반복 호출을 방어한다.
+     */
+    public function suggestCopy(): ResponseInterface
+    {
+        $keyword         = (string) ($this->request->getPost('keyword') ?? '');
+        $hospitalTypeInt = (int) ($this->request->getPost('hospital_type') ?? 1);
+        $categoryId      = (int) ($this->request->getPost('category') ?? 0);
+
+        $categoryTitle = $categoryId > 0 ? $this->eventCategoryModel->titleById($categoryId) : '';
+
+        try {
+            $result = (new AiCopyService())->suggest([
+                'keyword'       => $keyword,
+                'hospital_type' => CampaignModel::HOSPITAL_TYPES[$hospitalTypeInt] ?? '',
+                'category'      => $categoryTitle,
+            ]);
+        } catch (Throwable $e) {
+            log_message('error', 'AI 카피 생성 실패: {msg}', ['msg' => $e->getMessage()]);
+
+            return $this->response->setStatusCode(500)
+                ->setJSON(['success' => false, 'message' => 'AI 카피 생성에 실패했습니다.', 'csrf' => csrf_hash()]);
+        }
+
+        // CSRF 토큰이 매 요청마다 회전($regenerate=true)하므로 새 토큰을 함께 반환해
+        // 클라이언트가 폼 hidden 필드·메타 태그를 갱신하도록 한다(이후 폼 제출 보호).
+        return $this->response->setJSON([
+            'success' => true,
+            'titles'  => $result['titles'],
+            'detail'  => $result['detail'],
+            'csrf'    => csrf_hash(),
+        ]);
+    }
+
+    // ──────────────────────────────────────────────
     // 내부 헬퍼
     // ──────────────────────────────────────────────
+
+    /**
+     * 상세문구 HTML 정화 — 허용 태그만 남기고 모든 속성 제거 (XSS 방지).
+     * Tiptap 에디터가 제출하는 리치 텍스트를 저장 전에 화이트리스트 필터한다.
+     */
+    private function sanitizeDetailHtml(string $html): string
+    {
+        $stripped = strip_tags($html, '<p><br><strong><em><s><ul><ol><li><h3><h4><blockquote>');
+        $clean    = preg_replace('/<(\w+)[^>]*>/', '<$1>', $stripped);
+
+        return trim($clean ?? $stripped);
+    }
 
     /**
      * 의료광고 심의 사전검사 실행 — 설정 토글이 켜져 있을 때만 동기로 1회 수행.
@@ -376,6 +429,7 @@ class CampaignController extends BaseAdminController
     {
         return [
             'ad_title'          => $this->request->getPost('ad_title'),
+            'ad_detail_info'    => $this->sanitizeDetailHtml((string) ($this->request->getPost('ad_detail_info') ?? '')),
             'hospital_id'       => (int) $this->request->getPost('hospital_id'),
             'hospital_type'     => (int) ($this->request->getPost('hospital_type') ?? 1),
             'ad_type'           => (int) $this->request->getPost('ad_type'),
