@@ -129,6 +129,99 @@ class ReportModel extends Model
     }
 
     /**
+     * 일자별 충전·소진·환불 합계 (AI 매출보고서용 — 전일 1일치)
+     *
+     * @param list<int>|null $hospitalIds 집계 대상 병원 한정 (null이면 전체)
+     * @return array{charged: int, consumed: int, refunded: int}
+     */
+    public function getDailyStats(string $date, ?array $hospitalIds = null): array
+    {
+        return [
+            'charged'  => $this->sumByStatusesBetween(self::STATUS_CHARGED, $date, $date, $hospitalIds),
+            'consumed' => $this->sumByStatusesBetween(self::STATUS_CONSUMED, $date, $date, $hospitalIds),
+            'refunded' => $this->sumByStatusesBetween(self::STATUS_REFUNDED, $date, $date, $hospitalIds),
+        ];
+    }
+
+    /**
+     * 당월 누계 충전·소진·환불·잔액 (AI 매출보고서용)
+     *
+     * @param list<int>|null $hospitalIds 집계 대상 병원 한정 (null이면 전체)
+     * @return array{charged: int, consumed: int, refunded: int, balance: int}
+     */
+    public function getMonthToDateStats(string $fromDate, string $toDate, ?array $hospitalIds = null): array
+    {
+        $charged  = $this->sumByStatusesBetween(self::STATUS_CHARGED, $fromDate, $toDate, $hospitalIds);
+        $consumed = $this->sumByStatusesBetween(self::STATUS_CONSUMED, $fromDate, $toDate, $hospitalIds);
+        $refunded = $this->sumByStatusesBetween(self::STATUS_REFUNDED, $fromDate, $toDate, $hospitalIds);
+
+        return [
+            'charged'  => $charged,
+            'consumed' => $consumed,
+            'refunded' => $refunded,
+            'balance'  => $charged - $consumed - $refunded,
+        ];
+    }
+
+    /**
+     * 광고주(병원) 단위 충전금/소진/잔액 요약 — 잔액이 충전금의 임계 비율 이하인 병원만 반환
+     *
+     * AI 소진보고서용. charged > 0 이고 (balance / charged) <= $thresholdRatio 인 병원을
+     * 잔액 비율 오름차순으로 정렬해 돌려준다.
+     *
+     * 충전: status IN (2, 4, 12) / 소진: status IN (3, 5, 6, 7, 8, 9, 10, 11)
+     *
+     * @param list<int>|null $hospitalIds 집계 대상 병원 한정 (null이면 전체)
+     * @return array<int, array{hospital_id: int, hospital_name: string, charged: int, used: int, balance: int, ratio: float}>
+     */
+    public function getLowBalanceHospitals(float $thresholdRatio = 0.05, ?array $hospitalIds = null): array
+    {
+        if ($hospitalIds === []) {
+            return [];
+        }
+
+        $builder = $this->db->table('deposits d')
+            ->select('h.id AS hospital_id, h.name AS hospital_name', false)
+            ->select('SUM(CASE WHEN d.status IN (2, 4, 12) THEN d.price ELSE 0 END) AS charged', false)
+            ->select('SUM(CASE WHEN d.status IN (3, 5, 6, 7, 8, 9, 10, 11) THEN d.price ELSE 0 END) AS used', false)
+            ->join('contracts c', 'c.id = d.contract_id', 'inner')
+            ->join('hospitals h', 'h.id = c.hospital_id', 'inner')
+            ->groupBy('h.id, h.name')
+            ->having('charged >', 0);
+
+        if ($hospitalIds !== null) {
+            $builder->whereIn('h.id', $hospitalIds);
+        }
+
+        $rows = $builder->get()->getResultArray();
+
+        $result = [];
+        foreach ($rows as $row) {
+            $charged = (int) $row['charged'];
+            $used    = (int) $row['used'];
+            $balance = $charged - $used;
+            $ratio   = $balance / $charged;
+
+            if ($ratio > $thresholdRatio) {
+                continue;
+            }
+
+            $result[] = [
+                'hospital_id'   => (int) $row['hospital_id'],
+                'hospital_name' => (string) $row['hospital_name'],
+                'charged'       => $charged,
+                'used'          => $used,
+                'balance'       => $balance,
+                'ratio'         => $ratio,
+            ];
+        }
+
+        usort($result, static fn (array $a, array $b): int => $a['ratio'] <=> $b['ratio']);
+
+        return $result;
+    }
+
+    /**
      * 상태 집합의 연간 합계
      *
      * @param array<int, int> $statuses
@@ -143,6 +236,97 @@ class ReportModel extends Model
             ->getRowArray();
 
         return (int) ($row['total'] ?? 0);
+    }
+
+    /**
+     * 상태 집합의 기간(날짜 범위) 합계 — created_at 기준 [from 00:00:00 ~ to 23:59:59]
+     *
+     * @param array<int, int> $statuses
+     * @param list<int>|null  $hospitalIds 집계 대상 병원 한정 (null이면 전체)
+     */
+    private function sumByStatusesBetween(array $statuses, string $fromDate, string $toDate, ?array $hospitalIds = null): int
+    {
+        if ($hospitalIds === []) {
+            return 0;
+        }
+
+        $builder = $this->db->table('deposits d')
+            ->select('IFNULL(SUM(d.price), 0) AS total', false)
+            ->whereIn('d.status', $statuses)
+            ->where('d.created_at >=', $fromDate . ' 00:00:00')
+            ->where('d.created_at <=', $toDate . ' 23:59:59');
+
+        if ($hospitalIds !== null) {
+            $builder->join('contracts c', 'c.id = d.contract_id', 'inner')
+                ->whereIn('c.hospital_id', $hospitalIds);
+        }
+
+        $row = $builder->get()->getRowArray();
+
+        return (int) ($row['total'] ?? 0);
+    }
+
+    // ──────────────────────────────────────────────
+    // 보고서 생성 대상 스코프 조회 (AI 배치 — 이슈 #65 포털 확장)
+    // ──────────────────────────────────────────────
+
+    /**
+     * 보고서 생성 대상 병원 목록 — 병원이 연결된 광고주 (계약 가능 상태)
+     *
+     * @return list<array{hospital_id: int, hospital_name: string}>
+     */
+    public function getReportableHospitals(): array
+    {
+        $rows = $this->db->table('advertisers')
+            ->select('hospital_id, hospital_name')
+            ->where('hospital_id IS NOT NULL')
+            ->groupBy('hospital_id, hospital_name')
+            ->get()
+            ->getResultArray();
+
+        return array_map(static fn (array $r): array => [
+            'hospital_id'   => (int) $r['hospital_id'],
+            'hospital_name' => (string) ($r['hospital_name'] ?? ''),
+        ], $rows);
+    }
+
+    /**
+     * 보고서 생성 대상 대행사 목록 — 광고주를 보유한 대행사 사용자
+     *
+     * @return list<array{agency_user_id: int, agency_name: string}>
+     */
+    public function getReportableAgencies(): array
+    {
+        $rows = $this->db->table('advertisers a')
+            ->select('a.agency_user_id, u.username AS agency_name', false)
+            ->join('users u', 'u.id = a.agency_user_id', 'inner')
+            ->where('a.agency_user_id IS NOT NULL')
+            ->groupBy('a.agency_user_id, u.username')
+            ->get()
+            ->getResultArray();
+
+        return array_map(static fn (array $r): array => [
+            'agency_user_id' => (int) $r['agency_user_id'],
+            'agency_name'    => (string) ($r['agency_name'] ?? ''),
+        ], $rows);
+    }
+
+    /**
+     * 대행사 소속 광고주들의 병원 id 집합
+     *
+     * @return list<int>
+     */
+    public function hospitalIdsForAgency(int $agencyUserId): array
+    {
+        $rows = $this->db->table('advertisers')
+            ->select('hospital_id')
+            ->where('agency_user_id', $agencyUserId)
+            ->where('hospital_id IS NOT NULL')
+            ->groupBy('hospital_id')
+            ->get()
+            ->getResultArray();
+
+        return array_values(array_map(static fn (array $r): int => (int) $r['hospital_id'], $rows));
     }
 
     /**

@@ -5,6 +5,8 @@
 /** @var array<int, string> $labels */
 /** @var array<int, int> $charged */
 /** @var array<int, int> $consumed */
+/** @var array<string, mixed>|null $aiRevenue */
+/** @var array<string, mixed>|null $aiConsumption */
 
 $kpiCards = [
     ['label' => '충전 합계', 'value' => $kpi['charged'],      'color' => '#0F6E56'],
@@ -20,6 +22,14 @@ $kpiCards = [
         <a href="/admin/reports/campaigns" class="btn btn-outline btn-sm">캠페인 리포트 →</a>
     </div>
 </div>
+
+<!-- AI 일일 보고서 (이슈 #65) -->
+<?= view('reports/_ai_section', [
+    'aiRevenue'     => $aiRevenue,
+    'aiConsumption' => $aiConsumption,
+    'aiBasePath'    => '/admin/reports',
+    'aiCanGenerate' => true,
+]) ?>
 
 <!-- 연도 선택 -->
 <form method="GET" action="/admin/reports" style="display:flex;gap:8px;margin-bottom:16px;">

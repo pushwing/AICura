@@ -8,6 +8,8 @@
 /** @var array<int, int> $charged */
 /** @var array<int, int> $consumed */
 /** @var list<array<string, mixed>> $campaigns */
+/** @var array<string, mixed>|null $aiRevenue */
+/** @var array<string, mixed>|null $aiConsumption */
 
 $kpiCards = [
     ['label' => '충전 합계', 'value' => $kpi['charged'],  'unit' => '원', 'color' => '#0F6E56'],
@@ -28,6 +30,14 @@ $kpiCards = [
         </select>
     </form>
 </div>
+
+<!-- AI 일일 보고서 (이슈 #65) — 자기 병원 -->
+<?= view('reports/_ai_section', [
+    'aiRevenue'     => $aiRevenue,
+    'aiConsumption' => $aiConsumption,
+    'aiBasePath'    => '/portal/reports',
+    'aiCanGenerate' => false,
+]) ?>
 
 <?php if (!$hasHospital): ?>
     <div class="alert alert-danger">
