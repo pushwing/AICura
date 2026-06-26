@@ -293,6 +293,26 @@ $this->success($items, [
 | `FORBIDDEN` | 권한 없음 |
 | `INTERNAL_ERROR` | 서버 내부 오류 |
 
+### REST URI 설계
+
+- URI는 **복수 명사**: `/api/v1/users`, `/api/v1/campaigns`
+- 버전 prefix 필수: `/api/v1/`
+- URI에 **동사 금지**: `/getUser` ❌ → `GET /users/{id}` ✅
+- 필터·정렬·페이지는 쿼리스트링: `?filter[status]=active&sort=-created_at&page=1&per_page=20`
+
+### HTTP 상태코드
+
+| 상황 | 코드 |
+|------|------|
+| 조회 성공 | 200 |
+| 생성 성공 | 201 |
+| 처리 성공 (응답 본문 없음) | 204 |
+| 인증 실패 | 401 |
+| 권한 없음 | 403 |
+| 리소스 없음 | 404 |
+| 유효성 검사 실패 | 422 |
+| 서버 오류 | 500 |
+
 ## Swagger 어트리뷰트 규칙
 
 새 API 엔드포인트마다 PHP 어트리뷰트 추가 필수.
@@ -573,3 +593,98 @@ return $this->render('admin/campaigns/index', [
 // View
 foreach ($campaigns as $item) { ... }
 ```
+
+## PHP 모던 스타일 (8.4+)
+
+상태·타입 관리는 배열·상수 대신 **readonly DTO**·**Backed Enum**을 우선한다.
+
+```php
+// ✅ readonly DTO — 요청·응답 데이터 매핑
+final readonly class CreateUserRequest
+{
+    public function __construct(
+        public string $email,
+        public string $name,
+        public UserRole $role = UserRole::Member,
+    ) {}
+}
+
+// ✅ Backed Enum — 상태·타입은 Enum으로
+enum UserRole: string
+{
+    case Admin  = 'admin';
+    case Member = 'member';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Admin  => '관리자',
+            self::Member => '일반회원',
+        };
+    }
+}
+
+// ❌ 금지 — 배열·define()로 상태/타입 관리
+define('ROLE_ADMIN', 1);
+```
+
+- 메서드·프로퍼티에 타입 선언(return type 포함) 완전 적용 (PHPStan 레벨 6 전제)
+- `match` 표현식 우선 (`switch` 지양)
+- DTO는 `final readonly`, 정적 팩토리(`fromRequest()`, `fromArray()`)로 생성
+
+## 레이어 책임 (Controller · Service)
+
+- **Controller는 얇게(thin)**: 유효성 검사 → Service 호출 → 응답 반환만 수행
+- 비즈니스 로직이 Controller에 생기면 즉시 Service로 추출
+- **하나의 Service 메서드 = 하나의 유스케이스**
+- **DB 트랜잭션은 Service 레이어**에서 관리 (`$db->transStart()` / `transComplete()`)
+- 데이터 접근은 `model(XxxModel::class)` 헬퍼 경유 (CLAUDE.md 네이밍·MVC 규칙 준수, 직접 `new` 금지)
+
+```php
+// ✅ 얇은 컨트롤러
+class UserController extends BaseApiController
+{
+    public function store(): ResponseInterface
+    {
+        $dto    = CreateUserRequest::fromRequest($this->request);
+        $result = service('userService')->create($dto);
+        return $this->success($result, statusCode: 201);
+    }
+}
+```
+
+> 참고: 이 프로젝트는 별도 Repository 레이어를 두지 않고 CI4 `Model`을 데이터 접근 계층으로 사용한다. 복잡한 쿼리는 Model에 메서드로 캡슐화한다.
+
+## 도메인 예외 처리
+
+- 도메인 예외는 `app/Exceptions/` 에 커스텀 클래스로 정의
+- 예외는 **HTTP 상태코드 + 에러 코드(문자열)** 를 반드시 포함 (에러 코드 네이밍 규칙 준수)
+- 전역 핸들러는 `app/Config/Exceptions.php` 에 등록
+
+```php
+// app/Exceptions/DomainException.php
+abstract class DomainException extends \RuntimeException
+{
+    abstract public function httpStatusCode(): int;
+    abstract public function errorCode(): string;   // 예: 'USER_NOT_FOUND'
+}
+```
+
+## 테스트
+
+```bash
+composer test                 # PHPUnit 단독 실행
+```
+
+- 단위 테스트: `tests/unit/` — 외부 의존성 Mock
+- 통합 테스트: `tests/feature/` — `CIUnitTestCase` + DB 트랜잭션 롤백
+- 커버리지 목표: **Service 레이어 80% 이상**
+- 테스트 DB는 `.env.testing` 별도 설정 — 운영 DB 절대 사용 금지
+- 새 기능 구현 시 테스트 코드를 함께 작성한다
+
+## 클라우드·인프라 (참고)
+
+- **AWS 기본 스택**: ECS(Fargate) + RDS + ElastiCache(Redis) + SQS
+- **시크릿 관리**: `.env` 커밋 금지 — AWS SSM Parameter Store / Secrets Manager 사용
+- **로그**: 구조화 로그(JSON) 지향
+- **헬스체크**: `GET /health` 엔드포인트 (DB·캐시 연결 상태 포함) 제공 권장
