@@ -27,7 +27,7 @@ class CampaignHistoryModel extends Model
     public function getList(int $campaignId, array $params = []): array
     {
         $builder = $this->db->table('campaign_histories ch')
-            ->select('ch.*, u.name as admin_name')
+            ->select('ch.*, u.username as admin_name')
             ->join('users u', 'u.id = ch.admin_user_id', 'left')
             ->where('ch.campaign_id', $campaignId);
 
