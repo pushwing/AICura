@@ -61,7 +61,6 @@ if ($totalPages > 1):
 </div>
 <?php endif; ?>
 
-<script src="https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.min.js"></script>
 <script>
 const rows = <?= json_encode(array_map(function (array $r) use ($campaignStatusLabels): array {
     return [
