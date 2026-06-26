@@ -19,8 +19,33 @@ class SampleDataSeeder extends Seeder
         $this->insertHospitals($now);
         $links = $this->insertUsers($now);
         $this->insertAdvertisers($now, $links);
+        $this->insertEventCategories($now);
         $this->insertContractsAndOrders($now);
         $this->insertCampaigns($now);
+    }
+
+    /**
+     * 광고 카테고리(event_categories) — campaigns.category FK 대상.
+     * 캠페인 상세에서 숫자 코드 대신 카테고리명을 노출하기 위함.
+     */
+    private function insertEventCategories(string $now): void
+    {
+        $categories = [
+            ['id' => 1, 'title' => '성형외과'],
+            ['id' => 2, 'title' => '안과(라식·라섹)'],
+            ['id' => 3, 'title' => '피부과'],
+        ];
+
+        foreach ($categories as $row) {
+            $this->db->table('event_categories')->insert(array_merge($row, [
+                'parent_id'     => null,
+                'category_type' => 0,
+                'sort'          => $row['id'],
+                'is_visible'    => 1,
+                'created_at'    => $now,
+                'updated_at'    => $now,
+            ]));
+        }
     }
 
     /**
@@ -29,13 +54,13 @@ class SampleDataSeeder extends Seeder
      * advertisers.owner_user_id(광고주 본인 계정) / agency_user_id(대행사) 연결에 사용한다.
      * 사용자 관리 화면의 '광고주/병원' 탭·'대행사' 탭에 데이터가 표시되도록 한다.
      *
-     * @return array{owners: array<int, int>, agency: int}  owners: hospital_id → user_id
+     * @return array{owners: array<int, int>, agency: int, agency2: int}  owners: hospital_id → user_id
      */
     private function insertUsers(string $now): array
     {
         $password = password_hash('password1234', PASSWORD_DEFAULT);
 
-        // 대행사 계정 1건
+        // 대행사 계정 2건
         $this->db->table('users')->insert([
             'email'             => 'agency@aicura.test',
             'password'          => $password,
@@ -49,6 +74,20 @@ class SampleDataSeeder extends Seeder
             'updated_at'        => $now,
         ]);
         $agencyId = (int) $this->db->insertID();
+
+        $this->db->table('users')->insert([
+            'email'             => 'agency2@aicura.test',
+            'password'          => $password,
+            'username'          => '브랜드업애드',
+            'user_type'         => 1,
+            'is_agency_account' => 1,
+            'phone'             => '010-7000-0002',
+            'is_dormant'        => 1,
+            'is_active'         => 1,
+            'created_at'        => $now,
+            'updated_at'        => $now,
+        ]);
+        $agency2Id = (int) $this->db->insertID();
 
         // 광고주병원(user_type=201) 계정 — advertisers.hospital_id 와 매핑
         $owners = [
@@ -74,7 +113,7 @@ class SampleDataSeeder extends Seeder
             $ownerIds[$hospitalId] = (int) $this->db->insertID();
         }
 
-        return ['owners' => $ownerIds, 'agency' => $agencyId];
+        return ['owners' => $ownerIds, 'agency' => $agencyId, 'agency2' => $agency2Id];
     }
 
     private function insertHospitals(string $now): void
@@ -121,12 +160,13 @@ class SampleDataSeeder extends Seeder
     }
 
     /**
-     * @param array{owners: array<int, int>, agency: int} $links
+     * @param array{owners: array<int, int>, agency: int, agency2: int} $links
      */
     private function insertAdvertisers(string $now, array $links): void
     {
-        $owners = $links['owners'];
-        $agency = $links['agency'];
+        $owners  = $links['owners'];
+        $agency  = $links['agency'];
+        $agency2 = $links['agency2'];
 
         $advertisers = [
             [
@@ -171,7 +211,7 @@ class SampleDataSeeder extends Seeder
                 'business_no'       => null,
                 'is_network'        => 2,
                 'network_parent_id' => 2,
-                'agency_user_id'    => null,                // 대행사 미연결(직접 광고주)
+                'agency_user_id'    => $agency2,            // 두 번째 대행사(브랜드업애드) 소유
                 'owner_user_id'     => $owners[3] ?? null,
                 'status'            => 1,
                 'created_at'        => $now,

@@ -20,7 +20,7 @@ class UserController extends BaseAdminController
 
     // user_type 그룹 → 실제 user_type 값 매핑
     private const TYPE_GROUPS = [
-        2 => [UserModel::TYPE_ADMIN, UserModel::TYPE_STATS, UserModel::TYPE_GENERAL, UserModel::TYPE_INSTALL, UserModel::TYPE_EXTERNAL],
+        2 => [UserModel::TYPE_OPERATOR, UserModel::TYPE_ADMIN, UserModel::TYPE_STATS, UserModel::TYPE_GENERAL, UserModel::TYPE_INSTALL, UserModel::TYPE_EXTERNAL],
         3 => [UserModel::TYPE_HOSPITAL_AD, UserModel::TYPE_HOSPITAL_GENE, UserModel::TYPE_HOSPITAL_RECV],
     ];
 
@@ -33,6 +33,7 @@ class UserController extends BaseAdminController
     /** @var array<int, string> */
     private const USER_TYPE_LABELS = [
         UserModel::TYPE_USER          => '일반 사용자',
+        UserModel::TYPE_OPERATOR      => '운영자',
         UserModel::TYPE_HOSPITAL_AD   => '광고주병원',
         UserModel::TYPE_HOSPITAL_GENE => '일반병원',
         UserModel::TYPE_HOSPITAL_RECV => '접수병원',
