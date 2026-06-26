@@ -74,6 +74,13 @@ if (!function_exists('isChanged')) {
     }
 }
 
+// 업로드 이미지 경로 → 실제 URL 변환 (campaigns/xxx.png → /uploads/campaigns/xxx.png)
+if (!function_exists('reviewImageUrl')) {
+    function reviewImageUrl(string $path): string {
+        return base_url('uploads/campaigns/' . basename($path));
+    }
+}
+
 $dImagesBefore = [];
 if (!empty($before['d_image_json'])) {
     $dec = json_decode($before['d_image_json'], true);
@@ -341,8 +348,8 @@ $detailChanged = isChanged($detailBefore, $detailAfter);
                         <div style="font-size:12px;color:var(--color-text-muted);margin-bottom:6px;">현재</div>
                         <?php if ($bImg !== ''): ?>
                         <div style="border:1px solid var(--color-border,#e5e7eb);border-radius:6px;overflow:hidden;">
-                            <img src="<?= esc($bImg) ?>" alt="현재"
-                                 style="width:100%;display:block;max-height:120px;object-fit:cover;"
+                            <img src="<?= esc(reviewImageUrl($bImg)) ?>" alt="현재"
+                                 style="width:100%;display:block;height:auto;"
                                  onerror="this.style.display='none'">
                         </div>
                         <div style="font-size:11px;color:var(--color-text-muted);margin-top:4px;word-break:break-all;"><?= esc($bImg) ?></div>
@@ -355,8 +362,8 @@ $detailChanged = isChanged($detailBefore, $detailAfter);
                         <div style="font-size:12px;color:var(--color-text-muted);margin-bottom:6px;"><?= $isCreate ? '등록 요청' : '요청' ?></div>
                         <?php if ($aImg !== ''): ?>
                         <div style="border:2px solid <?= (!$isCreate && $changed) ? '#10b981' : 'var(--color-border,#e5e7eb)' ?>;border-radius:6px;overflow:hidden;">
-                            <img src="<?= esc($aImg) ?>" alt="요청"
-                                 style="width:100%;display:block;max-height:120px;object-fit:cover;"
+                            <img src="<?= esc(reviewImageUrl($aImg)) ?>" alt="요청"
+                                 style="width:100%;display:block;height:auto;"
                                  onerror="this.style.display='none'">
                         </div>
                         <div style="font-size:11px;color:var(--color-text-muted);margin-top:4px;word-break:break-all;"><?= esc($aImg) ?></div>
@@ -372,8 +379,7 @@ $detailChanged = isChanged($detailBefore, $detailAfter);
 </div>
 
 <!-- 상세 이미지 비교 -->
-<?php $maxCount = max(count($dImagesBefore), count($dImagesAfter)); ?>
-<?php if ($maxCount > 0): ?>
+<?php $maxCount = max(1, count($dImagesBefore), count($dImagesAfter)); ?>
 <div class="card" style="margin-bottom:20px;">
     <div class="card-body">
         <h3 style="font-size:15px;margin-bottom:16px;">상세 이미지</h3>
@@ -400,8 +406,8 @@ $detailChanged = isChanged($detailBefore, $detailAfter);
                 <div>
                     <div style="font-size:12px;color:var(--color-text-muted);margin-bottom:6px;">현재</div>
                     <?php if ($bImg !== ''): ?>
-                    <img src="<?= esc($bImg) ?>" alt="현재 <?= $i + 1 ?>"
-                         style="width:100%;border-radius:6px;border:1px solid var(--color-border,#e5e7eb);max-height:160px;object-fit:cover;"
+                    <img src="<?= esc(reviewImageUrl($bImg)) ?>" alt="현재 <?= $i + 1 ?>"
+                         style="width:100%;height:auto;display:block;border-radius:6px;border:1px solid var(--color-border,#e5e7eb);"
                          onerror="this.style.display='none'">
                     <div style="font-size:11px;color:var(--color-text-muted);margin-top:4px;word-break:break-all;"><?= esc($bImg) ?></div>
                     <?php else: ?>
@@ -412,8 +418,8 @@ $detailChanged = isChanged($detailBefore, $detailAfter);
                 <div>
                     <div style="font-size:12px;color:var(--color-text-muted);margin-bottom:6px;"><?= $isCreate ? '등록 요청' : '요청' ?></div>
                     <?php if ($aImg !== ''): ?>
-                    <img src="<?= esc($aImg) ?>" alt="요청 <?= $i + 1 ?>"
-                         style="width:100%;border-radius:6px;border:2px solid <?= (!$isCreate && $changed) ? '#10b981' : 'var(--color-border,#e5e7eb)' ?>;max-height:160px;object-fit:cover;"
+                    <img src="<?= esc(reviewImageUrl($aImg)) ?>" alt="요청 <?= $i + 1 ?>"
+                         style="width:100%;height:auto;display:block;border-radius:6px;border:2px solid <?= (!$isCreate && $changed) ? '#10b981' : 'var(--color-border,#e5e7eb)' ?>;"
                          onerror="this.style.display='none'">
                     <div style="font-size:11px;color:var(--color-text-muted);margin-top:4px;word-break:break-all;"><?= esc($aImg) ?></div>
                     <?php else: ?>
@@ -425,7 +431,6 @@ $detailChanged = isChanged($detailBefore, $detailAfter);
         <?php endfor; ?>
     </div>
 </div>
-<?php endif; ?>
 
 <!-- 검수 처리 폼 또는 결과 -->
 <?php if ($isPending): ?>
