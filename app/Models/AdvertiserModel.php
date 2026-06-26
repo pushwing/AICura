@@ -310,12 +310,16 @@ class AdvertiserModel extends Model
             $advertisers
         )));
 
-        $summary = model(ContractModel::class)->getSummaryByHospitalIds($hospitalIds);
+        $contractModel = model(ContractModel::class);
+        $summary       = $contractModel->getSummaryByHospitalIds($hospitalIds);
+        $ordersByHosp  = $contractModel->getOrdersByHospitalIds($hospitalIds);
 
-        return array_map(static function (array $a) use ($summary): array {
-            $s = $summary[(int) $a['hospital_id']] ?? ['order_count' => 0, 'total_price' => 0];
+        return array_map(static function (array $a) use ($summary, $ordersByHosp): array {
+            $hospitalId       = (int) $a['hospital_id'];
+            $s                = $summary[$hospitalId] ?? ['order_count' => 0, 'total_price' => 0];
             $a['order_count'] = $s['order_count'];
             $a['total_price'] = $s['total_price'];
+            $a['orders']      = $ordersByHosp[$hospitalId] ?? [];
             $a['agreed']      = !empty($a['contract_agreed_at']);
             return $a;
         }, $advertisers);
