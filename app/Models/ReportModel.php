@@ -52,9 +52,10 @@ class ReportModel extends Model
     /**
      * 연간 매출 KPI (충전·소진·환불·CPA환불·잔액)
      *
-     * 충전·소진은 CPA 환불 복원(상계, status 4)을 제외한 순액으로 노출한다.
-     * status 4는 잘못 차감된 CPA를 잔액으로 되돌리는 상계 거래이므로 충전·소진 양쪽에서 동액 차감하며,
-     * 그 결과 잔액 항등식(잔액 = 충전 − 소진 − 환불)은 그대로 유지된다. cpa_refunded는 상계 규모 표시용 지표.
+     * CPA 환불 복원(상계, status 4)은 소진을 되돌리는 거래이므로 소진(consumed)에서만 차감한다.
+     * 충전(charged)에는 애초에 status 4가 포함되지 않으므로(STATUS_CHARGED=[2,12]) 차감하지 않는다.
+     * 그 결과 status 4만큼 잔액이 복원된다(잔액 = 충전 − 순소진 − 환불).
+     * 이는 DashboardModel·ContractOrderModel 잔액 계산과 동일한 상계 정책이다. cpa_refunded는 상계 규모 표시용 지표.
      *
      * @return array{charged: int, consumed: int, refunded: int, cpa_refunded: int, balance: int}
      */
@@ -65,12 +66,14 @@ class ReportModel extends Model
         $refunded    = $this->sumByStatuses(self::STATUS_REFUNDED, $year);
         $cpaRefunded = $this->sumByStatuses(self::STATUS_CPA_REFUND, $year);
 
+        $netConsumed = $consumed - $cpaRefunded;
+
         return [
-            'charged'      => $charged - $cpaRefunded,
-            'consumed'     => $consumed - $cpaRefunded,
+            'charged'      => $charged,
+            'consumed'     => $netConsumed,
             'refunded'     => $refunded,
             'cpa_refunded' => $cpaRefunded,
-            'balance'      => $charged - $consumed - $refunded,
+            'balance'      => $charged - $netConsumed - $refunded,
         ];
     }
 
@@ -85,9 +88,8 @@ class ReportModel extends Model
         $consumed = $this->monthlySumByStatuses(self::STATUS_CONSUMED, $year);
         $cpa      = $this->monthlySumByStatuses(self::STATUS_CPA_REFUND, $year);
 
-        // CPA 환불 복원(상계, status 4)을 충전·소진 양쪽에서 차감해 순액 그래프로 노출
+        // CPA 환불 복원(상계, status 4)은 소진에서만 차감해 순액 그래프로 노출 (충전에는 미포함)
         for ($i = 0; $i < 12; $i++) {
-            $charged[$i]  -= $cpa[$i];
             $consumed[$i] -= $cpa[$i];
         }
 
@@ -140,9 +142,9 @@ class ReportModel extends Model
         $consumed = $this->sumByStatusesBetween(self::STATUS_CONSUMED, $date, $date, $hospitalIds);
         $cpa      = $this->sumByStatusesBetween(self::STATUS_CPA_REFUND, $date, $date, $hospitalIds);
 
-        // CPA 환불 복원(상계, status 4)을 충전·소진 양쪽에서 차감해 순액으로 노출 (리포트 KPI와 동일)
+        // CPA 환불 복원(상계, status 4)은 소진에서만 차감해 순액으로 노출 (리포트 KPI와 동일, 충전 미포함)
         return [
-            'charged'  => $charged - $cpa,
+            'charged'  => $charged,
             'consumed' => $consumed - $cpa,
             'refunded' => $this->sumByStatusesBetween(self::STATUS_REFUNDED, $date, $date, $hospitalIds),
         ];
@@ -161,12 +163,14 @@ class ReportModel extends Model
         $refunded = $this->sumByStatusesBetween(self::STATUS_REFUNDED, $fromDate, $toDate, $hospitalIds);
         $cpa      = $this->sumByStatusesBetween(self::STATUS_CPA_REFUND, $fromDate, $toDate, $hospitalIds);
 
-        // CPA 환불 복원(상계, status 4)을 충전·소진 양쪽에서 차감 — 잔액 항등식은 유지
+        $netConsumed = $consumed - $cpa;
+
+        // CPA 환불 복원(상계, status 4)은 소진에서만 차감 — status 4만큼 잔액이 복원된다 (리포트 KPI와 동일)
         return [
-            'charged'  => $charged - $cpa,
-            'consumed' => $consumed - $cpa,
+            'charged'  => $charged,
+            'consumed' => $netConsumed,
             'refunded' => $refunded,
-            'balance'  => $charged - $consumed - $refunded,
+            'balance'  => $charged - $netConsumed - $refunded,
         ];
     }
 
