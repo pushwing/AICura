@@ -136,8 +136,16 @@ $priceTotal = array_sum(array_map(static fn (array $a): int => (int) $a['total_p
             </thead>
             <tbody>
                 <?php foreach ($agencyAdvertisers as $a): ?>
-                <tr style="border-bottom:1px solid var(--color-border,#f3f4f6);">
-                    <td style="padding:8px 4px;"><?= esc($a['hospital_name'] ?? '-') ?></td>
+                <?php $advUrl = '/admin/advertisers/' . (int) ($a['id'] ?? 0); ?>
+                <tr style="border-bottom:1px solid var(--color-border,#f3f4f6);cursor:pointer;"
+                    onclick="location.href='<?= esc($advUrl, 'attr') ?>'"
+                    onmouseover="this.style.background='var(--color-bg-subtle,#f9fafb)'"
+                    onmouseout="this.style.background=''">
+                    <td style="padding:8px 4px;">
+                        <a href="<?= esc($advUrl, 'attr') ?>" style="color:var(--color-primary,#0F6E56);text-decoration:none;font-weight:500;">
+                            <?= esc($a['hospital_name'] ?? '-') ?>
+                        </a>
+                    </td>
                     <td style="padding:8px 4px;"><?= esc($a['contact_name'] ?? '-') ?></td>
                     <td style="padding:8px 4px;"><?= esc($statusLabels[(int) ($a['status'] ?? 0)] ?? '-') ?></td>
                     <td style="padding:8px 4px;">
