@@ -28,6 +28,8 @@ class PortalReportModel extends Model
     private const STATUS_CHARGED  = [2, 4, 12];
     private const STATUS_CONSUMED = [3, 5, 8, 9, 10, 11];
     private const STATUS_REFUNDED = [6, 7];
+    // CPA 환불 복원(상계) — 신청DB 환불요청 승인 시 기록되는 기타충전. 충전(status 4)에 이미 포함된 별도 표시용 지표.
+    private const STATUS_CPA_REFUND = [4];
 
     private const CALL_VISITED = 7;
 
@@ -51,9 +53,12 @@ class PortalReportModel extends Model
     // ──────────────────────────────────────────────
 
     /**
-     * 병원 연간 매출 KPI (충전·소진·환불·잔액)
+     * 병원 연간 매출 KPI (충전·소진·환불·CPA환불·잔액)
      *
-     * @return array{charged: int, consumed: int, refunded: int, balance: int}
+     * cpa_refunded(신청DB 환불요청 승인 복원액)는 충전(status 4)에 이미 포함돼 잔액에 반영되므로
+     * 별도 표시용 정보 지표다. 잔액 항등식에서 중복 차감하지 않는다. (운영자 리포트와 동일)
+     *
+     * @return array{charged: int, consumed: int, refunded: int, cpa_refunded: int, balance: int}
      */
     public function getHospitalYearKpi(int $hospitalId, int $year): array
     {
@@ -61,6 +66,7 @@ class PortalReportModel extends Model
             ->select($this->statusSum(self::STATUS_CHARGED) . ' AS charged', false)
             ->select($this->statusSum(self::STATUS_CONSUMED) . ' AS consumed', false)
             ->select($this->statusSum(self::STATUS_REFUNDED) . ' AS refunded', false)
+            ->select($this->statusSum(self::STATUS_CPA_REFUND) . ' AS cpa_refunded', false)
             ->join('contracts c', 'c.id = d.contract_id', 'inner')
             ->where('c.hospital_id', $hospitalId)
             ->where($this->yearExpr('d.created_at'), $year)
@@ -72,10 +78,11 @@ class PortalReportModel extends Model
         $refunded = (int) ($row['refunded'] ?? 0);
 
         return [
-            'charged'  => $charged,
-            'consumed' => $consumed,
-            'refunded' => $refunded,
-            'balance'  => $charged - $consumed - $refunded,
+            'charged'      => $charged,
+            'consumed'     => $consumed,
+            'refunded'     => $refunded,
+            'cpa_refunded' => (int) ($row['cpa_refunded'] ?? 0),
+            'balance'      => $charged - $consumed - $refunded,
         ];
     }
 
@@ -174,6 +181,7 @@ class PortalReportModel extends Model
      *     charged: int,
      *     consumed: int,
      *     refunded: int,
+     *     cpa_refunded: int,
      *     balance: int,
      *     requested: int,
      *     visited: int
@@ -189,6 +197,7 @@ class PortalReportModel extends Model
             ->select($this->statusSumForYear(self::STATUS_CHARGED, $yearCol, $year) . ' AS charged', false)
             ->select($this->statusSumForYear(self::STATUS_CONSUMED, $yearCol, $year) . ' AS consumed', false)
             ->select($this->statusSumForYear(self::STATUS_REFUNDED, $yearCol, $year) . ' AS refunded', false)
+            ->select($this->statusSumForYear(self::STATUS_CPA_REFUND, $yearCol, $year) . ' AS cpa_refunded', false)
             ->join('contracts c', 'c.hospital_id = a.hospital_id', 'left')
             ->join('deposits d', 'd.contract_id = c.id', 'left')
             ->where('a.agency_user_id', $agencyUserId)
@@ -241,6 +250,7 @@ class PortalReportModel extends Model
                 'charged'       => $charged,
                 'consumed'      => $consumed,
                 'refunded'      => $refunded,
+                'cpa_refunded'  => (int) $row['cpa_refunded'],
                 'balance'       => $charged - $consumed - $refunded,
                 'requested'     => $call['requested'],
                 'visited'       => $call['visited'],
@@ -254,27 +264,29 @@ class PortalReportModel extends Model
      * 광고주별 집계 행 목록을 합산한 대행사 전체 KPI
      *
      * @param list<array<string, mixed>> $breakdown getAgencyAdvertiserBreakdown() 결과
-     * @return array{advertiser_count: int, charged: int, consumed: int, refunded: int, balance: int, requested: int, visited: int}
+     * @return array{advertiser_count: int, charged: int, consumed: int, refunded: int, cpa_refunded: int, balance: int, requested: int, visited: int}
      */
     public function summarizeAgency(array $breakdown): array
     {
         $sum = [
             'advertiser_count' => count($breakdown),
-            'charged'   => 0,
-            'consumed'  => 0,
-            'refunded'  => 0,
-            'balance'   => 0,
-            'requested' => 0,
-            'visited'   => 0,
+            'charged'      => 0,
+            'consumed'     => 0,
+            'refunded'     => 0,
+            'cpa_refunded' => 0,
+            'balance'      => 0,
+            'requested'    => 0,
+            'visited'      => 0,
         ];
 
         foreach ($breakdown as $row) {
-            $sum['charged']   += (int) $row['charged'];
-            $sum['consumed']  += (int) $row['consumed'];
-            $sum['refunded']  += (int) $row['refunded'];
-            $sum['balance']   += (int) $row['balance'];
-            $sum['requested'] += (int) $row['requested'];
-            $sum['visited']   += (int) $row['visited'];
+            $sum['charged']      += (int) $row['charged'];
+            $sum['consumed']     += (int) $row['consumed'];
+            $sum['refunded']     += (int) $row['refunded'];
+            $sum['cpa_refunded'] += (int) $row['cpa_refunded'];
+            $sum['balance']      += (int) $row['balance'];
+            $sum['requested']    += (int) $row['requested'];
+            $sum['visited']      += (int) $row['visited'];
         }
 
         return $sum;

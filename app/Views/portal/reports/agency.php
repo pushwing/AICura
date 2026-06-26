@@ -1,7 +1,7 @@
 <?php
 /** @var int $year */
 /** @var list<int> $years */
-/** @var array{advertiser_count:int, charged:int, consumed:int, refunded:int, balance:int, requested:int, visited:int} $summary */
+/** @var array{advertiser_count:int, charged:int, consumed:int, refunded:int, cpa_refunded:int, balance:int, requested:int, visited:int} $summary */
 /** @var list<array<string, mixed>> $breakdown */
 /** @var array<string, mixed>|null $aiRevenue */
 /** @var array<string, mixed>|null $aiConsumption */
@@ -10,6 +10,7 @@ $kpiCards = [
     ['label' => '광고주 수', 'value' => $summary['advertiser_count'], 'unit' => '개', 'color' => 'var(--color-text)'],
     ['label' => '충전 합계', 'value' => $summary['charged'],  'unit' => '원', 'color' => '#0F6E56'],
     ['label' => '소진 합계', 'value' => $summary['consumed'], 'unit' => '원', 'color' => '#1D9E75'],
+    ['label' => 'CPA 환불', 'value' => $summary['cpa_refunded'], 'unit' => '원', 'color' => '#f59e0b'],
     ['label' => '잔액 합계', 'value' => $summary['balance'],  'unit' => '원', 'color' => '#6366f1'],
     ['label' => '신청 건수', 'value' => $summary['requested'], 'unit' => '건', 'color' => 'var(--color-text)'],
     ['label' => '내원완료', 'value' => $summary['visited'],    'unit' => '건', 'color' => '#0ea5e9'],
@@ -35,7 +36,7 @@ $kpiCards = [
 ]) ?>
 
 <!-- 전체 합계 KPI -->
-<div style="display:grid;grid-template-columns:repeat(6, 1fr);gap:12px;margin-bottom:20px;">
+<div style="display:grid;grid-template-columns:repeat(7, 1fr);gap:12px;margin-bottom:20px;">
     <?php foreach ($kpiCards as $card): ?>
         <div class="card"><div class="card-body">
             <p style="font-size:13px;color:var(--color-text-muted);margin:0 0 8px;"><?= esc($card['label']) ?></p>
@@ -108,6 +109,7 @@ $kpiCards = [
             { field: 'charged', headerName: '충전', width: 130, type: 'numericColumn', valueFormatter: (p) => Number(p.value || 0).toLocaleString() + '원' },
             { field: 'consumed', headerName: '소진', width: 130, type: 'numericColumn', valueFormatter: (p) => Number(p.value || 0).toLocaleString() + '원' },
             { field: 'refunded', headerName: '환불', width: 120, type: 'numericColumn', valueFormatter: (p) => Number(p.value || 0).toLocaleString() + '원' },
+            { field: 'cpa_refunded', headerName: 'CPA환불', width: 120, type: 'numericColumn', valueFormatter: (p) => Number(p.value || 0).toLocaleString() + '원' },
             { field: 'balance', headerName: '잔액', width: 130, type: 'numericColumn', valueFormatter: (p) => Number(p.value || 0).toLocaleString() + '원' },
             { field: 'requested', headerName: '신청', width: 90, type: 'numericColumn', valueFormatter: (p) => Number(p.value || 0).toLocaleString() },
             { field: 'visited', headerName: '내원완료', width: 100, type: 'numericColumn', valueFormatter: (p) => Number(p.value || 0).toLocaleString() },
