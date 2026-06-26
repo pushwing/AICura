@@ -275,6 +275,41 @@ app/Libraries/Ai/
 
 프롬프트·도메인 로직은 `AiReportService`에 있으므로 공급자와 무관하게 그대로 재사용된다.
 
+### 처리 흐름
+
+```
+서버 crontab (야간 1회)  ──┐
+관리자 '지금 생성' 버튼     ──┴─▶  AiReportService
+                                    ├─ ReportModel: 스코프별 집계 수집
+                                    ├─ AiClient(Groq): 마크다운 보고서 생성
+                                    └─ AiReportModel: ai_reports 저장 (scope 포함)
+                                                          │
+리포트 화면 ◀── 최신 매출1 + 소진1 카드 + 더보기 ─────────┘
+   └─ 전체 보기 → 새창 상세 (MarkdownRenderer로 서버 HTML 변환)
+```
+
+### 구성 요소
+
+| 경로 | 역할 |
+|------|------|
+| `app/Models/AiReportModel.php` | 보고서 저장·스코프 한정 조회 (`latestByType`/`historyByType`/`findScoped`) |
+| `app/Models/ReportModel.php` | 스코프별 집계 (전일·당월 누계 매출 / 잔액 5% 이하 광고주) |
+| `app/Libraries/Ai/` | `AiClientInterface` · `GroqClient` · `AiClientFactory` (공급자 교체 추상화) |
+| `app/Services/AiReportService.php` | 집계→AI 생성→저장 오케스트레이션 + 프롬프트 |
+| `app/Services/ReportScope.php` | 생성 범위 값 객체 (global / hospital / agency) |
+| `app/Libraries/MarkdownRenderer.php` | 마크다운→안전 HTML 변환 (서버 사이드) |
+| `app/Commands/ReportGenerateAi.php` | `reports:generate-ai` 배치 커맨드 |
+| `app/Views/reports/ai_show.php` | 새창 상세 (admin·portal 공용) |
+| `app/Views/reports/_ai_section.php` | 리포트 화면 AI 카드 섹션 파셜 (공용) |
+
+### 마크다운 렌더링
+
+AI가 생성한 마크다운 본문은 **서버에서** `league/commonmark`(GFM, 표 지원)로 HTML 변환한다.
+외부 CDN(marked/DOMPurify) 의존을 제거해 네트워크 환경과 무관하게 렌더된다.
+
+- 보안 설정: `html_input=escape`(본문 내 원시 HTML 이스케이프) · `allow_unsafe_links=false`(`javascript:` 등 위험 링크 차단)으로 XSS 방어
+- 변환 진입점: `App\Libraries\MarkdownRenderer::toSafeHtml()`
+
 ---
 
 ## Git 워크플로우
