@@ -147,6 +147,9 @@ $routes->group('portal', static function (RouteCollection $routes): void {
         $routes->post('profile',          'Portal\ProfileController::update');
         $routes->post('profile/password', 'Portal\ProfileController::updatePassword');
 
+        // 리포트 (광고주: 자기 병원 매출 / 대행사: 소속 광고주 합계+개별) — 이슈 #56
+        $routes->get('reports', 'Portal\ReportController::index');
+
         // 신청DB 관리 (광고주)
         $routes->get('call-requests',                              'Portal\CallRequestController::index');
         $routes->get('call-requests/(:num)',                       'Portal\CallRequestController::show/$1');
