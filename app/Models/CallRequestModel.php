@@ -44,6 +44,10 @@ class CallRequestModel extends Model
         'is_delete',
         'parent_id',
         'is_save_phone',
+        'ai_score',
+        'ai_summary',
+        'ai_next_action',
+        'ai_status',
     ];
 
     /** @var array<int, string> 신청 상태 라벨 (1~9) */
@@ -82,6 +86,17 @@ class CallRequestModel extends Model
     ];
 
     /**
+     * AI 리드 분석 큐 상태 (이슈 #72)
+     *
+     * Redis 등 별도 큐 인프라 없이 ai_status 컬럼을 큐로 사용한다.
+     * 신청·메모 저장 시 PENDING으로 표시하고, leads:analyze 커맨드가 소비한다.
+     */
+    public const AI_STATUS_IDLE    = 0; // 미분석
+    public const AI_STATUS_PENDING = 1; // 대기 (큐 적재됨)
+    public const AI_STATUS_DONE    = 2; // 완료
+    public const AI_STATUS_FAILED  = 3; // 실패
+
+    /**
      * 신청 목록 (병원별·캠페인별·상태별 필터, 페이징)
      *
      * @param array<string, mixed> $params
@@ -90,7 +105,7 @@ class CallRequestModel extends Model
     public function getList(array $params): array
     {
         $builder = $this->db->table('call_requests cr')
-            ->select('cr.id, cr.hospital_id, cr.campaign_id, cr.status, cr.is_charged, cr.name, cr.phone, cr.event_cost, cr.confirm_date, cr.created_at')
+            ->select('cr.id, cr.hospital_id, cr.campaign_id, cr.status, cr.is_charged, cr.name, cr.phone, cr.event_cost, cr.confirm_date, cr.created_at, cr.ai_score, cr.ai_summary')
             ->select('h.name AS hospital_name', false)
             ->select('c.ad_title AS campaign_title', false)
             ->join('hospitals h', 'h.id = cr.hospital_id', 'left')
@@ -118,8 +133,14 @@ class CallRequestModel extends Model
         $page  = max(1, (int) ($params['page'] ?? 1));
         $limit = (int) ($params['limit'] ?? 20);
 
+        // 전환점수순: 점수 높은 순(NULL은 MySQL DESC에서 자동으로 뒤로), 동점은 최신순
+        if (($params['sort'] ?? '') === 'score') {
+            $builder->orderBy('cr.ai_score', 'DESC')->orderBy('cr.id', 'DESC');
+        } else {
+            $builder->orderBy('cr.id', 'DESC');
+        }
+
         $list = $builder
-            ->orderBy('cr.id', 'DESC')
             ->limit($limit, ($page - 1) * $limit)
             ->get()
             ->getResultArray();
@@ -313,5 +334,65 @@ class CallRequestModel extends Model
             $db->transRollback();
             throw $e;
         }
+    }
+
+    // ──────────────────────────────────────────────
+    // AI 리드 분석 큐 (이슈 #72)
+    // ──────────────────────────────────────────────
+
+    /**
+     * 분석 큐에 적재 — ai_status를 PENDING으로 표시 (동기, AI 호출 없음).
+     *
+     * 신청 INSERT·메모 저장 시점에 호출한다. 실제 분석은 leads:analyze 커맨드가
+     * 비동기로 수행하므로 요청 응답을 막지 않는다. 앱/웹 신청 INSERT 경로가
+     * 추가되면 이 메서드를 동일하게 호출하면 된다.
+     */
+    public function enqueueAnalysis(int $id): void
+    {
+        $this->where('is_delete', 0)
+            ->set('ai_status', self::AI_STATUS_PENDING)
+            ->update($id);
+    }
+
+    /**
+     * 분석 대기(PENDING) 건을 분석 입력 필드만 추려서 반환 (오래된 순).
+     *
+     * PII(name·phone)는 프롬프트에 넣지 않으므로 조회 대상에서 제외한다.
+     *
+     * @return array<int, array{id: int, content: string|null, funnel: string|null, age: int|null, sex: int}>
+     */
+    public function getPendingAnalysis(int $limit = 50): array
+    {
+        /** @var array<int, array{id: int, content: string|null, funnel: string|null, age: int|null, sex: int}> $rows */
+        $rows = $this->select('id, content, funnel, age, sex')
+            ->where('ai_status', self::AI_STATUS_PENDING)
+            ->where('is_delete', 0)
+            ->orderBy('id', 'ASC')
+            ->findAll(max(1, $limit));
+
+        return $rows;
+    }
+
+    /**
+     * 분석 결과 저장 — 점수·요약·다음액션 + 상태를 DONE으로.
+     *
+     * @param array{score: int, summary: string, next_action: string} $result
+     */
+    public function saveAnalysis(int $id, array $result): void
+    {
+        $this->update($id, [
+            'ai_score'       => $result['score'],
+            'ai_summary'     => $result['summary'],
+            'ai_next_action' => $result['next_action'],
+            'ai_status'      => self::AI_STATUS_DONE,
+        ]);
+    }
+
+    /**
+     * 분석 실패 표시 — 재처리 대상에서 빠지도록 FAILED로.
+     */
+    public function markAnalysisFailed(int $id): void
+    {
+        $this->update($id, ['ai_status' => self::AI_STATUS_FAILED]);
     }
 }

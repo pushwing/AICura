@@ -11,6 +11,16 @@ $statusColors = [
 $currentStatus = (int) $request['status'];
 $sc = $statusColors[$currentStatus] ?? '#6b7280';
 $sexLabel = match ((int) $request['sex']) { 1 => '남', 2 => '여', default => '-' };
+
+// AI 분석 상태/점수
+$aiStatus = (int) ($request['ai_status'] ?? 0);
+$aiScore  = $request['ai_score'] !== null ? (int) $request['ai_score'] : null;
+$aiColor  = $aiScore === null ? '#9ca3af' : ($aiScore >= 70 ? '#10b981' : ($aiScore >= 40 ? '#f59e0b' : '#6b7280'));
+$aiStateLabel = match ($aiStatus) {
+    1       => '분석 대기 중',
+    3       => '분석 실패',
+    default => $aiScore !== null ? null : '미분석',
+};
 ?>
 
 <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
@@ -62,8 +72,36 @@ $sexLabel = match ((int) $request['sex']) { 1 => '남', 2 => '여', default => '
         </div>
     </div>
 
-    <!-- 우측: 상태 변경 + 메모 -->
+    <!-- 우측: AI 분석 + 상태 변경 + 메모 -->
     <div style="display:flex;flex-direction:column;gap:16px;">
+
+        <!-- AI 분석 (이슈 #72) -->
+        <div class="card">
+            <div class="card-body">
+                <h3 style="margin-bottom:12px;font-size:15px;display:flex;align-items:center;gap:8px;">
+                    AI 분석
+                    <?php if ($aiScore !== null): ?>
+                        <span style="background:<?= $aiColor ?>20;color:<?= $aiColor ?>;padding:2px 10px;border-radius:4px;font-size:13px;font-weight:600;">
+                            전환점수 <?= $aiScore ?>
+                        </span>
+                    <?php endif; ?>
+                </h3>
+                <?php if ($aiScore !== null): ?>
+                    <div style="margin-bottom:12px;">
+                        <div style="font-size:12px;color:var(--color-text-muted);margin-bottom:4px;">한 줄 요약</div>
+                        <div style="font-size:14px;"><?= esc($request['ai_summary'] ?? '-') ?: '-' ?></div>
+                    </div>
+                    <div>
+                        <div style="font-size:12px;color:var(--color-text-muted);margin-bottom:4px;">다음 상담 액션</div>
+                        <div style="font-size:14px;"><?= esc($request['ai_next_action'] ?? '-') ?: '-' ?></div>
+                    </div>
+                <?php else: ?>
+                    <p style="color:var(--color-text-muted);font-size:13px;margin:0;">
+                        <?= esc($aiStateLabel ?? '미분석') ?>입니다. 메모 등록 시 자동으로 분석 대기열에 추가됩니다.
+                    </p>
+                <?php endif; ?>
+            </div>
+        </div>
 
         <!-- 상태 변경 -->
         <div class="card">
