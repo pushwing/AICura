@@ -19,7 +19,8 @@ class AiCopyService
     /** 캐시 TTL(초) — 동일 입력 반복 생성 방어 */
     private const CACHE_TTL = 3600;
 
-    private const CACHE_PREFIX = 'ai_copy:';
+    // CI4 캐시 키는 콜론(:) 등을 예약 문자로 금지(app/Config/Cache.php)하므로 언더스코어 사용
+    private const CACHE_PREFIX = 'ai_copy_';
 
     /** 생성 제목 후보 개수 */
     private const TITLE_COUNT = 3;
@@ -32,8 +33,8 @@ class AiCopyService
 
     public function __construct(?AiClientInterface $ai = null, ?CacheInterface $cache = null)
     {
-        // 이슈 #71·#73은 Gemini 사용 — 공급자 명시 고정
-        $this->ai    = $ai    ?? AiClientFactory::make('gemini');
+        // 공급자는 env('AI_PROVIDER') 기준(기본 groq) — .env에서 교체 가능
+        $this->ai    = $ai    ?? AiClientFactory::make();
         $this->cache = $cache ?? cache();
     }
 
