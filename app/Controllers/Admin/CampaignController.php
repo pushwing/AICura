@@ -459,7 +459,7 @@ class CampaignController extends BaseAdminController
      */
     private function handleImageUploads(?array $existing = null): array
     {
-        $uploadPath = WRITEPATH . 'uploads/campaigns/';
+        $uploadPath = FCPATH . 'uploads/campaigns/';
         if (!is_dir($uploadPath)) {
             mkdir($uploadPath, 0755, true);
         }
