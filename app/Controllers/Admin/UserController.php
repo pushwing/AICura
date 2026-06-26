@@ -15,15 +15,16 @@ class UserController extends BaseAdminController
     // 대행사 탭 — user_type이 아닌 is_agency_account 플래그로 구분
     private const TAB_AGENCY = 4;
 
+    // 기본 탭 — 자가 회원가입이 없어 '일반 사용자' 탭은 노출하지 않음
+    private const TAB_DEFAULT = 2;
+
     // user_type 그룹 → 실제 user_type 값 매핑
     private const TYPE_GROUPS = [
-        1 => [UserModel::TYPE_USER],
         2 => [UserModel::TYPE_ADMIN, UserModel::TYPE_STATS, UserModel::TYPE_GENERAL, UserModel::TYPE_INSTALL, UserModel::TYPE_EXTERNAL],
         3 => [UserModel::TYPE_HOSPITAL_AD, UserModel::TYPE_HOSPITAL_GENE, UserModel::TYPE_HOSPITAL_RECV],
     ];
 
     private const TAB_LABELS = [
-        1 => '일반 사용자',
         2 => '운영자',
         3 => '광고주/병원',
         self::TAB_AGENCY => '대행사',
@@ -57,7 +58,11 @@ class UserController extends BaseAdminController
 
     public function index(): string
     {
-        $typeGroup  = max(1, min(self::TAB_AGENCY, (int) ($this->request->getGet('type') ?? 1)));
+        $typeGroup = (int) ($this->request->getGet('type') ?? self::TAB_DEFAULT);
+        // 유효 탭(2·3·4)이 아니면 기본 탭으로 — 제거된 '일반 사용자'(1) 포함
+        if (!isset(self::TAB_LABELS[$typeGroup])) {
+            $typeGroup = self::TAB_DEFAULT;
+        }
         $subType    = (int) ($this->request->getGet('sub_type') ?? 0);
         $isDormant  = $this->request->getGet('is_dormant') ?? '';
         $searchWord = $this->request->getGet('search_word') ?? '';

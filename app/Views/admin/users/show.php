@@ -14,10 +14,9 @@ $agencyAdvertisers = $agencyAdvertisers ?? [];
 $statusLabels = [1 => '활성', 2 => '중지', 3 => '해지'];
 
 $backType = match (true) {
-    $isAgency                                                => 4,
-    in_array($userType, [1], true)                           => 1,
-    in_array($userType, [2, 401, 402, 403, 404, 405], true) => 2,
-    default                                                  => 3,
+    $isAgency                                   => 4,
+    in_array($userType, [201, 202, 203], true) => 3, // 광고주/병원
+    default                                     => 2, // 운영자(및 기타)
 };
 ?>
 
