@@ -13,7 +13,7 @@ use RuntimeException;
  * AI 의료광고 심의 사전검사 서비스 (이슈 #71)
  *
  * 소재 텍스트(광고 제목 + 상세 설명)를 의료법 제56조 위반 유형 기준으로
- * Gemini AI에 1차 스크리닝시켜 위반 플래그(JSON)를 받아 저장한다.
+ * Groq AI에 1차 스크리닝시켜 위반 플래그(JSON)를 받아 저장한다.
  * 캠페인 등록/수정 시점(CampaignController)과 검수 화면의 재검사 액션에서 호출한다.
  */
 class AiComplianceService
@@ -30,12 +30,12 @@ class AiComplianceService
         ?CampaignModel $campaignModel = null,
         ?CampaignReviewRequestModel $reviewModel = null
     ) {
-        // 이슈 #71·#73은 Gemini 사용 (#65 보고서는 Groq 유지) — 공급자 명시 고정
-        $this->ai            = $ai            ?? AiClientFactory::make('gemini');
+        // 심의 사전검사도 Groq 사용 — 공급자 명시 고정
+        $this->ai            = $ai            ?? AiClientFactory::make('groq');
         $this->checkModel    = $checkModel    ?? model(ComplianceCheckModel::class);
         $this->campaignModel = $campaignModel ?? model(CampaignModel::class);
         $this->reviewModel   = $reviewModel   ?? model(CampaignReviewRequestModel::class);
-        $this->modelName     = (string) env('GEMINI_MODEL', 'gemini-2.0-flash');
+        $this->modelName     = (string) env('GROQ_MODEL', 'llama-3.3-70b-versatile');
     }
 
     /**
@@ -180,6 +180,8 @@ class AiComplianceService
 
             규칙:
             - 반드시 아래 JSON 스키마로만 응답하고 다른 문장은 출력하지 마세요.
+            - 각 필드 값(reason·suggestion 등) 안에서는 큰따옴표(") 문자를 절대 사용하지 마세요.
+              강조가 필요하면 작은따옴표(') 또는 낫표(「」)를 사용하세요. (JSON 파싱 오류 방지)
             - quote 에는 반드시 원문에 실제로 존재하는 표현만 그대로 인용하세요. 원문에 없는 표현을 지어내지 마세요.
             - 위반 소지가 없으면 flags 는 빈 배열, risk_level 은 "safe" 로 합니다.
             - severity 는 경미하면 "low", 명백·중대하면 "high" 로 합니다.
