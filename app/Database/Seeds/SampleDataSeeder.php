@@ -21,7 +21,8 @@ class SampleDataSeeder extends Seeder
         $this->insertAdvertisers($now, $links);
         $this->insertEventCategories($now);
         $this->insertContractsAndOrders($now);
-        $this->insertCampaigns($now);
+        $campaigns = $this->insertCampaigns($now);
+        $this->insertCallRequests($now, $campaigns);
     }
 
     /**
@@ -298,7 +299,10 @@ class SampleDataSeeder extends Seeder
         }
     }
 
-    private function insertCampaigns(string $now): void
+    /**
+     * @return array<int, array<string, mixed>>  삽입된 캠페인(id 포함) 목록
+     */
+    private function insertCampaigns(string $now): array
     {
         // 광고주당 캠페인 2개씩 (총 6개)
         $campaigns = [
@@ -415,12 +419,76 @@ class SampleDataSeeder extends Seeder
             ],
         ];
 
+        $inserted = [];
         foreach ($campaigns as $row) {
             $this->db->table('campaigns')->insert(array_merge($row, [
                 'is_deleted' => 0,
                 'created_at' => $now,
                 'updated_at' => $now,
             ]));
+            $row['id']  = (int) $this->db->insertID();
+            $inserted[] = $row;
+        }
+
+        return $inserted;
+    }
+
+    /**
+     * 이벤트 신청(call_requests) 샘플 — 광고(캠페인)마다 5건.
+     *
+     * CPA 단가(db_cost)가 있고 계약이 연결된 캠페인은 신청 1건당 deposits 소진(status=3,
+     * is_minus=1)을 함께 기록해 차감(과금) 상태를 재현한다. 잔액·리포트 검증용.
+     *
+     * @param array<int, array<string, mixed>> $campaigns
+     */
+    private function insertCallRequests(string $now, array $campaigns): void
+    {
+        // 5건의 상태 분포 — 2건은 내원완료(7)로 리포트 visited_count 재현
+        $statusPattern = [1, 2, 5, 7, 7];
+
+        foreach ($campaigns as $campaign) {
+            $campaignId = (int) $campaign['id'];
+            $hospitalId = (int) $campaign['hospital_id'];
+            $eventCost  = (int) $campaign['db_cost'];                 // CPA 단가
+            $contractId = (int) ($campaign['contract_id'] ?? 0);
+            $orderId    = (int) ($campaign['contract_order_id'] ?? 0);
+
+            // CPA 과금 조건: 단가 > 0 + 계약/수주계약 연결
+            $charge = $eventCost > 0 && $contractId > 0 && $orderId > 0;
+
+            foreach ($statusPattern as $i => $status) {
+                $this->db->table('call_requests')->insert([
+                    'hospital_id' => $hospitalId,
+                    'campaign_id' => $campaignId,
+                    'device'      => ($i % 3) + 1,
+                    'status'      => $status,
+                    'is_charged'  => $charge ? 1 : 0,
+                    'name'        => '샘플신청자' . $campaignId . '-' . ($i + 1),
+                    'phone'       => '010-' . str_pad((string) $campaignId, 4, '0', STR_PAD_LEFT)
+                                       . '-' . str_pad((string) ($i + 1), 4, '0', STR_PAD_LEFT),
+                    'content'     => '샘플 이벤트 신청',
+                    'event_cost'  => $eventCost,
+                    'funnel'      => 'sample',
+                    'created_at'  => $now,
+                    'updated_at'  => $now,
+                ]);
+
+                // 차감 1건 = deposits 소진(status=3)
+                if ($charge) {
+                    $callRequestId = (int) $this->db->insertID();
+                    $this->db->table('deposits')->insert([
+                        'status'            => 3, // DB소진
+                        'is_minus'          => 1,
+                        'contract_id'       => $contractId,
+                        'contract_order_id' => $orderId,
+                        'users_id'          => null,
+                        'price'             => $eventCost,
+                        'note'              => 'CPA 소진 (call_request:' . $callRequestId . ')',
+                        'created_at'        => $now,
+                        'updated_at'        => $now,
+                    ]);
+                }
+            }
         }
     }
 }
