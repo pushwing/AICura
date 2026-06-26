@@ -24,6 +24,10 @@
     </select>
     <input type="text" name="keyword" class="form-control" style="width:200px;"
            placeholder="이름, 연락처 검색" value="<?= esc((string) $params['keyword']) ?>">
+    <select name="sort" class="form-control" style="width:140px;">
+        <option value="" <?= ($params['sort'] ?? '') !== 'score' ? 'selected' : '' ?>>최신순</option>
+        <option value="score" <?= ($params['sort'] ?? '') === 'score' ? 'selected' : '' ?>>전환점수순</option>
+    </select>
     <button type="submit" class="btn btn-primary btn-sm">검색</button>
     <a href="/admin/call-requests" class="btn btn-outline btn-sm">초기화</a>
 </form>
@@ -72,6 +76,22 @@ const columnDefs = [
         },
     },
     {
+        field: 'ai_score',
+        headerName: '전환점수',
+        width: 110,
+        sortable: true,
+        sort: <?= ($params['sort'] ?? '') === 'score' ? "'desc'" : 'null' ?>,
+        tooltipValueGetter: (p) => p.data.ai_summary ?? '',
+        cellRenderer: (p) => {
+            if (p.value === null || p.value === undefined) {
+                return `<span style="color:#9ca3af;font-size:12px;">-</span>`;
+            }
+            const score = Number(p.value);
+            const color = score >= 70 ? '#10b981' : (score >= 40 ? '#f59e0b' : '#6b7280');
+            return `<span style="background:${color}20;color:${color};padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;">${score}</span>`;
+        },
+    },
+    {
         field: 'is_charged',
         headerName: '과금',
         width: 90,
@@ -95,5 +115,6 @@ agGrid.createGrid(document.getElementById('callRequestGrid'), {
     pagination: true,
     paginationPageSize: 20,
     defaultColDef: { resizable: true },
+    enableBrowserTooltips: true, // 전환점수 셀에 AI 요약을 native 툴팁으로 표시
 });
 </script>

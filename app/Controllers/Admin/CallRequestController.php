@@ -38,6 +38,7 @@ class CallRequestController extends BaseAdminController
             'campaign_id' => $this->request->getGet('campaign_id') ?? '',
             'status'      => $this->request->getGet('status') ?? '',
             'keyword'     => $this->request->getGet('keyword') ?? '',
+            'sort'        => $this->request->getGet('sort') ?? '',
             'page'        => (int) ($this->request->getGet('page') ?? 1),
             'limit'       => 20,
         ];
@@ -122,6 +123,9 @@ class CallRequestController extends BaseAdminController
             'user_id'         => (int) ($authUser['id'] ?? 0) ?: null,
             'memo'            => $this->request->getPost('memo'),
         ]);
+
+        // 새 메모 반영해 재분석 — 큐 적재만 하고 즉시 응답 (leads:analyze가 소비)
+        $this->callRequestModel->enqueueAnalysis($id);
 
         return redirect()->to('/admin/call-requests/' . $id)
             ->with('success', '메모가 등록되었습니다.');
