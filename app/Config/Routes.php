@@ -45,6 +45,10 @@ $routes->group('admin', static function (RouteCollection $routes): void {
         // 리포트
         $routes->get('reports',           'Admin\ReportController::index');
         $routes->get('reports/campaigns', 'Admin\ReportController::campaigns');
+        // AI 일일 보고서 (이슈 #65)
+        $routes->post('reports/ai/generate',       'Admin\ReportController::generateAi');
+        $routes->get('reports/ai/(:num)',          'Admin\ReportController::aiReportShow/$1');
+        $routes->get('reports/ai-list/(:segment)', 'Admin\ReportController::aiReportList/$1');
 
         // 계약 관리
         // GET  contracts              → index      (메인 계약 목록)

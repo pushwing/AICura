@@ -118,6 +118,88 @@ class ReportModel extends Model
     }
 
     /**
+     * 일자별 충전·소진·환불 합계 (AI 매출보고서용 — 전일 1일치)
+     *
+     * @return array{charged: int, consumed: int, refunded: int}
+     */
+    public function getDailyStats(string $date): array
+    {
+        return [
+            'charged'  => $this->sumByStatusesBetween(self::STATUS_CHARGED, $date, $date),
+            'consumed' => $this->sumByStatusesBetween(self::STATUS_CONSUMED, $date, $date),
+            'refunded' => $this->sumByStatusesBetween(self::STATUS_REFUNDED, $date, $date),
+        ];
+    }
+
+    /**
+     * 당월 누계 충전·소진·환불·잔액 (AI 매출보고서용)
+     *
+     * @return array{charged: int, consumed: int, refunded: int, balance: int}
+     */
+    public function getMonthToDateStats(string $fromDate, string $toDate): array
+    {
+        $charged  = $this->sumByStatusesBetween(self::STATUS_CHARGED, $fromDate, $toDate);
+        $consumed = $this->sumByStatusesBetween(self::STATUS_CONSUMED, $fromDate, $toDate);
+        $refunded = $this->sumByStatusesBetween(self::STATUS_REFUNDED, $fromDate, $toDate);
+
+        return [
+            'charged'  => $charged,
+            'consumed' => $consumed,
+            'refunded' => $refunded,
+            'balance'  => $charged - $consumed - $refunded,
+        ];
+    }
+
+    /**
+     * 광고주(병원) 단위 충전금/소진/잔액 요약 — 잔액이 충전금의 임계 비율 이하인 병원만 반환
+     *
+     * AI 소진보고서용. charged > 0 이고 (balance / charged) <= $thresholdRatio 인 병원을
+     * 잔액 비율 오름차순으로 정렬해 돌려준다.
+     *
+     * 충전: status IN (2, 4, 12) / 소진: status IN (3, 5, 6, 7, 8, 9, 10, 11)
+     *
+     * @return array<int, array{hospital_id: int, hospital_name: string, charged: int, used: int, balance: int, ratio: float}>
+     */
+    public function getLowBalanceHospitals(float $thresholdRatio = 0.05): array
+    {
+        $rows = $this->db->table('deposits d')
+            ->select('h.id AS hospital_id, h.name AS hospital_name', false)
+            ->select('SUM(CASE WHEN d.status IN (2, 4, 12) THEN d.price ELSE 0 END) AS charged', false)
+            ->select('SUM(CASE WHEN d.status IN (3, 5, 6, 7, 8, 9, 10, 11) THEN d.price ELSE 0 END) AS used', false)
+            ->join('contracts c', 'c.id = d.contract_id', 'inner')
+            ->join('hospitals h', 'h.id = c.hospital_id', 'inner')
+            ->groupBy('h.id, h.name')
+            ->having('charged >', 0)
+            ->get()
+            ->getResultArray();
+
+        $result = [];
+        foreach ($rows as $row) {
+            $charged = (int) $row['charged'];
+            $used    = (int) $row['used'];
+            $balance = $charged - $used;
+            $ratio   = $balance / $charged;
+
+            if ($ratio > $thresholdRatio) {
+                continue;
+            }
+
+            $result[] = [
+                'hospital_id'   => (int) $row['hospital_id'],
+                'hospital_name' => (string) $row['hospital_name'],
+                'charged'       => $charged,
+                'used'          => $used,
+                'balance'       => $balance,
+                'ratio'         => $ratio,
+            ];
+        }
+
+        usort($result, static fn (array $a, array $b): int => $a['ratio'] <=> $b['ratio']);
+
+        return $result;
+    }
+
+    /**
      * 상태 집합의 연간 합계
      *
      * @param array<int, int> $statuses
@@ -128,6 +210,24 @@ class ReportModel extends Model
             ->select('IFNULL(SUM(price), 0) AS total', false)
             ->whereIn('status', $statuses)
             ->where($this->yearExpr('created_at'), $year)
+            ->get()
+            ->getRowArray();
+
+        return (int) ($row['total'] ?? 0);
+    }
+
+    /**
+     * 상태 집합의 기간(날짜 범위) 합계 — created_at 기준 [from 00:00:00 ~ to 23:59:59]
+     *
+     * @param array<int, int> $statuses
+     */
+    private function sumByStatusesBetween(array $statuses, string $fromDate, string $toDate): int
+    {
+        $row = $this->db->table('deposits')
+            ->select('IFNULL(SUM(price), 0) AS total', false)
+            ->whereIn('status', $statuses)
+            ->where('created_at >=', $fromDate . ' 00:00:00')
+            ->where('created_at <=', $toDate . ' 23:59:59')
             ->get()
             ->getRowArray();
 

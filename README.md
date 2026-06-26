@@ -42,6 +42,10 @@ database.default.password =
 database.default.DBDriver = MySQLi
 
 JWT_SECRET = your-secret-key-here   # 32자 이상 랜덤 문자열 권장
+
+# Groq AI 일일 보고서 (이슈 #65) — 미설정 시 보고서 생성만 비활성, 그 외 기능 정상
+GROQ_API_KEY = your-groq-api-key
+GROQ_MODEL = llama-3.3-70b-versatile   # 선택 (기본값 동일)
 ```
 
 ### DB 생성
@@ -209,9 +213,36 @@ php spark migrate --group tests  # 테스트 DB 마이그레이션
 php spark migrate:rollback       # 마이그레이션 롤백
 php spark swagger:generate       # OpenAPI 스펙 생성
 php spark routes                 # 등록된 라우트 확인
+php spark reports:generate-ai    # Groq AI 일일 매출·소진 보고서 생성 (이슈 #65)
 composer test                    # PHPUnit 단위·통합 테스트
 composer analyse                 # PHPStan 정적 분석 (level 6)
 composer check                   # PHPStan + PHPUnit 순차 실행
+```
+
+---
+
+## AI 일일 보고서 (이슈 #65)
+
+Groq AI(`llama-3.3-70b-versatile`)로 매일 1회 **매출 현황 보고서**와 **소진 보고서**를 자동 생성한다.
+
+- **매출 보고서**: 전일 1일치 + 당월 누계 충전/소진/환불/잔액을 분석해 현황·특이점을 문서화
+- **소진 보고서**: 충전금의 **5% 이하**만 남은 광고주(병원)를 추려 재충전 권고 등을 문서화
+- **노출**: 리포트 메뉴(`/admin/reports`) 상단에 종류별 최신 보고서 2건 + `더보기`(이전 목록), 보고서는 **새창**으로 표시
+- **수동 생성**: 리포트 화면의 `지금 생성` 버튼으로 즉시 생성 가능
+
+### 정기 실행 (crontab)
+
+`.env`에 `GROQ_API_KEY`를 설정한 뒤, 서버 crontab에 매일 1회 등록한다.
+
+```cron
+# 매일 06:00 KST 보고서 생성
+0 6 * * * cd /path/to/AICura && php spark reports:generate-ai >> writable/logs/ai-report.log 2>&1
+```
+
+특정 날짜 기준으로 생성하려면 `--date` 옵션을 사용한다.
+
+```bash
+php spark reports:generate-ai --date=2026-06-25
 ```
 
 ---
