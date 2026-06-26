@@ -81,7 +81,8 @@ class ContractController extends BasePortalController
         $hospitalId   = $this->hospitalId();
 
         $advertiser = $advertiserId !== null ? $this->advertiserModel->find($advertiserId) : null;
-        $agreed     = $advertiser !== null && !empty($advertiser['contract_agreed_at']);
+        $agreedAt   = $advertiser['contract_agreed_at'] ?? null;
+        $agreed     = !empty($agreedAt);
 
         $contract = $hospitalId !== null ? $this->contractModel->findByHospital($hospitalId) : null;
 
@@ -101,11 +102,18 @@ class ContractController extends BasePortalController
             }, $rawOrders);
         }
 
+        // 표준계약서 갑(광고대행사) 정보 — 수주계약에 기록된 최신 대행사 정보
+        $agencyInfo = $hospitalId !== null ? $this->orderModel->findAgencyInfoByHospital($hospitalId) : null;
+
+        $agreedAtKst = $agreed ? $this->toKst((string) $agreedAt) : null;
+
         return $this->render('portal/contracts/advertiser_index', [
             'pageTitle'     => '계약 관리',
             'hasAdvertiser' => $advertiser !== null,
             'advertiser'    => $advertiser,
             'agreed'        => $agreed,
+            'agreedAtKst'   => $agreedAtKst,
+            'agencyInfo'    => $agencyInfo,
             'contract'      => $contract,
             'orders'        => $orders,
             'adTypeLabels'  => ContractOrderModel::AD_TYPE2_LABELS,

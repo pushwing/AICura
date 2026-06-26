@@ -4,6 +4,7 @@ namespace App\Controllers\Portal;
 
 use App\Models\CallMemoModel;
 use App\Models\CallRequestModel;
+use App\Models\RefundRequestModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\ResponseInterface;
 
@@ -17,6 +18,7 @@ class CallRequestController extends BasePortalController
 {
     private CallRequestModel $callRequestModel;
     private CallMemoModel $callMemoModel;
+    private RefundRequestModel $refundRequestModel;
 
     public function initController(
         \CodeIgniter\HTTP\RequestInterface $request,
@@ -24,8 +26,9 @@ class CallRequestController extends BasePortalController
         \Psr\Log\LoggerInterface $logger
     ): void {
         parent::initController($request, $response, $logger);
-        $this->callRequestModel = model(CallRequestModel::class);
-        $this->callMemoModel    = model(CallMemoModel::class);
+        $this->callRequestModel   = model(CallRequestModel::class);
+        $this->callMemoModel      = model(CallMemoModel::class);
+        $this->refundRequestModel = model(RefundRequestModel::class);
     }
 
     /** 로그인 광고주의 병원 id를 반환하거나 404 (미연결 시) */
@@ -74,11 +77,19 @@ class CallRequestController extends BasePortalController
             throw PageNotFoundException::forPageNotFound();
         }
 
+        $refund = $this->refundRequestModel->latestByCallRequest($id);
+        $locked = $this->refundRequestModel->isLocked($id);
+
         return $this->render('portal/call-requests/show', [
-            'pageTitle' => '신청 상세',
-            'request'   => $request,
-            'statuses'  => CallRequestModel::STATUSES,
-            'devices'   => CallRequestModel::DEVICES,
+            'pageTitle'      => '신청 상세',
+            'request'        => $request,
+            'statuses'       => CallRequestModel::STATUSES,
+            'devices'        => CallRequestModel::DEVICES,
+            'refundStatuses' => CallRequestModel::REFUND_STATUSES,
+            'reservedStatus' => CallRequestModel::STATUS_RESERVED,
+            'refund'         => $refund,
+            'refundLabels'   => RefundRequestModel::STATUS_LABELS,
+            'locked'         => $locked,
         ]);
     }
 
@@ -91,21 +102,52 @@ class CallRequestController extends BasePortalController
             throw PageNotFoundException::forPageNotFound();
         }
 
-        $body   = $this->request->getJSON(true);
-        $status = (int) ($body['status'] ?? 0);
+        // 환불요청 대기·승인 중이면 광고주의 상태 변경을 잠근다 (이슈 #52)
+        if ($this->refundRequestModel->isLocked($id)) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success' => false,
+                'message' => '환불요청 처리 중에는 상태를 변경할 수 없습니다.',
+            ]);
+        }
+
+        $body       = $this->request->getJSON(true);
+        $status     = (int) ($body['status'] ?? 0);
+        $reservedAt = isset($body['reserved_at']) ? (string) $body['reserved_at'] : null;
+        $reason     = isset($body['reason']) ? trim((string) $body['reason']) : '';
+
+        // 취소(3)는 사유 입력 필수
+        if ($status === 3 && $reason === '') {
+            return $this->response->setStatusCode(422)
+                ->setJSON(['success' => false, 'message' => '취소 사유를 입력해주세요.']);
+        }
 
         try {
-            $this->callRequestModel->changeStatus($id, $status);
+            $this->callRequestModel->changeStatus($id, $status, $reservedAt, $this->userId() ?: null);
         } catch (\RuntimeException $e) {
             return $this->response->setStatusCode(422)
                 ->setJSON(['success' => false, 'message' => $e->getMessage()]);
         }
 
+        // 중복/결번/취소 → 운영자 환불요청 생성 + 이후 상태 변경 잠금
+        $refundCreated = false;
+        if (isset(CallRequestModel::REFUND_STATUSES[$status])) {
+            $refundCreated = $this->refundRequestModel->createRequest(
+                $id,
+                $hospitalId,
+                $status,
+                $reason !== '' ? $reason : null,
+                $this->userId() ?: null,
+            ) > 0;
+        }
+
         return $this->response->setJSON([
-            'success' => true,
-            'status'  => $status,
-            'label'   => CallRequestModel::STATUSES[$status] ?? '',
-            'message' => '상태가 변경되었습니다.',
+            'success'        => true,
+            'status'         => $status,
+            'label'          => CallRequestModel::STATUSES[$status] ?? '',
+            'refund_created' => $refundCreated,
+            'message'        => $refundCreated
+                ? '상태가 변경되어 환불요청이 접수되었습니다. 운영자 처리 전까지 상태를 변경할 수 없습니다.'
+                : '상태가 변경되었습니다.',
         ]);
     }
 

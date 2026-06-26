@@ -47,6 +47,7 @@ $sexLabel = match ((int) $request['sex']) { 1 => '남', 2 => '여', default => '
                     ['유입 경로', esc($request['funnel'] ?? '-')],
                     ['CPA 단가',  number_format((int) $request['event_cost']) . '원'],
                     ['문의 내용', nl2br(esc($request['content'] ?? '-'))],
+                    ['예약 일시', !empty($request['reserved_at']) ? esc((string) $request['reserved_at']) : '-'],
                     ['확인일시',  esc($request['confirm_date'] ?? '-')],
                     ['신청일시',  esc($request['created_at'] ?? '-')],
                 ];
@@ -68,14 +69,19 @@ $sexLabel = match ((int) $request['sex']) { 1 => '남', 2 => '여', default => '
         <div class="card">
             <div class="card-body">
                 <h3 style="margin-bottom:12px;font-size:15px;">상태 변경</h3>
-                <div style="display:flex;gap:8px;">
-                    <select id="statusSelect" class="form-control" style="flex:1;">
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                    <select id="statusSelect" class="form-control">
                         <?php foreach ($statuses as $val => $label): ?>
                             <option value="<?= esc((string) $val) ?>" <?= $currentStatus === $val ? 'selected' : '' ?>>
                                 <?= esc($label) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
+                    <div id="reservedWrap" style="display:none;">
+                        <label style="font-size:12px;color:var(--color-text-muted);display:block;margin-bottom:4px;">예약 일시</label>
+                        <input type="datetime-local" id="reservedAt" class="form-control"
+                               value="<?= !empty($request['reserved_at']) ? esc(date('Y-m-d\TH:i', strtotime((string) $request['reserved_at']))) : '' ?>">
+                    </div>
                     <button type="button" id="statusApply" class="btn btn-primary btn-sm">변경</button>
                 </div>
             </div>
@@ -121,9 +127,27 @@ $sexLabel = match ((int) $request['sex']) { 1 => '남', 2 => '여', default => '
 </div>
 
 <script>
+const RESERVED_STATUS = 5;
+const statusSelect = document.getElementById('statusSelect');
+const reservedWrap = document.getElementById('reservedWrap');
+
+function toggleReserved() {
+    reservedWrap.style.display = Number(statusSelect.value) === RESERVED_STATUS ? 'block' : 'none';
+}
+statusSelect.addEventListener('change', toggleReserved);
+toggleReserved();
+
 document.getElementById('statusApply').addEventListener('click', async (e) => {
     const btn    = e.currentTarget;
-    const status = Number(document.getElementById('statusSelect').value);
+    const status = Number(statusSelect.value);
+    const payload = { status };
+
+    if (status === RESERVED_STATUS) {
+        const val = document.getElementById('reservedAt').value;
+        if (!val) { alert('예약 일시를 입력해주세요.'); return; }
+        payload.reserved_at = val.replace('T', ' ');
+    }
+
     btn.disabled = true;
     btn.textContent = '처리 중...';
 
@@ -135,7 +159,7 @@ document.getElementById('statusApply').addEventListener('click', async (e) => {
                 'X-Requested-With': 'XMLHttpRequest',
                 ...csrfHeaders(),
             },
-            body: JSON.stringify({ status }),
+            body: JSON.stringify(payload),
         });
         const data = await res.json();
         if (data.success) {
