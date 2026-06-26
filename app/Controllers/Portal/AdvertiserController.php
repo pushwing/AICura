@@ -4,6 +4,7 @@ namespace App\Controllers\Portal;
 
 use App\Models\AdvertiserModel;
 use App\Models\AdvertiserOwnerInviteModel;
+use App\Models\ContractModel;
 use App\Models\ContractOrderModel;
 use App\Models\HospitalModel;
 use App\Models\UserModel;
@@ -73,11 +74,18 @@ class AdvertiserController extends BasePortalController
         $agencyInfo = model(ContractOrderModel::class)
             ->findAgencyInfoByHospital((int) $advertiser['hospital_id']);
 
+        // 건별 수주내역 — 어드민 대행사 상세와 동일하게 노출 (이슈 #59)
+        $hospitalId = (int) $advertiser['hospital_id'];
+        $orders     = model(ContractModel::class)
+            ->getOrdersByHospitalIds([$hospitalId])[$hospitalId] ?? [];
+
         return $this->render('portal/advertisers/show', [
-            'pageTitle'    => '광고주 상세',
-            'advertiser'   => $advertiser,
-            'hasInvite'    => $this->inviteModel->hasPendingForAdvertiser($id),
-            'agencyInfo'   => $agencyInfo,
+            'pageTitle'         => '광고주 상세',
+            'advertiser'        => $advertiser,
+            'hasInvite'         => $this->inviteModel->hasPendingForAdvertiser($id),
+            'agencyInfo'        => $agencyInfo,
+            'orders'            => $orders,
+            'adType2Labels'     => ContractOrderModel::AD_TYPE2_LABELS,
         ]);
     }
 
