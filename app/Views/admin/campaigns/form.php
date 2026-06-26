@@ -4,6 +4,7 @@
 /** @var array<int, array<string, mixed>> $contracts */
 /** @var array<int, string> $adTypes */
 /** @var array<int, string> $channels */
+/** @var array<int, array{id: int, title: string}> $categories */
 
 $isEdit   = $campaign !== null;
 $formAction = $isEdit
@@ -204,8 +205,15 @@ $old   = fn(string $key, mixed $default = '') => old($key, $campaign[$key] ?? $d
                         </div>
                         <div class="form-group">
                             <label class="form-label">카테고리</label>
-                            <input type="number" name="category" class="form-control"
-                                   value="<?= esc($old('category', 0)) ?>" min="0">
+                            <select name="category" class="form-control">
+                                <option value="0">미분류</option>
+                                <?php foreach (($categories ?? []) as $cat): ?>
+                                    <option value="<?= (int) $cat['id'] ?>"
+                                        <?= (int) $old('category', 0) === (int) $cat['id'] ? 'selected' : '' ?>>
+                                        <?= esc($cat['title']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                     </div>
                 </div>
