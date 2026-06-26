@@ -12,6 +12,7 @@
     "require": {
         "php": "^8.4",
         "codeigniter4/framework": "^4.7",
+        "league/commonmark": "^2.8",
         "zircote/swagger-php": "^6.2"
     },
     "require-dev": {

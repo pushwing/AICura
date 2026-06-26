@@ -45,6 +45,10 @@ $routes->group('admin', static function (RouteCollection $routes): void {
         // 리포트
         $routes->get('reports',           'Admin\ReportController::index');
         $routes->get('reports/campaigns', 'Admin\ReportController::campaigns');
+        // AI 일일 보고서 (이슈 #65)
+        $routes->post('reports/ai/generate',       'Admin\ReportController::generateAi');
+        $routes->get('reports/ai/(:num)',          'Admin\ReportController::aiReportShow/$1');
+        $routes->get('reports/ai-list/(:segment)', 'Admin\ReportController::aiReportList/$1');
 
         // 계약 관리
         // GET  contracts              → index      (메인 계약 목록)
@@ -151,6 +155,9 @@ $routes->group('portal', static function (RouteCollection $routes): void {
 
         // 리포트 (광고주: 자기 병원 매출 / 대행사: 소속 광고주 합계+개별) — 이슈 #56
         $routes->get('reports', 'Portal\ReportController::index');
+        // AI 일일 보고서 (이슈 #65) — 스코프 검증으로 본인 것만 조회
+        $routes->get('reports/ai/(:num)',          'Portal\ReportController::aiReportShow/$1');
+        $routes->get('reports/ai-list/(:segment)', 'Portal\ReportController::aiReportList/$1');
 
         // 신청DB 관리 (광고주)
         $routes->get('call-requests',                              'Portal\CallRequestController::index');
