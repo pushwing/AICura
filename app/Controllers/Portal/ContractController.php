@@ -114,6 +114,41 @@ class ContractController extends BasePortalController
     }
 
     // ──────────────────────────────────────────────
+    // 광고주 — 수주계약 상세 + 거래내역 (이슈 #49)
+    // ──────────────────────────────────────────────
+
+    public function orderShow(int $id): string|RedirectResponse
+    {
+        $this->requireAdvertiser();
+
+        $hospitalId = $this->hospitalId();
+        if ($hospitalId === null) {
+            return redirect()->to('/portal/contracts')->with('error', '연결된 광고주 정보가 없습니다.');
+        }
+
+        $order = $this->orderModel->getDetail($id);
+
+        // 소유권 검증 — 본인 병원의 수주계약만 열람 가능 (IDOR 방지)
+        if ($order === null || (int) $order['hospital_id'] !== $hospitalId) {
+            return redirect()->to('/portal/contracts')->with('error', '계약 정보를 찾을 수 없습니다.');
+        }
+
+        $history = array_map(function (array $h): array {
+            $h['created_at_kst'] = !empty($h['created_at']) ? $this->toKst($h['created_at']) : '-';
+            return $h;
+        }, $this->orderModel->getDepositHistory($id));
+
+        return $this->render('portal/contracts/order_show', [
+            'pageTitle'         => '수주계약 상세',
+            'order'             => $order,
+            'history'           => $history,
+            'adTypeLabels'      => ContractOrderModel::AD_TYPE2_LABELS,
+            'statusLabels'      => ContractOrderModel::STATUS_LABELS,
+            'depositLabels'     => ContractOrderModel::DEPOSIT_STATUS_LABELS,
+        ]);
+    }
+
+    // ──────────────────────────────────────────────
     // 광고주 — 계약 동의
     // ──────────────────────────────────────────────
 

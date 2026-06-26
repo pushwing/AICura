@@ -46,6 +46,21 @@ class ContractOrderModel extends Model
         6 => '이월종료',
     ];
 
+    /** @var array<int, string> deposits 거래 상태 (status) — 원장 표기용 */
+    public const DEPOSIT_STATUS_LABELS = [
+        2  => '계약충전',
+        3  => 'DB소진',
+        4  => '기타충전',
+        5  => '기타차감',
+        6  => '발행환불',
+        7  => '계약환불',
+        8  => '기타소진',
+        9  => '발행취소',
+        10 => '계약취소',
+        11 => '이월소진',
+        12 => '이월충전',
+    ];
+
     protected $allowedFields = [
         'hospital_id',
         'hospital_name',
@@ -208,6 +223,74 @@ class ContractOrderModel extends Model
         }
 
         return $balances;
+    }
+
+    /**
+     * 병원 단위 원장 요약 — 충전금/소진/잔액 (이슈 #49 광고주 대시보드)
+     *
+     * 병원에 연결된 모든 계약의 deposits를 단일 쿼리로 집계한다 (N+1 방지).
+     * 충전: status IN (2, 4, 12) / 소진: status IN (3, 5, 6, 7, 8, 9, 10, 11)
+     *
+     * @return array{charged:int, used:int, balance:int}
+     */
+    public function getHospitalLedgerSummary(int $hospitalId): array
+    {
+        $row = $this->db->table('deposits d')
+            ->select('SUM(CASE WHEN d.status IN (2, 4, 12) THEN d.price ELSE 0 END) AS charged', false)
+            ->select('SUM(CASE WHEN d.status IN (3, 5, 6, 7, 8, 9, 10, 11) THEN d.price ELSE 0 END) AS used', false)
+            ->join('contracts c', 'c.id = d.contract_id')
+            ->where('c.hospital_id', $hospitalId)
+            ->get()
+            ->getRowArray();
+
+        $charged = (int) ($row['charged'] ?? 0);
+        $used    = (int) ($row['used'] ?? 0);
+
+        return [
+            'charged' => $charged,
+            'used'    => $used,
+            'balance' => $charged - $used,
+        ];
+    }
+
+    /**
+     * 수주계약 거래내역 — deposits 원장 (이슈 #49 계약 상세)
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function getDepositHistory(int $orderId): array
+    {
+        /** @var list<array<string, mixed>> $rows */
+        $rows = $this->db->table('deposits')
+            ->select('id, status, is_minus, price, note, created_at')
+            ->where('contract_order_id', $orderId)
+            ->orderBy('id', 'DESC')
+            ->get()
+            ->getResultArray();
+
+        return $rows;
+    }
+
+    /**
+     * 병원의 대행사 정보 — 수주계약에 기록된 최신 대행사 정보 (이슈 #49 내 대행사)
+     *
+     * 대행사 계정(users)에는 회사명·담당자 컬럼이 없어, 수주계약(contract_orders)에
+     * 기록된 agency_company_* 값 중 가장 최근 비어있지 않은 건을 사용한다.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findAgencyInfoByHospital(int $hospitalId): ?array
+    {
+        $row = $this->db->table('contract_orders')
+            ->select('agency_company_name, agency_company_charge_name, agency_company_charge_phone, agency_company_charge_email')
+            ->where('hospital_id', $hospitalId)
+            ->where('agency_company_name IS NOT NULL', null, false)
+            ->where('agency_company_name !=', '')
+            ->orderBy('id', 'DESC')
+            ->get()
+            ->getRowArray();
+
+        return $row ?: null;
     }
 
     /**
