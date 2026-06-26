@@ -8,6 +8,7 @@ use App\Models\CampaignReviewRequestModel;
 use App\Models\CampaignTempModel;
 use App\Models\HospitalModel;
 use App\Models\ContractModel;
+use App\Models\EventCategoryModel;
 use CodeIgniter\HTTP\ResponseInterface;
 
 class CampaignController extends BaseAdminController
@@ -18,6 +19,7 @@ class CampaignController extends BaseAdminController
     private CampaignTempModel $tempModel;
     private HospitalModel $hospitalModel;
     private ContractModel $contractModel;
+    private EventCategoryModel $eventCategoryModel;
 
     public function initController(
         \CodeIgniter\HTTP\RequestInterface $request,
@@ -31,6 +33,7 @@ class CampaignController extends BaseAdminController
         $this->tempModel          = model(CampaignTempModel::class);
         $this->hospitalModel      = model(HospitalModel::class);
         $this->contractModel      = model(ContractModel::class);
+        $this->eventCategoryModel = model(EventCategoryModel::class);
     }
 
     // ──────────────────────────────────────────────
@@ -93,6 +96,7 @@ class CampaignController extends BaseAdminController
             'contracts'  => $this->contractModel->findAll(),
             'adTypes'    => CampaignModel::AD_TYPES,
             'channels'   => CampaignModel::CHANNELS,
+            'categories' => $this->eventCategoryModel->getSelectOptions(),
         ]);
     }
 
@@ -163,11 +167,12 @@ class CampaignController extends BaseAdminController
         }
 
         return $this->render('admin/campaigns/form', [
-            'campaign'  => $campaign,
-            'hospitals' => $this->hospitalModel->getActiveList(),
-            'contracts' => $this->contractModel->findAll(),
-            'adTypes'   => CampaignModel::AD_TYPES,
-            'channels'  => CampaignModel::CHANNELS,
+            'campaign'   => $campaign,
+            'hospitals'  => $this->hospitalModel->getActiveList(),
+            'contracts'  => $this->contractModel->findAll(),
+            'adTypes'    => CampaignModel::AD_TYPES,
+            'channels'   => CampaignModel::CHANNELS,
+            'categories' => $this->eventCategoryModel->getSelectOptions(),
         ]);
     }
 
