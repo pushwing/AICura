@@ -4,7 +4,10 @@ namespace App\Controllers\Admin;
 
 use App\Models\CampaignModel;
 use App\Models\CampaignReviewRequestModel;
+use App\Models\ComplianceCheckModel;
+use App\Services\AiComplianceService;
 use CodeIgniter\HTTP\ResponseInterface;
+use Throwable;
 
 class ReviewController extends BaseAdminController
 {
@@ -54,12 +57,43 @@ class ReviewController extends BaseAdminController
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
 
+        $compliance = model(ComplianceCheckModel::class)
+            ->latestByCampaign((int) $detail['campaign_id']);
+
         return $this->render('admin/reviews/show', [
             'title'  => '검수 상세',
             'detail' => $detail,
+            'compliance' => $compliance,
             'adTypes'  => CampaignModel::AD_TYPES,
             'channels' => CampaignModel::CHANNELS,
         ]);
+    }
+
+    // ──────────────────────────────────────────────
+    // 심의 사전검사 재요청 (수동)
+    // ──────────────────────────────────────────────
+
+    public function recheck(int $id): ResponseInterface
+    {
+        $detail = $this->reviewModel->getDetail($id);
+        if ($detail === null) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        try {
+            (new AiComplianceService())->check((int) $detail['campaign_id'], $id);
+        } catch (Throwable $e) {
+            log_message('error', '심의 사전검사 재요청 실패 [review {id}]: {msg}', [
+                'id'  => $id,
+                'msg' => $e->getMessage(),
+            ]);
+
+            return redirect()->to('/admin/reviews/' . $id)
+                ->with('error', '심의 사전검사에 실패했습니다: ' . $e->getMessage());
+        }
+
+        return redirect()->to('/admin/reviews/' . $id)
+            ->with('success', '심의 사전검사를 완료했습니다.');
     }
 
     // ──────────────────────────────────────────────

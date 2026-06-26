@@ -9,7 +9,10 @@ use App\Models\CampaignTempModel;
 use App\Models\HospitalModel;
 use App\Models\ContractModel;
 use App\Models\EventCategoryModel;
+use App\Models\SettingModel;
+use App\Services\AiComplianceService;
 use CodeIgniter\HTTP\ResponseInterface;
+use Throwable;
 
 class CampaignController extends BaseAdminController
 {
@@ -137,9 +140,12 @@ class CampaignController extends BaseAdminController
         ], true);
 
         // 모든 콘텐츠 필드 → 검수 요청 테이블
-        $this->reviewRequestModel->record((int) $id, $data, $adminId, 'create');
+        $reviewRequestId = $this->reviewRequestModel->record((int) $id, $data, $adminId, 'create');
 
         $this->historyModel->record((int) $id, 'create', '', 'pending', $adminId);
+
+        // 의료광고 심의 사전검사 (토글 ON 시) — 실패해도 등록 흐름은 유지
+        $this->runComplianceCheck((int) $id, $reviewRequestId);
 
         return redirect()->to('/admin/campaigns/' . $id)
             ->with('success', '캠페인이 등록되었습니다. 검수 대기 상태입니다.');
@@ -214,9 +220,12 @@ class CampaignController extends BaseAdminController
         $this->campaignModel->update($id, ['review_status' => 'pending']);
 
         // 변경 요청 전체를 검수 테이블에 기록
-        $this->reviewRequestModel->record($id, $data, $adminId, 'update');
+        $reviewRequestId = $this->reviewRequestModel->record($id, $data, $adminId, 'update');
 
         $this->historyModel->record($id, 'update', $campaign['status'], $campaign['status'], $adminId);
+
+        // 의료광고 심의 사전검사 (토글 ON 시) — 실패해도 수정 흐름은 유지
+        $this->runComplianceCheck($id, $reviewRequestId);
 
         return redirect()->to('/admin/campaigns/' . $id)
             ->with('success', '수정되었습니다.');
@@ -339,6 +348,28 @@ class CampaignController extends BaseAdminController
     // ──────────────────────────────────────────────
     // 내부 헬퍼
     // ──────────────────────────────────────────────
+
+    /**
+     * 의료광고 심의 사전검사 실행 — 설정 토글이 켜져 있을 때만 동기로 1회 수행.
+     *
+     * 본 프로젝트는 별도 큐 인프라를 두지 않으므로 저장 시점에 직접 호출한다.
+     * AI 호출 실패가 캠페인 등록/수정 자체를 막지 않도록 예외는 로깅만 한다.
+     */
+    private function runComplianceCheck(int $campaignId, int $reviewRequestId): void
+    {
+        if (! model(SettingModel::class)->enabled('compliance_check_enabled')) {
+            return;
+        }
+
+        try {
+            (new AiComplianceService())->check($campaignId, $reviewRequestId);
+        } catch (Throwable $e) {
+            log_message('error', '심의 사전검사 실패 [campaign {id}]: {msg}', [
+                'id'  => $campaignId,
+                'msg' => $e->getMessage(),
+            ]);
+        }
+    }
 
     /** @return array<string, mixed> */
     private function buildCampaignData(): array

@@ -1,9 +1,24 @@
 <?php
 /**
  * @var array<string, mixed> $detail
+ * @var array<string, mixed>|null $compliance
  * @var array<int, string> $adTypes
  * @var array<int, string> $channels
  */
+
+// 의료광고 심의 사전검사 결과 (이슈 #71)
+$complianceLevels = [
+    'safe'      => ['label' => '안전',     'color' => '#10b981', 'bg' => '#d1fae5'],
+    'warning'   => ['label' => '주의',     'color' => '#f59e0b', 'bg' => '#fef3c7'],
+    'violation' => ['label' => '위반 의심', 'color' => '#ef4444', 'bg' => '#fee2e2'],
+];
+$complianceFlags = [];
+if (!empty($compliance['flags'])) {
+    $dec = json_decode((string) $compliance['flags'], true);
+    $complianceFlags = is_array($dec) ? $dec : [];
+}
+$complianceLevel = (string) ($compliance['risk_level'] ?? '');
+$complianceInfo  = $complianceLevels[$complianceLevel] ?? ['label' => $complianceLevel, 'color' => '#888', 'bg' => '#f3f4f6'];
 
 $reviewStatusLabels = [
     'pending'  => ['label' => '검수 대기', 'color' => '#f59e0b'],
@@ -117,6 +132,71 @@ $costTypeLabels = [1 => '숫자', 2 => '텍스트'];
             </tr>
             <?php endforeach; ?>
         </table>
+    </div>
+</div>
+
+<!-- AI 의료광고 심의 사전검사 -->
+<div class="card" style="margin-bottom:20px;">
+    <div class="card-body">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <h3 style="font-size:15px;margin:0;display:flex;align-items:center;gap:10px;">
+                AI 의료광고 심의 사전검사
+                <?php if ($compliance !== null): ?>
+                <span style="background:<?= esc($complianceInfo['bg']) ?>;color:<?= esc($complianceInfo['color']) ?>;padding:3px 10px;border-radius:4px;font-size:13px;font-weight:600;">
+                    <?= esc($complianceInfo['label']) ?>
+                </span>
+                <?php else: ?>
+                <span style="background:#f3f4f6;color:#6b7280;padding:3px 10px;border-radius:4px;font-size:12px;">검사 대기중</span>
+                <?php endif; ?>
+            </h3>
+            <form method="POST" action="/admin/reviews/<?= (int) $detail['id'] ?>/recheck" style="margin:0;"
+                  onsubmit="return confirm('AI 심의 사전검사를 다시 실행하시겠습니까?');">
+                <?= csrf_field() ?>
+                <button type="submit" class="btn btn-outline btn-sm"><?= $compliance === null ? '검사 실행' : '검사 재요청' ?></button>
+            </form>
+        </div>
+
+        <?php if ($compliance === null): ?>
+        <p style="font-size:13px;color:var(--color-text-muted);margin:0;">
+            아직 심의 사전검사 결과가 없습니다. '검사 실행'을 눌러 AI 검토를 요청하세요.
+        </p>
+        <?php elseif ($complianceFlags === []): ?>
+        <p style="font-size:13px;color:#065f46;margin:0;">
+            검토 결과 위반 소지가 발견되지 않았습니다. (모델: <?= esc((string) ($compliance['model'] ?? '-')) ?>)
+        </p>
+        <?php else: ?>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+            <?php foreach ($complianceFlags as $flag): ?>
+                <?php
+                $sev      = (string) ($flag['severity'] ?? 'low');
+                $sevColor = $sev === 'high' ? '#ef4444' : '#f59e0b';
+                $sevLabel = $sev === 'high' ? '높음' : '낮음';
+                ?>
+            <div style="border:1px solid var(--color-border,#e5e7eb);border-left:4px solid <?= $sevColor ?>;border-radius:6px;padding:12px 14px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                    <span style="font-weight:600;font-size:13px;"><?= esc((string) ($flag['rule'] ?? '위반 항목')) ?></span>
+                    <span style="background:<?= $sevColor ?>20;color:<?= $sevColor ?>;padding:1px 8px;border-radius:10px;font-size:11px;">심각도 <?= esc($sevLabel) ?></span>
+                </div>
+                <?php if (!empty($flag['quote'])): ?>
+                <div style="font-size:13px;margin-bottom:4px;">
+                    <span style="color:var(--color-text-muted);">문제 표현:</span>
+                    <span style="background:#fffbeb;padding:1px 4px;border-radius:3px;">"<?= esc((string) $flag['quote']) ?>"</span>
+                </div>
+                <?php endif; ?>
+                <?php if (!empty($flag['reason'])): ?>
+                <div style="font-size:13px;color:var(--color-text-muted);margin-bottom:4px;">사유: <?= esc((string) $flag['reason']) ?></div>
+                <?php endif; ?>
+                <?php if (!empty($flag['suggestion'])): ?>
+                <div style="font-size:13px;color:#065f46;">수정안: <?= esc((string) $flag['suggestion']) ?></div>
+                <?php endif; ?>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <div style="font-size:11px;color:var(--color-text-muted);margin-top:10px;">
+            검사 모델: <?= esc((string) ($compliance['model'] ?? '-')) ?> · 검사 시각: <?= esc((string) ($compliance['created_at'] ?? '-')) ?>
+            <br>※ AI 1차 스크리닝 결과이며 최종 판단은 검수자가 합니다.
+        </div>
+        <?php endif; ?>
     </div>
 </div>
 

@@ -25,8 +25,9 @@ class AiClientFactory
         $provider = strtolower($provider ?? (string) env('AI_PROVIDER', self::DEFAULT_PROVIDER));
 
         return match ($provider) {
-            'groq'  => new GroqClient(),
-            default => throw new RuntimeException("지원하지 않는 AI 공급자입니다: {$provider}"),
+            'groq'   => new GroqClient(),
+            'gemini' => new GeminiClient(),
+            default  => throw new RuntimeException("지원하지 않는 AI 공급자입니다: {$provider}"),
         };
     }
 }
