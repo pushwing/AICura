@@ -11,9 +11,11 @@ use CodeIgniter\Model;
  *  - 캠페인 리포트: call_requests 기준 신청 건수·내원완료 통계
  *
  * deposits.status (ContractOrderModel·DashboardModel 잔액 집계와 동일한 status 집합):
- *   충전(+): 2 계약충전 / 4 기타충전(관리자 수동·CPA 환불 복원) / 12 이월충전
+ *   충전(+): 2 계약충전 / 12 이월충전
  *   소진(-): 3 DB소진 / 5 기타- / 8 기타소진 / 9 발행취소 / 10 계약취소 / 11 이월소진
  *   환불(-): 6 발행환불 / 7 계약환불  (소진과 별도 KPI로 노출)
+ *   CPA 환불 복원: 4 — 신청DB 환불요청 승인 시 소진을 상계(−)하는 거래. 충전이 아니라
+ *                  소진 차감으로 집계해 전체 충전금에 포함하지 않는다.
  * call_requests.status: 7 내원완료
  */
 class ReportModel extends Model
@@ -21,13 +23,13 @@ class ReportModel extends Model
     protected $table      = 'deposits';
     protected $returnType = 'array';
 
-    // 충전 — 계약충전 + 기타충전(CPA 환불 복원 포함) + 이월충전
-    private const STATUS_CHARGED  = [2, 4, 12];
+    // 충전 — 계약충전 + 이월충전 (CPA 환불 복원 status 4 제외)
+    private const STATUS_CHARGED  = [2, 12];
     // 소진 — DB소진·기타차감·취소·이월소진 (환불 6·7은 별도 집계로 제외)
     private const STATUS_CONSUMED = [3, 5, 8, 9, 10, 11];
     // 환불 — 발행환불 + 계약환불 (별도 KPI)
     private const STATUS_REFUNDED = [6, 7];
-    // CPA 환불 복원 — 신청DB 환불요청 승인 시 기록되는 기타충전 (status 4 전용 집계)
+    // CPA 환불 복원 — 신청DB 환불요청 승인 시 기록되는 소진 상계 거래 (status 4 전용 집계)
     private const STATUS_CPA_REFUND = [4];
 
     /**
@@ -50,22 +52,23 @@ class ReportModel extends Model
     /**
      * 연간 매출 KPI (충전·소진·환불·CPA환불·잔액)
      *
-     * cpa_refunded(신청DB 환불요청 승인 복원액)는 충전(status 4)에 이미 포함돼 잔액에 반영되므로
-     * 별도 표시용 정보 지표다. 잔액 항등식에서 중복 차감하지 않는다.
+     * cpa_refunded(신청DB 환불요청 승인 복원액)는 소진을 상계하는 거래이므로 충전에서 제외하고
+     * 소진(consumed)에서 차감한다. 별도 표시용 정보 지표로도 함께 노출한다.
      *
      * @return array{charged: int, consumed: int, refunded: int, cpa_refunded: int, balance: int}
      */
     public function getYearKpi(int $year): array
     {
-        $charged  = $this->sumByStatuses(self::STATUS_CHARGED, $year);
-        $consumed = $this->sumByStatuses(self::STATUS_CONSUMED, $year);
-        $refunded = $this->sumByStatuses(self::STATUS_REFUNDED, $year);
+        $charged     = $this->sumByStatuses(self::STATUS_CHARGED, $year);
+        $cpaRefunded = $this->sumByStatuses(self::STATUS_CPA_REFUND, $year);
+        $consumed    = $this->sumByStatuses(self::STATUS_CONSUMED, $year) - $cpaRefunded;
+        $refunded    = $this->sumByStatuses(self::STATUS_REFUNDED, $year);
 
         return [
             'charged'      => $charged,
             'consumed'     => $consumed,
             'refunded'     => $refunded,
-            'cpa_refunded' => $this->sumByStatuses(self::STATUS_CPA_REFUND, $year),
+            'cpa_refunded' => $cpaRefunded,
             'balance'      => $charged - $consumed - $refunded,
         ];
     }
@@ -77,9 +80,17 @@ class ReportModel extends Model
      */
     public function getMonthlyRevenue(int $year): array
     {
+        $consumed    = $this->monthlySumByStatuses(self::STATUS_CONSUMED, $year);
+        $cpaRefunded = $this->monthlySumByStatuses(self::STATUS_CPA_REFUND, $year);
+
+        // CPA 환불 복원(status 4)은 소진 상계이므로 월별 소진에서 차감
+        foreach ($consumed as $i => $value) {
+            $consumed[$i] = $value - $cpaRefunded[$i];
+        }
+
         return [
             'charged'  => $this->monthlySumByStatuses(self::STATUS_CHARGED, $year),
-            'consumed' => $this->monthlySumByStatuses(self::STATUS_CONSUMED, $year),
+            'consumed' => $consumed,
         ];
     }
 

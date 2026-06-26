@@ -175,34 +175,29 @@ class ContractOrderModel extends Model
 
     /**
      * 잔액 계산 = 충전금액 - 소진금액
-     * 충전: status IN (2, 4, 12)
-     * 소진: status IN (3, 5, 6, 7, 8, 9, 10, 11)
+     * 충전: status IN (2, 12)
+     * 소진: status IN (3, 5, 6, 7, 8, 9, 10, 11) − CPA 환불 복원(status 4)
+     *
+     * CPA 환불 복원(status 4)은 신청DB 환불요청 승인 시 소진을 상계하는 거래이므로
+     * 충전이 아닌 소진 차감(−)으로 집계한다. (잔액 결과값은 기존과 동일)
      */
     public function getBalance(int $contractId, int $contractOrderId): int
     {
-        $charged = (int) $this->db->table('deposits')
-            ->selectSum('price')
+        $row = $this->db->table('deposits')
+            ->select('IFNULL(SUM(CASE WHEN status IN (2, 12) THEN price ELSE 0 END), 0) AS charged', false)
+            ->select('IFNULL(SUM(CASE WHEN status IN (3, 5, 6, 7, 8, 9, 10, 11) THEN price WHEN status = 4 THEN -price ELSE 0 END), 0) AS used', false)
             ->where('contract_id', $contractId)
             ->where('contract_order_id', $contractOrderId)
-            ->whereIn('status', [2, 4, 12])
             ->get()
-            ->getRowArray()['price'];
+            ->getRowArray();
 
-        $used = (int) $this->db->table('deposits')
-            ->selectSum('price')
-            ->where('contract_id', $contractId)
-            ->where('contract_order_id', $contractOrderId)
-            ->whereIn('status', [3, 5, 6, 7, 8, 9, 10, 11])
-            ->get()
-            ->getRowArray()['price'];
-
-        return $charged - $used;
+        return (int) ($row['charged'] ?? 0) - (int) ($row['used'] ?? 0);
     }
 
     /**
      * 계약 단위 잔액 일괄 집계 — 수주계약별 잔액을 단일 쿼리로 계산 (N+1 방지)
      *
-     * 충전: status IN (2, 4, 12) / 소진: status IN (3, 5, 6, 7, 8, 9, 10, 11)
+     * 충전: status IN (2, 12) / 소진: status IN (3, 5, 6, 7, 8, 9, 10, 11) − CPA 환불 복원(4)
      *
      * @return array<int, int> contract_order_id => 잔액
      */
@@ -210,8 +205,8 @@ class ContractOrderModel extends Model
     {
         $rows = $this->db->table('deposits')
             ->select('contract_order_id')
-            ->select('SUM(CASE WHEN status IN (2, 4, 12) THEN price ELSE 0 END) AS charged', false)
-            ->select('SUM(CASE WHEN status IN (3, 5, 6, 7, 8, 9, 10, 11) THEN price ELSE 0 END) AS used', false)
+            ->select('SUM(CASE WHEN status IN (2, 12) THEN price ELSE 0 END) AS charged', false)
+            ->select('SUM(CASE WHEN status IN (3, 5, 6, 7, 8, 9, 10, 11) THEN price WHEN status = 4 THEN -price ELSE 0 END) AS used', false)
             ->where('contract_id', $contractId)
             ->groupBy('contract_order_id')
             ->get()
@@ -229,15 +224,18 @@ class ContractOrderModel extends Model
      * 병원 단위 원장 요약 — 충전금/소진/잔액 (이슈 #49 광고주 대시보드)
      *
      * 병원에 연결된 모든 계약의 deposits를 단일 쿼리로 집계한다 (N+1 방지).
-     * 충전: status IN (2, 4, 12) / 소진: status IN (3, 5, 6, 7, 8, 9, 10, 11)
+     * 충전: status IN (2, 12) / 소진: status IN (3, 5, 6, 7, 8, 9, 10, 11) − CPA 환불 복원(4)
+     *
+     * CPA 환불 복원(status 4)은 충전이 아닌 소진 상계(−)이므로 전체 충전금에서 제외하고
+     * 소진에서 차감한다. (잔액 결과값은 기존과 동일)
      *
      * @return array{charged:int, used:int, balance:int}
      */
     public function getHospitalLedgerSummary(int $hospitalId): array
     {
         $row = $this->db->table('deposits d')
-            ->select('SUM(CASE WHEN d.status IN (2, 4, 12) THEN d.price ELSE 0 END) AS charged', false)
-            ->select('SUM(CASE WHEN d.status IN (3, 5, 6, 7, 8, 9, 10, 11) THEN d.price ELSE 0 END) AS used', false)
+            ->select('SUM(CASE WHEN d.status IN (2, 12) THEN d.price ELSE 0 END) AS charged', false)
+            ->select('SUM(CASE WHEN d.status IN (3, 5, 6, 7, 8, 9, 10, 11) THEN d.price WHEN d.status = 4 THEN -d.price ELSE 0 END) AS used', false)
             ->join('contracts c', 'c.id = d.contract_id')
             ->where('c.hospital_id', $hospitalId)
             ->get()

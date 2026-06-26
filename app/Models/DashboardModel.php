@@ -73,14 +73,16 @@ class DashboardModel extends Model
     /**
      * 전체 잔액 (충전 − 소진) — deposits 원장 누계
      *
-     * 충전: status IN (2, 4, 12) / 소진: status IN (3, 5, 6, 7, 8, 9, 10, 11)
+     * 충전: status IN (2, 12) / 소진: status IN (3, 5, 6, 7, 8, 9, 10, 11)
+     * CPA 환불 복원(status 4)은 신청DB 환불요청 승인 시 소진을 상계하는 거래이므로
+     * 충전이 아닌 소진 차감(−)으로 집계한다. (잔액 항등식은 불변)
      * (ContractOrderModel 잔액 계산과 동일한 status 집합)
      */
     public function getTotalBalance(): int
     {
         $row = $this->db->table('deposits')
-            ->select('IFNULL(SUM(CASE WHEN status IN (2, 4, 12) THEN price ELSE 0 END), 0) AS charged', false)
-            ->select('IFNULL(SUM(CASE WHEN status IN (3, 5, 6, 7, 8, 9, 10, 11) THEN price ELSE 0 END), 0) AS used', false)
+            ->select('IFNULL(SUM(CASE WHEN status IN (2, 12) THEN price ELSE 0 END), 0) AS charged', false)
+            ->select('IFNULL(SUM(CASE WHEN status IN (3, 5, 6, 7, 8, 9, 10, 11) THEN price WHEN status = 4 THEN -price ELSE 0 END), 0) AS used', false)
             ->get()
             ->getRowArray();
 
