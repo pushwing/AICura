@@ -2,7 +2,8 @@
 
 namespace App\Services;
 
-use App\Libraries\GroqLibrary;
+use App\Libraries\Ai\AiClientFactory;
+use App\Libraries\Ai\AiClientInterface;
 use App\Models\AiReportModel;
 use App\Models\ReportModel;
 
@@ -19,16 +20,16 @@ class AiReportService
 
     private ReportModel $reportModel;
     private AiReportModel $aiReportModel;
-    private GroqLibrary $groq;
+    private AiClientInterface $ai;
 
     public function __construct(
         ?ReportModel $reportModel = null,
         ?AiReportModel $aiReportModel = null,
-        ?GroqLibrary $groq = null
+        ?AiClientInterface $ai = null
     ) {
         $this->reportModel   = $reportModel   ?? model(ReportModel::class);
         $this->aiReportModel = $aiReportModel ?? model(AiReportModel::class);
-        $this->groq          = $groq          ?? new GroqLibrary();
+        $this->ai            = $ai            ?? AiClientFactory::make();
     }
 
     /**
@@ -51,7 +52,7 @@ class AiReportService
             'month_to_date'  => $monthToDate,
         ];
 
-        $content = $this->groq->complete(
+        $content = $this->ai->complete(
             $this->revenueSystemPrompt(),
             $this->revenueUserPrompt($date, $monthFrom, $daily, $monthToDate)
         );
@@ -81,7 +82,7 @@ class AiReportService
             'low_balance'    => $lowBalance,
         ];
 
-        $content = $this->groq->complete(
+        $content = $this->ai->complete(
             $this->consumptionSystemPrompt(),
             $this->consumptionUserPrompt($date, $lowBalance)
         );

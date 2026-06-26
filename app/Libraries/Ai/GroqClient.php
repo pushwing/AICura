@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Libraries;
+namespace App\Libraries\Ai;
 
 use RuntimeException;
 
@@ -13,7 +13,7 @@ use RuntimeException;
  *   GROQ_API_KEY  필수 — Groq 콘솔에서 발급
  *   GROQ_MODEL    선택 — 기본 llama-3.3-70b-versatile
  */
-class GroqLibrary
+class GroqClient implements AiClientInterface
 {
     private const ENDPOINT      = 'https://api.groq.com/openai/v1/chat/completions';
     private const DEFAULT_MODEL = 'llama-3.3-70b-versatile';
@@ -32,11 +32,6 @@ class GroqLibrary
         return $this->apiKey !== '';
     }
 
-    /**
-     * 시스템·사용자 프롬프트로 단일 응답 생성
-     *
-     * @throws RuntimeException API 키 미설정·HTTP 오류·응답 파싱 실패 시
-     */
     public function complete(string $systemPrompt, string $userPrompt): string
     {
         if (! $this->isConfigured()) {

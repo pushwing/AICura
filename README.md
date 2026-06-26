@@ -43,7 +43,8 @@ database.default.DBDriver = MySQLi
 
 JWT_SECRET = your-secret-key-here   # 32자 이상 랜덤 문자열 권장
 
-# Groq AI 일일 보고서 (이슈 #65) — 미설정 시 보고서 생성만 비활성, 그 외 기능 정상
+# AI 일일 보고서 (이슈 #65) — 미설정 시 보고서 생성만 비활성, 그 외 기능 정상
+AI_PROVIDER = groq                     # 공급자 선택 (기본 groq)
 GROQ_API_KEY = your-groq-api-key
 GROQ_MODEL = llama-3.3-70b-versatile   # 선택 (기본값 동일)
 ```
@@ -244,6 +245,23 @@ Groq AI(`llama-3.3-70b-versatile`)로 매일 1회 **매출 현황 보고서**와
 ```bash
 php spark reports:generate-ai --date=2026-06-25
 ```
+
+### 다른 AI로 교체
+
+AI 호출은 `AiClientInterface`로 추상화되어 있어 호출부 수정 없이 공급자를 교체할 수 있다.
+
+```
+app/Libraries/Ai/
+  ├─ AiClientInterface.php   # complete(system, user): string
+  ├─ GroqClient.php          # 기본 구현 (Groq)
+  └─ AiClientFactory.php     # env('AI_PROVIDER')로 구현체 선택
+```
+
+1. `AiClientInterface`를 구현하는 새 클라이언트 클래스 추가 (예: `OpenAiClient`)
+2. `AiClientFactory::make()`의 `match`에 한 줄 등록
+3. `.env`의 `AI_PROVIDER` 값 변경
+
+프롬프트·도메인 로직은 `AiReportService`에 있으므로 공급자와 무관하게 그대로 재사용된다.
 
 ---
 
