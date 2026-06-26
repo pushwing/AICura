@@ -30,6 +30,12 @@ class SettingModel extends Model
     public const KEYS = [
         'site_name'   => '사이트명',
         'admin_email' => '대표 이메일',
+        'compliance_check_enabled' => '의료광고 심의 사전검사 사용',
+    ];
+
+    /** 체크박스(불리언)로 다루는 설정 키 — 뷰 렌더링·검증 분기용 */
+    public const BOOLEAN_KEYS = [
+        'compliance_check_enabled',
     ];
 
     /**
@@ -52,6 +58,16 @@ class SettingModel extends Model
         }
 
         return $map;
+    }
+
+    /**
+     * 불리언 설정이 켜져 있는지 여부 (값이 '1' 이면 true)
+     */
+    public function enabled(string $key): bool
+    {
+        $row = $this->select('setting_value')->where('setting_key', $key)->first();
+
+        return $row !== null && (string) ($row['setting_value'] ?? '') === '1';
     }
 
     /**
