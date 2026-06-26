@@ -174,10 +174,15 @@ class UserModel extends Model
 
         if (!empty($params['is_agency'])) {
             $builder->where('is_agency_account', 1);
-        } elseif (!empty($params['user_types']) && is_array($params['user_types'])) {
-            $builder->whereIn('user_type', array_map('intval', $params['user_types']));
-        } elseif (!empty($params['user_type'])) {
-            $builder->where('user_type', (int) $params['user_type']);
+        } else {
+            // 대행사 계정은 '대행사' 탭에서만 노출 — 다른 탭에서는 제외
+            $builder->where('is_agency_account', 0);
+
+            if (!empty($params['user_types']) && is_array($params['user_types'])) {
+                $builder->whereIn('user_type', array_map('intval', $params['user_types']));
+            } elseif (!empty($params['user_type'])) {
+                $builder->where('user_type', (int) $params['user_type']);
+            }
         }
 
         // 주의: is_dormant 값은 반전 의미 — 1 = 활성, 0 = 휴면

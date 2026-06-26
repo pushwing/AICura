@@ -264,6 +264,32 @@ final class UserModelDatabaseTest extends CIUnitTestCase
         $this->assertNotContains('__user_general__@test.invalid', $emails);
     }
 
+    public function testGetListGeneralTabExcludesAgencyAccounts(): void
+    {
+        $db  = db_connect();
+        $now = date('Y-m-d H:i:s');
+        // user_type=1(일반)이지만 대행사 플래그가 켜진 계정
+        $db->table('users')->insert([
+            'email'             => '__user_type1_agency__@test.invalid',
+            'user_type'         => UserModel::TYPE_USER,
+            'is_agency_account' => 1,
+            'is_dormant'        => 1,
+            'is_active'         => 1,
+            'username'          => '__타입1대행사__',
+            'created_at'        => $now,
+            'updated_at'        => $now,
+        ]);
+        $this->insertedIds[] = (int) $db->insertID();
+
+        // 일반 사용자 탭 = user_type IN [1], 대행사 제외
+        $result = model(UserModel::class)->getList(['user_types' => [UserModel::TYPE_USER]]);
+
+        $emails = array_column($result['list'], 'email');
+        $this->assertNotContains('__user_type1_agency__@test.invalid', $emails);
+        // 순수 일반 사용자는 그대로 노출
+        $this->assertContains('__user_general__@test.invalid', $emails);
+    }
+
     // ── createHospitalOwner / emailExists ─────────────
 
     public function testCreateHospitalOwnerCreatesActiveHospitalAccount(): void
