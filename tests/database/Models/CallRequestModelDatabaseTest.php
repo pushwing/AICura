@@ -102,11 +102,18 @@ final class CallRequestModelDatabaseTest extends CIUnitTestCase
     {
         $model = model(CallRequestModel::class);
 
-        $model->changeStatus($this->callRequestId, 5); // 예약
+        $model->changeStatus($this->callRequestId, 5, '2026-07-01 14:30'); // 예약 (예약 일시 필수)
 
         $row = $model->find($this->callRequestId);
         $this->assertSame(5, (int) $row['status']);
         $this->assertNotEmpty($row['confirm_date']);
+        $this->assertSame('2026-07-01 14:30:00', $row['reserved_at']);
+    }
+
+    public function testChangeStatusToReservedRequiresReservedAt(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        model(CallRequestModel::class)->changeStatus($this->callRequestId, 5); // 예약 일시 누락
     }
 
     public function testChangeStatusRejectsInvalidStatus(): void
