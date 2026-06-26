@@ -2,7 +2,9 @@
 
 namespace App\Commands;
 
+use App\Models\ReportModel;
 use App\Services\AiReportService;
+use App\Services\ReportScope;
 use CodeIgniter\CLI\BaseCommand;
 use CodeIgniter\CLI\CLI;
 use Throwable;
@@ -33,11 +35,39 @@ class ReportGenerateAi extends BaseCommand
     {
         $date    = $params['date'] ?? CLI::getOption('date') ?? null;
         $service = new AiReportService();
+        $reports = model(ReportModel::class);
 
         CLI::write('AI 일일 보고서 생성 시작' . ($date !== null ? " (기준일: {$date})" : ''), 'yellow');
 
-        $this->generate('매출 보고서', static fn (): int => $service->generateRevenueReport($date));
-        $this->generate('소진 보고서', static fn (): int => $service->generateConsumptionReport($date));
+        // 1) 전체(운영자) 보고서
+        CLI::write('[전체]', 'cyan');
+        $this->generateScope($service, ReportScope::global(), $date);
+
+        // 2) 광고주(병원) 단위 보고서
+        foreach ($reports->getReportableHospitals() as $h) {
+            CLI::write("[광고주] {$h['hospital_name']}", 'cyan');
+            $this->generateScope($service, ReportScope::hospital($h['hospital_id'], $h['hospital_name']), $date);
+        }
+
+        // 3) 대행사 단위 보고서 (소속 광고주 합산)
+        foreach ($reports->getReportableAgencies() as $a) {
+            $hospitalIds = $reports->hospitalIdsForAgency($a['agency_user_id']);
+            CLI::write("[대행사] {$a['agency_name']}", 'cyan');
+            $this->generateScope(
+                $service,
+                ReportScope::agency($a['agency_user_id'], $hospitalIds, $a['agency_name']),
+                $date
+            );
+        }
+
+        CLI::write('완료', 'green');
+    }
+
+    /** 한 스코프의 매출·소진 보고서를 생성 (개별 실패는 로깅 후 계속) */
+    private function generateScope(AiReportService $service, ReportScope $scope, ?string $date): void
+    {
+        $this->generate('  매출', static fn (): int => $service->generateRevenueReport($scope, $date));
+        $this->generate('  소진', static fn (): int => $service->generateConsumptionReport($scope, $date));
     }
 
     /**

@@ -3,6 +3,8 @@
 /** @var list<int> $years */
 /** @var array{advertiser_count:int, charged:int, consumed:int, refunded:int, balance:int, requested:int, visited:int} $summary */
 /** @var list<array<string, mixed>> $breakdown */
+/** @var array<string, mixed>|null $aiRevenue */
+/** @var array<string, mixed>|null $aiConsumption */
 
 $kpiCards = [
     ['label' => '광고주 수', 'value' => $summary['advertiser_count'], 'unit' => '개', 'color' => 'var(--color-text)'],
@@ -23,6 +25,14 @@ $kpiCards = [
         </select>
     </form>
 </div>
+
+<!-- AI 일일 보고서 (이슈 #65) — 소속 광고주 합산 -->
+<?= view('reports/_ai_section', [
+    'aiRevenue'     => $aiRevenue,
+    'aiConsumption' => $aiConsumption,
+    'aiBasePath'    => '/portal/reports',
+    'aiCanGenerate' => false,
+]) ?>
 
 <!-- 전체 합계 KPI -->
 <div style="display:grid;grid-template-columns:repeat(6, 1fr);gap:12px;margin-bottom:20px;">

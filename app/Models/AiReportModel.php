@@ -18,6 +18,8 @@ class AiReportModel extends Model
 
     /** @var list<string> */
     protected $allowedFields = [
+        'scope_type',
+        'scope_id',
         'type',
         'title',
         'content',
@@ -28,31 +30,42 @@ class AiReportModel extends Model
     public const TYPE_REVENUE     = 'revenue';
     public const TYPE_CONSUMPTION = 'consumption';
 
+    public const SCOPE_GLOBAL   = 'global';
+    public const SCOPE_HOSPITAL = 'hospital';
+    public const SCOPE_AGENCY   = 'agency';
+
     /**
-     * 종류별 최신 보고서 1건
+     * 종류별 최신 보고서 1건 (스코프 한정)
      *
      * @return array<string, mixed>|null
      */
-    public function latestByType(string $type): ?array
+    public function latestByType(string $type, string $scopeType = self::SCOPE_GLOBAL, ?int $scopeId = null): ?array
     {
-        return $this->where('type', $type)
+        return $this->applyScope($scopeType, $scopeId)
+            ->where('type', $type)
             ->orderBy('report_date', 'DESC')
             ->orderBy('id', 'DESC')
             ->first();
     }
 
     /**
-     * 종류별 보고서 목록 (페이징) — '더보기' 리스트용
+     * 종류별 보고서 목록 (페이징, 스코프 한정) — '더보기' 리스트용
      *
      * @return array{items: array<int, array<string, mixed>>, total: int}
      */
-    public function historyByType(string $type, int $page, int $limit): array
-    {
+    public function historyByType(
+        string $type,
+        int $page,
+        int $limit,
+        string $scopeType = self::SCOPE_GLOBAL,
+        ?int $scopeId = null
+    ): array {
         $offset = ($page - 1) * $limit;
 
-        $total = $this->where('type', $type)->countAllResults(false);
+        $total = $this->applyScope($scopeType, $scopeId)->where('type', $type)->countAllResults(false);
 
-        $items = $this->where('type', $type)
+        $items = $this->applyScope($scopeType, $scopeId)
+            ->where('type', $type)
             ->orderBy('report_date', 'DESC')
             ->orderBy('id', 'DESC')
             ->findAll($limit, $offset);
@@ -61,5 +74,28 @@ class AiReportModel extends Model
             'items' => $items,
             'total' => $total,
         ];
+    }
+
+    /**
+     * 스코프 일치 단건 조회 — 포털 권한 검증용 (다른 주체 보고서 접근 차단)
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findScoped(int $id, string $scopeType, ?int $scopeId): ?array
+    {
+        return $this->applyScope($scopeType, $scopeId)->where('id', $id)->first();
+    }
+
+    /**
+     * scope_type / scope_id WHERE 조건 적용 (scope_id null이면 IS NULL)
+     *
+     * @return $this
+     */
+    private function applyScope(string $scopeType, ?int $scopeId): static
+    {
+        $this->where('scope_type', $scopeType);
+        $scopeId === null ? $this->where('scope_id', null) : $this->where('scope_id', $scopeId);
+
+        return $this;
     }
 }
