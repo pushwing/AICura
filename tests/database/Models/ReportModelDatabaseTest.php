@@ -56,11 +56,12 @@ final class ReportModelDatabaseTest extends CIUnitTestCase
         ]);
         $this->campaignId = (int) $db->insertID();
 
-        // deposits: 충전(2) 1,000,000 / 소진(3) 300,000 / 환불(6) 100,000
-        foreach ([[2, 1000000], [3, 300000], [6, 100000]] as [$status, $price]) {
+        // deposits: 충전(2) 1,000,000 / 소진(3) 300,000 / 환불(6) 100,000 / CPA환불복원(4) 50,000
+        // CPA 환불 복원(status 4)은 충전이 아니라 소진 상계(−)로 집계돼야 한다.
+        foreach ([[2, 1000000], [3, 300000], [6, 100000], [4, 50000]] as [$status, $price]) {
             $db->table('deposits')->insert([
                 'status'            => $status,
-                'is_minus'          => $status === 2 ? 0 : 1,
+                'is_minus'          => in_array($status, [2, 4], true) ? 0 : 1,
                 'contract_id'       => $this->contractId,
                 'contract_order_id' => $this->contractOrder,
                 'price'             => $price,
@@ -100,10 +101,12 @@ final class ReportModelDatabaseTest extends CIUnitTestCase
     {
         $kpi = model(ReportModel::class)->getYearKpi($this->year);
 
-        $this->assertSame(1000000, $kpi['charged']);
-        $this->assertSame(300000, $kpi['consumed']);
+        // CPA 환불 복원(50,000)은 충전에 포함되지 않고 소진에서 차감된다.
+        $this->assertSame(1000000, $kpi['charged']);          // 충전(2)만
+        $this->assertSame(250000, $kpi['consumed']);          // 소진(3) 300,000 − CPA환불(4) 50,000
         $this->assertSame(100000, $kpi['refunded']);
-        $this->assertSame(600000, $kpi['balance']); // 1,000,000 - 300,000 - 100,000
+        $this->assertSame(50000, $kpi['cpa_refunded']);
+        $this->assertSame(650000, $kpi['balance']);           // 1,000,000 - 250,000 - 100,000
     }
 
     public function testGetMonthlyRevenueReturnsTwelveElements(): void
@@ -115,7 +118,7 @@ final class ReportModelDatabaseTest extends CIUnitTestCase
 
         $monthIndex = (int) date('n') - 1;
         $this->assertSame(1000000, $monthly['charged'][$monthIndex]);
-        $this->assertSame(300000, $monthly['consumed'][$monthIndex]);
+        $this->assertSame(250000, $monthly['consumed'][$monthIndex]); // 300,000 − CPA환불(4) 50,000
     }
 
     public function testGetCampaignStatsCountsRequestsAndVisits(): void

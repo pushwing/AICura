@@ -1,0 +1,17 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+	RewriteBase /
+
+<Limit GET POST PUT DELETE OPTIONS>
+    Require all granted
+</Limit>
+<LimitExcept GET POST PUT DELETE OPTIONS>
+    Require all denied
+</LimitExcept>
+    RewriteRule ^api/v1.0/([A-Za-z0-9]+)/(.*)$ v10/$1/$2 [QSA,L]
+# RewriteRule ^api/v1.0/([a-z0-9]+)/(.*)$ v10/$1/$2 [QSA,NC,L]
+	RewriteCond $1 !^(index\.php|docs|template|include|uploads|robots\.txt|Cart\.php)
+
+	RewriteRule ^(.*)$ /index.php/$1 [L,QSA]
+</IfModule>

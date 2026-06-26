@@ -1,0 +1,43 @@
+AWSConfigurationTemplateVersion: 1.1.0.0
+EnvironmentTier:
+  Name: WebServer
+  Type: Standard
+branch-defaults:
+  staging:
+    environment: Event-admin-stg
+    aws:elasticbeanstalk:application:environment:
+      AWS_ACCESS_KEY_ID: AKIAI3XSAO6INBHTMMLA
+      AWS_SECRET_ACCESS_KEY: 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
+      CI_ENV: stg
+      API_KEY: qJqKDATY0D48ZH9hCNW4N6ygHBqtoVz4a4mu0P6A
+  master:
+    environment: Event-admin-prd
+    aws:elasticbeanstalk:application:environment:
+      AWS_ACCESS_KEY_ID: AKIAI3XSAO6INBHTMMLA
+      AWS_SECRET_ACCESS_KEY: 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
+      CI_ENV: prd
+      API_KEY: qJqKDATY0D48ZH9hCNW4N6ygHBqtoVz4a4mu0P6A
+global:
+  application_name: Event
+  default_ec2_keyname: aws-seoul
+  default_region: ap-northeast-2
+  include_git_submodules: true
+  # branch: null
+  # instance_profile: null
+  # platform_name: null
+  # platform_version: null
+  # repository: null
+  # profile: goodoc.martin
+  # sc: git
+  workspace_type: Application
+Platform:
+  PlatformArn: arn:aws:elasticbeanstalk:ap-northeast-2::platform/PHP 7.0 runninnnng on 64bit Amazon Linux/2.8.7
+OptionSettings:
+  aws:elasticbeanstalk:container:php:phpini:
+    document_root: /
+  aws:elasticbeanstalk:healthreporting:system:
+    SystemType: enhanced
+  aws:autoscaling:launchconfiguration:
+    IamInstanceProfile: aws-elasticbeanstalk-ec2-role
+  AWSEBAutoScalingLaunchConfiguration.aws:autoscaling:launchconfiguration:
+    EC2KeyName: aws-seoul
