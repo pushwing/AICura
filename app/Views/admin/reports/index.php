@@ -1,16 +1,17 @@
 <?php
 /** @var int $year */
 /** @var array<int, int> $years */
-/** @var array{charged: int, consumed: int, refunded: int, balance: int} $kpi */
+/** @var array{charged: int, consumed: int, refunded: int, cpa_refunded: int, balance: int} $kpi */
 /** @var array<int, string> $labels */
 /** @var array<int, int> $charged */
 /** @var array<int, int> $consumed */
 
 $kpiCards = [
-    ['label' => '충전 합계', 'value' => $kpi['charged'],  'color' => '#0F6E56'],
-    ['label' => '소진 합계', 'value' => $kpi['consumed'], 'color' => '#1D9E75'],
-    ['label' => '환불 합계', 'value' => $kpi['refunded'], 'color' => '#ef4444'],
-    ['label' => '잔액',     'value' => $kpi['balance'],  'color' => '#6366f1'],
+    ['label' => '충전 합계', 'value' => $kpi['charged'],      'color' => '#0F6E56'],
+    ['label' => '소진 합계', 'value' => $kpi['consumed'],     'color' => '#1D9E75'],
+    ['label' => '환불 합계', 'value' => $kpi['refunded'],     'color' => '#ef4444'],
+    ['label' => 'CPA 환불', 'value' => $kpi['cpa_refunded'], 'color' => '#f59e0b'],
+    ['label' => '잔액',     'value' => $kpi['balance'],      'color' => '#6366f1'],
 ];
 ?>
 <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
@@ -30,7 +31,7 @@ $kpiCards = [
 </form>
 
 <!-- KPI 카드 -->
-<div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:16px;margin-bottom:20px;">
+<div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:16px;margin-bottom:20px;">
     <?php foreach ($kpiCards as $card): ?>
         <div class="card">
             <div class="card-body">

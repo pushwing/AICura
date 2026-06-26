@@ -27,6 +27,8 @@ class ReportModel extends Model
     private const STATUS_CONSUMED = [3, 5, 8, 9, 10, 11];
     // 환불 — 발행환불 + 계약환불 (별도 KPI)
     private const STATUS_REFUNDED = [6, 7];
+    // CPA 환불 복원 — 신청DB 환불요청 승인 시 기록되는 기타충전 (status 4 전용 집계)
+    private const STATUS_CPA_REFUND = [4];
 
     /**
      * 드라이버별 연도 표현식 (MySQL: YEAR / SQLite3: strftime)
@@ -46,9 +48,12 @@ class ReportModel extends Model
     }
 
     /**
-     * 연간 매출 KPI (충전·소진·환불·잔액)
+     * 연간 매출 KPI (충전·소진·환불·CPA환불·잔액)
      *
-     * @return array{charged: int, consumed: int, refunded: int, balance: int}
+     * cpa_refunded(신청DB 환불요청 승인 복원액)는 충전(status 4)에 이미 포함돼 잔액에 반영되므로
+     * 별도 표시용 정보 지표다. 잔액 항등식에서 중복 차감하지 않는다.
+     *
+     * @return array{charged: int, consumed: int, refunded: int, cpa_refunded: int, balance: int}
      */
     public function getYearKpi(int $year): array
     {
@@ -57,10 +62,11 @@ class ReportModel extends Model
         $refunded = $this->sumByStatuses(self::STATUS_REFUNDED, $year);
 
         return [
-            'charged'  => $charged,
-            'consumed' => $consumed,
-            'refunded' => $refunded,
-            'balance'  => $charged - $consumed - $refunded,
+            'charged'      => $charged,
+            'consumed'     => $consumed,
+            'refunded'     => $refunded,
+            'cpa_refunded' => $this->sumByStatuses(self::STATUS_CPA_REFUND, $year),
+            'balance'      => $charged - $consumed - $refunded,
         ];
     }
 
