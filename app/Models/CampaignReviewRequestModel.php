@@ -15,6 +15,7 @@ class CampaignReviewRequestModel extends Model
         'campaign_id',
         'request_type',
         'ad_title',
+        'ad_detail_info',
         'ad_type',
         'ad_start_date',
         'ad_end_date',
@@ -43,7 +44,7 @@ class CampaignReviewRequestModel extends Model
 
     /** 검수 요청에 포함되는 모든 캠페인 콘텐츠 필드 */
     public const CONTENT_FIELDS = [
-        'ad_title', 'ad_type', 'ad_start_date', 'ad_end_date',
+        'ad_title', 'ad_detail_info', 'ad_type', 'ad_start_date', 'ad_end_date',
         'cost_type', 'general_cost', 'discount_cost', 'text_cost', 'db_cost',
         'category', 'exposure', 'contract_id', 'contract_order_id',
         'region', 'keyword', 'deliberation_code', 'channel',
@@ -176,7 +177,7 @@ class CampaignReviewRequestModel extends Model
     {
         return $this->db->table('campaign_review_requests crr')
             ->select('crr.*')
-            ->select('c.ad_title AS approved_title, c.ad_type AS approved_ad_type')
+            ->select('c.ad_title AS approved_title, c.ad_detail_info AS approved_detail, c.ad_type AS approved_ad_type')
             ->select('c.ad_start_date AS approved_start, c.ad_end_date AS approved_end')
             ->select('c.cost_type AS approved_cost_type, c.general_cost AS approved_general_cost')
             ->select('c.discount_cost AS approved_discount_cost, c.text_cost AS approved_text_cost')

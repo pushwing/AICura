@@ -1,5 +1,5 @@
 <?php return \CodeIgniter\PHPStan\Database\Schema\Schema::__set_state(array(
-   'hash' => '64c947fd5e866fba128d927c2f31fc8053c071c8b3f2cd271d51205377b49385',
+   'hash' => 'cdde37dc1e7b5f202dd54b9a9d090cb6c398885df8db58a5885cb1ee650c353f',
    'tables' => 
   array (
     'contracts' => 
@@ -1959,6 +1959,14 @@
         \CodeIgniter\PHPStan\Database\Schema\Column::__set_state(array(
            'name' => 'updated_at',
            'type' => 'DATETIME',
+           'nullable' => true,
+           'primaryKey' => false,
+           'default' => NULL,
+        )),
+        'ad_detail_info' => 
+        \CodeIgniter\PHPStan\Database\Schema\Column::__set_state(array(
+           'name' => 'ad_detail_info',
+           'type' => 'MEDIUMTEXT',
            'nullable' => true,
            'primaryKey' => false,
            'default' => NULL,

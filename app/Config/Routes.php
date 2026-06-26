@@ -31,6 +31,7 @@ $routes->group('admin', static function (RouteCollection $routes): void {
         $routes->get('campaigns/temp',               'Admin\CampaignController::tempList');
         $routes->get('campaigns/(:num)/history',     'Admin\CampaignController::history/$1');
         $routes->post('campaigns/(:num)/action',     'Admin\CampaignController::action/$1');
+        $routes->post('campaigns/suggest-copy',      'Admin\CampaignController::suggestCopy');
         $routes->resource('campaigns', ['controller' => 'Admin\CampaignController']);
 
         // 소재 관리 (POST /creatives/{id} → update, 폼 메서드 오버라이드)

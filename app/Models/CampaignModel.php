@@ -84,6 +84,13 @@ class CampaignModel extends Model
         2 => '굿닥파트너스',
     ];
 
+    /** 병원 망 구분 (campaigns.hospital_type) */
+    public const HOSPITAL_TYPES = [
+        1 => '일반',
+        2 => '네트워크 모점',
+        3 => '네트워크 자점',
+    ];
+
     /**
      * 캠페인 목록 (페이징, 검색, 상태 필터)
      *
