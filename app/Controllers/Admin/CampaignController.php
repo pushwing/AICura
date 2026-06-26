@@ -47,7 +47,8 @@ class CampaignController extends BaseAdminController
     public function index(): string
     {
         $params = [
-            'status'   => $this->request->getGet('status') ?? '',
+            'status'        => $this->request->getGet('status') ?? '',
+            'review_status' => $this->request->getGet('review_status') ?? '',
             'ad_type'  => $this->request->getGet('ad_type') ?? '',
             'channel'  => $this->request->getGet('channel') ?? '',
             'keyword'  => $this->request->getGet('keyword') ?? '',

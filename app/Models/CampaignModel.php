@@ -124,6 +124,9 @@ class CampaignModel extends Model
         if (!empty($params['status'])) {
             $builder->where('c.status', $params['status']);
         }
+        if (!empty($params['review_status'])) {
+            $builder->where('c.review_status', $params['review_status']);
+        }
         if (!empty($params['ad_type'])) {
             $builder->where('c.ad_type', (int) $params['ad_type']);
         }
