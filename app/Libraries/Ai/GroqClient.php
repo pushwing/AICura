@@ -83,7 +83,10 @@ class GroqClient implements AiClientInterface
             }
 
             // 429(레이트리밋)·5xx(서버 일시 오류)는 백오프 후 재시도, 그 외 4xx는 즉시 실패
-            $retryable = $status === 429 || $status >= 500;
+            // JSON 모드에서 모델이 깨진 JSON을 생성한 경우(json_validate_failed)도 재시도 — 재생성 시 유효해질 수 있음
+            $retryable = $status === 429
+                || $status >= 500
+                || ($status === 400 && $json && str_contains($body, 'json_validate_failed'));
             if ($retryable && $attempt < self::MAX_RETRIES) {
                 $wait = $this->backoffSeconds($response, $attempt);
                 log_message('warning', 'Groq API {status} — {wait}초 후 재시도 ({n}/{max})', [
