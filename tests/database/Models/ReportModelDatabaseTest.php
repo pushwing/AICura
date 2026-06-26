@@ -111,7 +111,7 @@ final class ReportModelDatabaseTest extends CIUnitTestCase
 
     public function testGetYearKpiExcludesCpaRefundFromChargedAndConsumed(): void
     {
-        // CPA 환불 복원(상계, status 4) 50,000 추가 — 충전·소진 양쪽에서 차감되어야 한다.
+        // CPA 환불 복원(상계, status 4) 50,000 추가 — 소진에서만 차감되어 잔액이 복원되어야 한다.
         db_connect()->table('deposits')->insert([
             'status'            => 4,
             'is_minus'          => 0,
@@ -124,16 +124,16 @@ final class ReportModelDatabaseTest extends CIUnitTestCase
 
         $kpi = model(ReportModel::class)->getYearKpi($this->year);
 
-        $this->assertSame(1000000, $kpi['charged']);      // 1,050,000(raw 2+4) - 50,000(상계)
-        $this->assertSame(250000, $kpi['consumed']);      // 300,000 - 50,000(상계)
+        $this->assertSame(1000000, $kpi['charged']);      // 충전(2)만 — status 4는 충전에 미포함
+        $this->assertSame(200000, $kpi['consumed']);      // 소진(3) 300,000 - CPA환불(4) 100,000(50,000×2)
         $this->assertSame(100000, $kpi['refunded']);
-        $this->assertSame(50000, $kpi['cpa_refunded']);
-        $this->assertSame(650000, $kpi['balance']);       // 1,000,000 - 250,000 - 100,000
+        $this->assertSame(100000, $kpi['cpa_refunded']);  // setUp 50,000 + 본 테스트 50,000
+        $this->assertSame(700000, $kpi['balance']);       // 1,000,000 - 200,000 - 100,000
     }
 
     public function testGetMonthToDateStatsExcludesCpaRefund(): void
     {
-        // CPA 환불 복원(상계, status 4) 50,000 추가 — AI 매출보고서 누계에서도 차감되어야 한다.
+        // CPA 환불 복원(상계, status 4) 50,000 추가 — AI 매출보고서 누계에서도 소진에서 차감되어야 한다.
         db_connect()->table('deposits')->insert([
             'status'            => 4,
             'is_minus'          => 0,
@@ -148,10 +148,10 @@ final class ReportModelDatabaseTest extends CIUnitTestCase
         $today     = date('Y-m-d');
         $mtd       = model(ReportModel::class)->getMonthToDateStats($monthFrom, $today);
 
-        $this->assertSame(1000000, $mtd['charged']);  // 1,050,000(raw 2+4) - 50,000(상계)
-        $this->assertSame(250000, $mtd['consumed']);   // 300,000 - 50,000(상계)
+        $this->assertSame(1000000, $mtd['charged']);   // 충전(2)만 — status 4는 충전에 미포함
+        $this->assertSame(200000, $mtd['consumed']);   // 소진(3) 300,000 - CPA환불(4) 100,000(50,000×2)
         $this->assertSame(100000, $mtd['refunded']);
-        $this->assertSame(650000, $mtd['balance']);    // 1,000,000 - 250,000 - 100,000
+        $this->assertSame(700000, $mtd['balance']);    // 1,000,000 - 200,000 - 100,000
     }
 
     public function testGetMonthlyRevenueReturnsTwelveElements(): void
