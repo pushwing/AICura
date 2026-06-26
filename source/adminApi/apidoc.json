@@ -1,0 +1,7 @@
+{
+  "name": "GOODOC Lactea API",
+  "version": "0.2.0",
+  "description": "굿닥 이벤트 API<br>martin.byun@goodoc.co.kr",
+  "title": "굿닥 이벤트  API",
+  "url" : "/api/v1.0"
+}
