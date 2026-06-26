@@ -124,6 +124,15 @@ class ReviewController extends BaseAdminController
             if ($action === 'approve') {
                 $contentFields = $this->reviewModel->approve($id, $adminId, $memo);
 
+                // 이미지 필드가 비어있으면 캠페인의 기존 이미지를 보존 (빈 값 덮어쓰기 방지).
+                // 이미지 삭제 기능이 없어 빈 값은 항상 '변경 없음'을 의미하므로,
+                // 이미지 없이 만든 검수요청을 승인할 때 기존 썸네일이 지워지는 것을 막는다.
+                foreach (['t1_image_name', 't2_image_name', 'd_image_json'] as $imageField) {
+                    if (empty($contentFields[$imageField])) {
+                        unset($contentFields[$imageField]);
+                    }
+                }
+
                 // 다른 pending 요청이 남아있으면 캐시는 pending 유지
                 $cacheStatus = $this->reviewModel->hasPending($campaignId) ? 'pending' : 'approved';
 
