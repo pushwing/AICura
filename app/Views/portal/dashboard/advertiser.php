@@ -4,8 +4,10 @@
 /** @var string|null $contractName */
 /** @var int $totalCount */
 /** @var int $newCount */
+/** @var array{charged:int, used:int, balance:int} $ledger */
 /** @var array<int, array<string, mixed>> $invites */
 $invites = $invites ?? [];
+$ledger  = $ledger ?? ['charged' => 0, 'used' => 0, 'balance' => 0];
 ?>
 <div class="page-header">
     <h1 class="page-title">대시보드</h1>
@@ -60,6 +62,22 @@ $invites = $invites ?? [];
             </div>
         </div>
     <?php endif; ?>
+
+    <!-- 광고비 충전/소진/잔액 요약 (이슈 #49) -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px;">
+        <div class="card"><div class="card-body">
+            <p class="text-sm" style="color:var(--color-text-muted);margin-bottom:6px;">전체 충전금</p>
+            <p style="font-size:1.75rem;font-weight:700;color:#1D9E75;"><?= number_format($ledger['charged']) ?><span style="font-size:1rem;font-weight:500;">원</span></p>
+        </div></div>
+        <div class="card"><div class="card-body">
+            <p class="text-sm" style="color:var(--color-text-muted);margin-bottom:6px;">소진</p>
+            <p style="font-size:1.75rem;font-weight:700;color:#ef4444;"><?= number_format($ledger['used']) ?><span style="font-size:1rem;font-weight:500;">원</span></p>
+        </div></div>
+        <div class="card"><div class="card-body">
+            <p class="text-sm" style="color:var(--color-text-muted);margin-bottom:6px;">현재 잔액</p>
+            <p style="font-size:1.75rem;font-weight:700;color:var(--color-primary);"><?= number_format($ledger['balance']) ?><span style="font-size:1rem;font-weight:500;">원</span></p>
+        </div></div>
+    </div>
 
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
         <div class="card"><div class="card-body">

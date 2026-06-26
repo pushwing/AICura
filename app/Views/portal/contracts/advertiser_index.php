@@ -53,7 +53,7 @@
             <?php else: ?>
                 <div class="table-wrap">
                     <table class="table">
-                        <thead><tr><th>상품</th><th style="text-align:right;">계약금액</th><th style="text-align:right;">잔액</th><th>상태</th><th>입금</th><th>신청일</th></tr></thead>
+                        <thead><tr><th>상품</th><th style="text-align:right;">계약금액</th><th style="text-align:right;">잔액</th><th>상태</th><th>입금</th><th>신청일</th><th></th></tr></thead>
                         <tbody>
                         <?php foreach ($orders as $o): ?>
                             <tr>
@@ -63,6 +63,7 @@
                                 <td><?= esc($statusLabels[(int) $o['contract_status']] ?? '-') ?></td>
                                 <td><?= empty($o['deposit_date']) ? '<span class="badge badge-warning">입금대기</span>' : '<span class="badge badge-success">입금완료</span>' ?></td>
                                 <td class="text-sm"><?= esc($o['created_at_kst']) ?></td>
+                                <td style="text-align:right;"><a href="/portal/contracts/orders/<?= (int) $o['id'] ?>" class="btn btn-outline btn-sm">상세</a></td>
                             </tr>
                         <?php endforeach; ?>
                         </tbody>

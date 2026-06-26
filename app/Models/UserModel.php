@@ -115,6 +115,22 @@ class UserModel extends Model
     }
 
     /**
+     * 본인 id로 password 포함 조회 ($hidden 우회) — 비밀번호 변경 검증용 (이슈 #49)
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findWithPasswordById(int $id): ?array
+    {
+        return $this->db->table($this->table)
+            ->select('id, email, username, phone, password')
+            ->where('id', $id)
+            ->where('deleted_at IS NULL', null, false)
+            ->limit(1)
+            ->get()
+            ->getRowArray() ?: null;
+    }
+
+    /**
      * 광고주 계정(병원 유형) 이메일 조회 — 대행사 광고주 등록 시 owner 연결용
      *
      * @return array<string, mixed>|null

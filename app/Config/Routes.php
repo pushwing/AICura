@@ -133,8 +133,14 @@ $routes->group('portal', static function (RouteCollection $routes): void {
         // 계약 관리 (광고주 동의·충전 / 대행사 조회)
         $routes->get('contracts',              'Portal\ContractController::index');
         $routes->post('contracts/agree',       'Portal\ContractController::agree');
-        $routes->get('contracts/orders/new',   'Portal\ContractController::orderNew');
-        $routes->post('contracts/orders',      'Portal\ContractController::orderCreate');
+        $routes->get('contracts/orders/new',     'Portal\ContractController::orderNew');
+        $routes->post('contracts/orders',        'Portal\ContractController::orderCreate');
+        $routes->get('contracts/orders/(:num)',  'Portal\ContractController::orderShow/$1');
+
+        // 내 정보 (이름·전화번호·비밀번호 / 광고주는 대행사 정보 표시)
+        $routes->get('profile',           'Portal\ProfileController::index');
+        $routes->post('profile',          'Portal\ProfileController::update');
+        $routes->post('profile/password', 'Portal\ProfileController::updatePassword');
 
         // 신청DB 관리 (광고주)
         $routes->get('call-requests',                              'Portal\CallRequestController::index');
