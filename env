@@ -81,3 +81,4 @@
 # Groq
 # GROQ_API_KEY =
 # GROQ_MODEL = llama-3.3-70b-versatile
+# GROQ_TIMEOUT = 30   # 호출 타임아웃(초). 429·5xx는 지수 백오프로 자동 재시도

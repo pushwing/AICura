@@ -2,6 +2,7 @@
 
 namespace App\Libraries\Ai;
 
+use CodeIgniter\HTTP\ResponseInterface;
 use RuntimeException;
 
 /**
@@ -12,19 +13,34 @@ use RuntimeException;
  *
  *   GROQ_API_KEY  필수 — Groq 콘솔에서 발급
  *   GROQ_MODEL    선택 — 기본 llama-3.3-70b-versatile
+ *   GROQ_TIMEOUT  선택 — 호출 타임아웃(초), 기본 30
+ *
+ * 레이트리밋(429)·일시 서버 오류(5xx)는 지수 백오프로 재시도한다.
+ * 배치 커맨드가 다수 스코프를 연속 호출할 때 429로 줄줄이 실패하는 것을 막는다.
  */
 class GroqClient implements AiClientInterface
 {
     private const ENDPOINT      = 'https://api.groq.com/openai/v1/chat/completions';
     private const DEFAULT_MODEL = 'llama-3.3-70b-versatile';
 
+    /** 응답 토큰 상한 — 보고서 본문이 잘리지 않을 만큼 충분, 과금 폭주 방지 */
+    private const MAX_TOKENS = 2048;
+
+    /** 429·5xx 재시도 횟수 (총 시도 = MAX_RETRIES + 1) */
+    private const MAX_RETRIES = 2;
+
+    /** 백오프 상한(초) — Retry-After가 비정상적으로 길어도 이 값으로 캡 */
+    private const MAX_BACKOFF = 10;
+
     private string $apiKey;
     private string $model;
+    private int $timeout;
 
     public function __construct()
     {
-        $this->apiKey = (string) env('GROQ_API_KEY', '');
-        $this->model  = (string) env('GROQ_MODEL', self::DEFAULT_MODEL);
+        $this->apiKey  = (string) env('GROQ_API_KEY', '');
+        $this->model   = (string) env('GROQ_MODEL', self::DEFAULT_MODEL);
+        $this->timeout = max(5, (int) env('GROQ_TIMEOUT', 30));
     }
 
     public function isConfigured(): bool
@@ -38,13 +54,47 @@ class GroqClient implements AiClientInterface
             throw new RuntimeException('GROQ_API_KEY가 설정되지 않았습니다.');
         }
 
+        for ($attempt = 0; ; $attempt++) {
+            $response = $this->send($systemPrompt, $userPrompt);
+            $status   = $response->getStatusCode();
+            $body     = (string) $response->getBody();
+
+            if ($status >= 200 && $status < 300) {
+                return $this->extractContent($body);
+            }
+
+            // 429(레이트리밋)·5xx(서버 일시 오류)는 백오프 후 재시도, 그 외 4xx는 즉시 실패
+            $retryable = $status === 429 || $status >= 500;
+            if ($retryable && $attempt < self::MAX_RETRIES) {
+                $wait = $this->backoffSeconds($response, $attempt);
+                log_message('warning', 'Groq API {status} — {wait}초 후 재시도 ({n}/{max})', [
+                    'status' => $status,
+                    'wait'   => $wait,
+                    'n'      => $attempt + 1,
+                    'max'    => self::MAX_RETRIES,
+                ]);
+                sleep($wait);
+
+                continue;
+            }
+
+            log_message('error', 'Groq API 오류 [{status}]: {body}', [
+                'status' => $status,
+                'body'   => $body,
+            ]);
+            throw new RuntimeException("Groq API 응답 오류 (HTTP {$status})");
+        }
+    }
+
+    private function send(string $systemPrompt, string $userPrompt): ResponseInterface
+    {
         $client = service('curlrequest', [
             'baseURI'     => '',
-            'timeout'     => 60,
+            'timeout'     => $this->timeout,
             'http_errors' => false,
         ]);
 
-        $response = $client->post(self::ENDPOINT, [
+        return $client->post(self::ENDPOINT, [
             'headers' => [
                 'Authorization' => 'Bearer ' . $this->apiKey,
                 'Content-Type'  => 'application/json',
@@ -52,24 +102,28 @@ class GroqClient implements AiClientInterface
             'json' => [
                 'model'       => $this->model,
                 'temperature' => 0.4,
+                'max_tokens'  => self::MAX_TOKENS,
                 'messages'    => [
                     ['role' => 'system', 'content' => $systemPrompt],
                     ['role' => 'user',   'content' => $userPrompt],
                 ],
             ],
         ]);
+    }
 
-        $status = $response->getStatusCode();
-        $body   = (string) $response->getBody();
-
-        if ($status < 200 || $status >= 300) {
-            log_message('error', 'Groq API 오류 [{status}]: {body}', [
-                'status' => $status,
-                'body'   => $body,
-            ]);
-            throw new RuntimeException("Groq API 응답 오류 (HTTP {$status})");
+    /** 재시도 대기 시간 — Retry-After 헤더 우선, 없으면 지수 백오프(2,4,8…), MAX_BACKOFF로 캡 */
+    private function backoffSeconds(ResponseInterface $response, int $attempt): int
+    {
+        $retryAfter = (int) $response->getHeaderLine('Retry-After');
+        if ($retryAfter > 0) {
+            return min($retryAfter, self::MAX_BACKOFF);
         }
 
+        return min(2 ** ($attempt + 1), self::MAX_BACKOFF);
+    }
+
+    private function extractContent(string $body): string
+    {
         /** @var array<string, mixed>|null $decoded */
         $decoded = json_decode($body, true);
         $content = $decoded['choices'][0]['message']['content'] ?? null;
