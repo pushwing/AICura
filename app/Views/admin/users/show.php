@@ -2,6 +2,9 @@
 /** @var array<string, mixed> $user */
 /** @var array<int, string> $userTypeLabels */
 /** @var list<array<string, mixed>> $agencyAdvertisers */
+/** @var array<int, string> $adType2Labels */
+
+$adType2Labels = $adType2Labels ?? [];
 
 $userType  = (int) $user['user_type'];
 $typeLabel = $userTypeLabels[$userType] ?? (string) $userType;
@@ -122,9 +125,11 @@ $priceTotal = array_sum(array_map(static fn (array $a): int => (int) $a['total_p
         <?php if ($advCount === 0): ?>
         <p style="font-size:14px;color:var(--color-text-muted);margin:0;">소유한 광고주가 없습니다.</p>
         <?php else: ?>
+        <p style="font-size:12px;color:var(--color-text-muted);margin:0 0 8px;">광고주 행을 클릭하면 건별 수주내역이 펼쳐집니다.</p>
         <table style="width:100%;font-size:14px;border-collapse:collapse;">
             <thead>
                 <tr style="border-bottom:2px solid var(--color-border,#e5e7eb);text-align:left;color:var(--color-text-muted);">
+                    <th style="padding:8px 4px;width:24px;"></th>
                     <th style="padding:8px 4px;">광고주명</th>
                     <th style="padding:8px 4px;">담당자</th>
                     <th style="padding:8px 4px;">상태</th>
@@ -134,14 +139,23 @@ $priceTotal = array_sum(array_map(static fn (array $a): int => (int) $a['total_p
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($agencyAdvertisers as $a): ?>
-                <?php $advUrl = '/admin/advertisers/' . (int) ($a['id'] ?? 0); ?>
+                <?php foreach ($agencyAdvertisers as $i => $a): ?>
+                <?php
+                $advUrl = '/admin/advertisers/' . (int) ($a['id'] ?? 0);
+                /** @var list<array<string, mixed>> $orders */
+                $orders     = $a['orders'] ?? [];
+                $orderTotal = array_sum(array_map(static fn (array $o): int => (int) ($o['ad_price'] ?? 0), $orders));
+                ?>
                 <tr style="border-bottom:1px solid var(--color-border,#f3f4f6);cursor:pointer;"
-                    onclick="location.href='<?= esc($advUrl, 'attr') ?>'"
+                    onclick="toggleOrders(<?= (int) $i ?>)"
                     onmouseover="this.style.background='var(--color-bg-subtle,#f9fafb)'"
                     onmouseout="this.style.background=''">
+                    <td style="padding:8px 4px;text-align:center;color:var(--color-text-muted);">
+                        <span id="adv-caret-<?= (int) $i ?>" style="display:inline-block;transition:transform .15s;">▸</span>
+                    </td>
                     <td style="padding:8px 4px;">
-                        <a href="<?= esc($advUrl, 'attr') ?>" style="color:var(--color-primary,#0F6E56);text-decoration:none;font-weight:500;">
+                        <a href="<?= esc($advUrl, 'attr') ?>" onclick="event.stopPropagation();"
+                           style="color:var(--color-primary,#0F6E56);text-decoration:none;font-weight:500;">
                             <?= esc($a['hospital_name'] ?? '-') ?>
                         </a>
                     </td>
@@ -157,9 +171,64 @@ $priceTotal = array_sum(array_map(static fn (array $a): int => (int) $a['total_p
                     <td style="padding:8px 4px;text-align:right;"><?= number_format((int) ($a['order_count'] ?? 0)) ?></td>
                     <td style="padding:8px 4px;text-align:right;">₩<?= number_format((int) ($a['total_price'] ?? 0)) ?></td>
                 </tr>
+                <tr id="adv-orders-<?= (int) $i ?>" style="display:none;background:var(--color-bg-subtle,#f9fafb);">
+                    <td></td>
+                    <td colspan="6" style="padding:12px 4px;">
+                        <?php if ($orders === []): ?>
+                        <p style="font-size:13px;color:var(--color-text-muted);margin:0;">건별 수주내역이 없습니다.</p>
+                        <?php else: ?>
+                        <table style="width:100%;font-size:13px;border-collapse:collapse;">
+                            <thead>
+                                <tr style="border-bottom:1px solid var(--color-border,#e5e7eb);text-align:left;color:var(--color-text-muted);">
+                                    <th style="padding:6px 4px;">계약명</th>
+                                    <th style="padding:6px 4px;">광고상품</th>
+                                    <th style="padding:6px 4px;">상태</th>
+                                    <th style="padding:6px 4px;">등록일</th>
+                                    <th style="padding:6px 4px;text-align:right;">금액</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($orders as $o): ?>
+                                <?php $orderUrl = '/admin/contracts/orders/' . (int) ($o['id'] ?? 0); ?>
+                                <tr style="border-bottom:1px solid var(--color-border,#f3f4f6);">
+                                    <td style="padding:6px 4px;">
+                                        <a href="<?= esc($orderUrl, 'attr') ?>" style="color:var(--color-primary,#0F6E56);text-decoration:none;">
+                                            <?= esc($o['title'] ?? '-') ?>
+                                        </a>
+                                    </td>
+                                    <td style="padding:6px 4px;"><?= esc($adType2Labels[(int) ($o['ad_type2'] ?? 0)] ?? '-') ?></td>
+                                    <td style="padding:6px 4px;">
+                                        <?php $isUnpaid = ($o['status_label'] ?? '') === '미입금'; ?>
+                                        <span style="<?= $isUnpaid ? 'color:#dc2626;font-weight:600;' : '' ?>"><?= esc($o['status_label'] ?? '-') ?></span>
+                                    </td>
+                                    <td style="padding:6px 4px;"><?= esc(substr((string) ($o['created_at'] ?? ''), 0, 10) ?: '-') ?></td>
+                                    <td style="padding:6px 4px;text-align:right;">₩<?= number_format((int) ($o['ad_price'] ?? 0)) ?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                            <tfoot>
+                                <tr style="border-top:2px solid var(--color-border,#e5e7eb);font-weight:600;">
+                                    <td colspan="4" style="padding:6px 4px;text-align:right;">총금액</td>
+                                    <td style="padding:6px 4px;text-align:right;color:var(--color-primary,#0F6E56);">₩<?= number_format($orderTotal) ?></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                        <?php endif; ?>
+                    </td>
+                </tr>
                 <?php endforeach; ?>
             </tbody>
         </table>
+        <script>
+        function toggleOrders(i) {
+            var row = document.getElementById('adv-orders-' + i);
+            var caret = document.getElementById('adv-caret-' + i);
+            if (!row) return;
+            var open = row.style.display === 'none';
+            row.style.display = open ? 'table-row' : 'none';
+            if (caret) caret.style.transform = open ? 'rotate(90deg)' : '';
+        }
+        </script>
         <?php endif; ?>
     </div>
 </div>

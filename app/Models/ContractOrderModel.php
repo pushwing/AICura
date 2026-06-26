@@ -343,6 +343,19 @@ class ContractOrderModel extends Model
                 'created_at'        => $now,
             ]);
 
+            // 결제관리 노출용 — 미입금(입금대기) payments 레코드 생성 (이슈 #59)
+            $db->table('payments')->insert([
+                'user_id'           => (int) ($data['agency_user_id'] ?? 0) ?: null,
+                'hospital_id'       => $data['hospital_id'],
+                'contract_id'       => $contractId,
+                'contract_order_id' => $orderId,
+                'type'              => 1, // 가상계좌(입금대기)
+                'amount'            => (int) ($data['ad_price'] ?? 0),
+                'status'            => 'pending',
+                'created_at'        => $now,
+                'updated_at'        => $now,
+            ]);
+
             // 재계약: 이전 수주계약 잔액 이월 처리
             if ((int) $data['contract_type'] === 2 && !empty($data['parent_order_id'])) {
                 $this->carryOverBalance(
@@ -445,6 +458,16 @@ class ContractOrderModel extends Model
             'created_at'        => $now,
             'updated_at'        => $now,
         ]);
+
+        // 결제관리 — 입금대기 payments를 결제완료로 전환 (이슈 #59)
+        $this->db->table('payments')
+            ->where('contract_order_id', $orderId)
+            ->where('status', 'pending')
+            ->update([
+                'status'     => 'paid',
+                'auth_date'  => $now,
+                'updated_at' => $now,
+            ]);
 
         return true;
     }

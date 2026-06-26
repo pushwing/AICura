@@ -2,12 +2,18 @@
 /** @var array<string, mixed> $advertiser */
 /** @var bool $hasInvite */
 /** @var array<string, mixed>|null $agencyInfo 갑(광고대행사) 정보 */
+/** @var list<array<string, mixed>> $orders 건별 수주내역 */
+/** @var array<int, string> $adType2Labels */
 
 $statusLabels = [1 => '활성', 2 => '정지', 3 => '탈퇴'];
 $agreed    = !empty($advertiser['contract_agreed_at']);
 $hasOwner  = !empty($advertiser['owner_user_id']);
 $hasInvite = $hasInvite ?? false;
 $agencyInfo = $agencyInfo ?? null;
+
+$orders        = $orders ?? [];
+$adType2Labels = $adType2Labels ?? [];
+$orderTotal    = array_sum(array_map(static fn (array $o): int => (int) ($o['ad_price'] ?? 0), $orders));
 ?>
 <div class="page-header" style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
     <a href="/portal/advertisers" style="color:var(--color-text-muted);text-decoration:none;">← 목록</a>
@@ -41,6 +47,56 @@ $agencyInfo = $agencyInfo ?? null;
                 </tbody>
             </table>
         </div>
+    </div>
+</div>
+
+<!-- 건별 수주내역 (이슈 #59) -->
+<div class="card" style="margin-top:24px;">
+    <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span class="card-title">건별 수주내역</span>
+        <span class="text-sm" style="color:var(--color-text-muted);">
+            계약 <strong style="color:var(--color-text);"><?= number_format(count($orders)) ?></strong>건
+            · 총 <strong style="color:var(--color-primary,#0F6E56);">₩<?= number_format($orderTotal) ?></strong>
+        </span>
+    </div>
+    <div class="card-body">
+        <?php if ($orders === []): ?>
+        <p class="text-sm" style="color:var(--color-text-muted);margin:0;">건별 수주내역이 없습니다.</p>
+        <?php else: ?>
+        <div class="table-wrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>계약명</th>
+                        <th>광고상품</th>
+                        <th>상태</th>
+                        <th>등록일</th>
+                        <th style="text-align:right;">금액</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($orders as $o): ?>
+                    <tr>
+                        <td><?= esc($o['title'] ?? '-') ?></td>
+                        <td><?= esc($adType2Labels[(int) ($o['ad_type2'] ?? 0)] ?? '-') ?></td>
+                        <td>
+                            <?php $isUnpaid = ($o['status_label'] ?? '') === '미입금'; ?>
+                            <span style="<?= $isUnpaid ? 'color:#dc2626;font-weight:600;' : '' ?>"><?= esc($o['status_label'] ?? '-') ?></span>
+                        </td>
+                        <td><?= esc(substr((string) ($o['created_at'] ?? ''), 0, 10) ?: '-') ?></td>
+                        <td style="text-align:right;">₩<?= number_format((int) ($o['ad_price'] ?? 0)) ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th colspan="4" style="text-align:right;">총금액</th>
+                        <td style="text-align:right;color:var(--color-primary,#0F6E56);font-weight:600;">₩<?= number_format($orderTotal) ?></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <?php endif; ?>
     </div>
 </div>
 

@@ -129,6 +129,57 @@ class ContractModel extends Model
     }
 
     /**
+     * 병원 ID 목록 → 병원별 건별 수주내역 (어드민 대행사 상세 아코디언용)
+     *
+     * 단일 쿼리로 모든 병원의 수주건을 가져와 hospital_id로 그룹핑하여 N+1을 방지한다.
+     * 상태 라벨이 의미를 갖도록 모든 contract_status를 포함하며, 정상(1) 건은 입금 여부에
+     * 따라 '미입금'/'정상'으로 세분화한 `status_label`을 함께 내려준다.
+     *
+     * @param list<int> $hospitalIds
+     * @return array<int, list<array<string, mixed>>> hospital_id → 수주건 목록
+     */
+    public function getOrdersByHospitalIds(array $hospitalIds): array
+    {
+        if ($hospitalIds === []) {
+            return [];
+        }
+
+        /** @var list<array<string, mixed>> $rows */
+        $rows = $this->db->table('contracts c')
+            ->select('c.hospital_id, co.id, co.title, co.ad_type2, co.contract_status, co.ad_price, co.deposit_date, co.created_at')
+            ->join('contract_order_connects coc', 'coc.contract_id = c.id')
+            ->join('contract_orders co', 'co.id = coc.contract_order_id')
+            ->whereIn('c.hospital_id', array_map('intval', $hospitalIds))
+            ->orderBy('co.id', 'DESC')
+            ->get()
+            ->getResultArray();
+
+        $grouped = [];
+        foreach ($rows as $row) {
+            $row['status_label']                  = $this->resolveOrderStatusLabel($row);
+            $grouped[(int) $row['hospital_id']][] = $row;
+        }
+
+        return $grouped;
+    }
+
+    /**
+     * 수주건 표시용 상태 라벨 — 정상(1)은 입금 여부로 '미입금'/'정상' 세분화.
+     *
+     * @param array<string, mixed> $order
+     */
+    private function resolveOrderStatusLabel(array $order): string
+    {
+        $status = (int) ($order['contract_status'] ?? 0);
+
+        if ($status === 1) {
+            return empty($order['deposit_date']) ? '미입금' : '정상';
+        }
+
+        return \App\Models\ContractOrderModel::STATUS_LABELS[$status] ?? '-';
+    }
+
+    /**
      * 계약 상세 (수주계약 목록 포함)
      *
      * @return array<string, mixed>|null

@@ -143,6 +143,7 @@ class UserController extends BaseAdminController
             'user'              => $user,
             'userTypeLabels'    => self::USER_TYPE_LABELS,
             'agencyAdvertisers' => $agencyAdvertisers,
+            'adType2Labels'     => \App\Models\ContractOrderModel::AD_TYPE2_LABELS,
         ]);
     }
 }
