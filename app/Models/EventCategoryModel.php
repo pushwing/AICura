@@ -35,4 +35,14 @@ class EventCategoryModel extends Model
             ->orderBy('id', 'ASC')
             ->findAll();
     }
+
+    /**
+     * 카테고리 ID로 제목 조회 (없으면 빈 문자열) — AI 카피 프롬프트 입력용
+     */
+    public function titleById(int $id): string
+    {
+        $row = $this->select('title')->where('id', $id)->first();
+
+        return (string) ($row['title'] ?? '');
+    }
 }

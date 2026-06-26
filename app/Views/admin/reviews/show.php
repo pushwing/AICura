@@ -41,6 +41,7 @@ $isPending    = $reviewStatus === 'pending';
 // before: 현재 campaigns 승인 데이터 (최초 등록이면 없음)
 $before = [
     'ad_title'         => $detail['approved_title'] ?? null,
+    'ad_detail_info'   => $detail['approved_detail'] ?? null,
     'ad_type'          => $detail['approved_ad_type'] ?? null,
     'ad_start_date'    => $detail['approved_start'] ?? null,
     'ad_end_date'      => $detail['approved_end'] ?? null,
@@ -279,6 +280,40 @@ $costTypeLabels = [1 => '숫자', 2 => '텍스트'];
         </table>
     </div>
 </div>
+
+<!-- 광고 상세문구 비교 (이슈 #73) -->
+<?php
+$detailBefore = (string) ($before['ad_detail_info'] ?? '');
+$detailAfter  = (string) ($after['ad_detail_info'] ?? '');
+$detailChanged = isChanged($detailBefore, $detailAfter);
+?>
+<?php if ($detailBefore !== '' || $detailAfter !== ''): ?>
+<div class="card" style="margin-bottom:20px;">
+    <div class="card-body">
+        <h3 style="font-size:15px;margin-bottom:16px;">광고 상세문구
+            <?php if (!$isCreate && $detailChanged): ?>
+            <span style="background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:4px;font-size:11px;">변경됨</span>
+            <?php endif; ?>
+        </h3>
+        <div style="display:grid;grid-template-columns:<?= $isCreate ? '1fr' : '1fr 1fr' ?>;gap:16px;">
+            <?php if (!$isCreate): ?>
+            <div>
+                <div style="font-size:12px;color:var(--color-text-muted);margin-bottom:6px;">현재 (승인됨)</div>
+                <div style="border:1px solid var(--color-border,#e5e7eb);border-radius:6px;padding:12px;font-size:13px;line-height:1.6;">
+                    <?= $detailBefore !== '' ? $detailBefore : '<span style="color:#9ca3af;">없음</span>' ?>
+                </div>
+            </div>
+            <?php endif; ?>
+            <div>
+                <div style="font-size:12px;color:var(--color-text-muted);margin-bottom:6px;"><?= $isCreate ? '등록 요청' : '변경 요청' ?></div>
+                <div style="border:2px solid <?= (!$isCreate && $detailChanged) ? '#10b981' : 'var(--color-border,#e5e7eb)' ?>;border-radius:6px;padding:12px;font-size:13px;line-height:1.6;">
+                    <?= $detailAfter !== '' ? $detailAfter : '<span style="color:#9ca3af;">없음</span>' ?>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <!-- 썸네일 이미지 비교 -->
 <div class="card" style="margin-bottom:20px;">

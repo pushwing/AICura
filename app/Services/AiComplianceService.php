@@ -76,24 +76,28 @@ class AiComplianceService
      * 검사 대상 텍스트 조합 — 제목(검수 요청 우선) + 상세 설명(태그 제거)
      *
      * 콘텐츠는 승인 전까지 campaigns 가 아닌 검수 요청에 있으므로,
-     * 제목은 검수 요청 값을 우선 사용한다.
+     * 제목·상세문구 모두 검수 요청 값을 우선 사용한다(이슈 #73으로 상세문구도 검수 요청에 포함).
      *
      * @param array<string, mixed> $campaign
      */
     private function gatherText(array $campaign, ?int $reviewRequestId): string
     {
         $adTitle = (string) ($campaign['ad_title'] ?? '');
+        $detail  = (string) ($campaign['ad_detail_info'] ?? '');
 
         if ($reviewRequestId !== null) {
             $request = $this->reviewModel->find($reviewRequestId);
-            if ($request !== null && ($request['ad_title'] ?? '') !== '') {
-                $adTitle = (string) $request['ad_title'];
+            if ($request !== null) {
+                if (($request['ad_title'] ?? '') !== '') {
+                    $adTitle = (string) $request['ad_title'];
+                }
+                if (($request['ad_detail_info'] ?? '') !== '') {
+                    $detail = (string) $request['ad_detail_info'];
+                }
             }
         }
 
-        $detail = trim(strip_tags((string) ($campaign['ad_detail_info'] ?? '')));
-
-        return trim($adTitle . "\n\n" . $detail);
+        return trim($adTitle . "\n\n" . trim(strip_tags($detail)));
     }
 
     /**
