@@ -22,7 +22,8 @@ class DashboardController extends BaseAdminController
         $year  = (int) date('Y');
         $month = (int) date('m');
 
-        $kpi = $this->dashboardModel->getMonthlyKpi($year, $month);
+        $kpi          = $this->dashboardModel->getMonthlyKpi($year, $month);
+        $totalBalance = $this->dashboardModel->getTotalBalance();
 
         // 최근 6개월 목록 구성 (오래된 순)
         $months      = [];
@@ -65,6 +66,7 @@ class DashboardController extends BaseAdminController
             'monthlyContractCount'   => $kpi['monthly_contract_count'],
             'monthlyContractAmount'  => $kpi['monthly_contract_amount'],
             'monthlyRevenue'         => $kpi['monthly_revenue'],
+            'totalBalance'           => $totalBalance,
             'chartLabels'            => $chartLabels,
             'chartContractCounts'    => $chartContractCounts,
             'chartContractAmounts'   => $chartContractAmounts,

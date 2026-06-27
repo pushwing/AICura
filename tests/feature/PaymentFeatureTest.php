@@ -19,8 +19,8 @@ use Tests\Support\Database\Seeds\PaymentSeeder;
  *   [F7] 상세 환불 버튼 포함
  *   [F8] 이미 환불된 결제 재환불 시도 → 에러 리다이렉트
  *   [F9] 환불 — refund_type 누락 → 유효성 실패 리다이렉트
- *   [F10] 환불 — amount > payment.amount → 에러 리다이렉트
- *   [F11] 발행환불(type=2) 정상 처리 → deposits.status=6, payments.status=refunded, contract_status=2
+ *   [F10] 환불 — amount > 잔여 환불 가능액 → 에러 리다이렉트
+ *   [F11] 발행환불(type=2) 부분 처리 → deposits.status=6, payments.status=partial_refunded, contract_status=2
  *   [F12] 계약환불(type=5) 정상 처리 → deposits.status=7, contract_status=5
  *
  * @internal
@@ -156,7 +156,7 @@ final class PaymentFeatureTest extends CIUnitTestCase
                        ]);
 
         $result->assertRedirect();
-        $this->assertSame('이미 환불 처리된 결제입니다.', session('error'));
+        $this->assertSame('이미 전액 환불된 결제입니다.', session('error'));
     }
 
     // ── [F9] refund_type 누락 → 유효성 실패 ──────────
@@ -197,7 +197,7 @@ final class PaymentFeatureTest extends CIUnitTestCase
                        ]);
 
         $result->assertRedirect();
-        $this->assertSame('환불 금액이 결제 금액을 초과할 수 없습니다.', session('error'));
+        $this->assertSame('환불 금액이 잔여 환불 가능액(1,100,000원)을 초과할 수 없습니다.', session('error'));
     }
 
     // ── [F11] 발행환불(type=2) 정상 처리 ─────────────
@@ -213,8 +213,8 @@ final class PaymentFeatureTest extends CIUnitTestCase
 
         $result->assertRedirectTo('/admin/payments/1');
 
-        // payments.status = refunded
-        $this->seeInDatabase('payments', ['id' => 1, 'status' => 'refunded']);
+        // 부분 환불(500,000 < 1,100,000) → payments.status = partial_refunded
+        $this->seeInDatabase('payments', ['id' => 1, 'status' => 'partial_refunded']);
 
         // deposits INSERT: status=6, is_minus=1, price=500000
         $this->seeInDatabase('deposits', [

@@ -8,11 +8,22 @@ use CodeIgniter\Test\CIUnitTestCase;
  */
 final class AdvertiserModelTest extends CIUnitTestCase
 {
-    public function testAllowedFieldsContainsNineFields(): void
+    public function testAllowedFieldsContainsExpectedCount(): void
     {
         $model = new AdvertiserModel();
 
-        $this->assertCount(9, $this->getPrivateProperty($model, 'allowedFields'));
+        // 기본 9개 + 포털 연동 3개(agency_user_id, owner_user_id, contract_agreed_at)
+        $this->assertCount(12, $this->getPrivateProperty($model, 'allowedFields'));
+    }
+
+    public function testAllowedFieldsContainsPortalFields(): void
+    {
+        $model   = new AdvertiserModel();
+        $allowed = $this->getPrivateProperty($model, 'allowedFields');
+
+        foreach (['agency_user_id', 'owner_user_id', 'contract_agreed_at'] as $field) {
+            $this->assertContains($field, $allowed);
+        }
     }
 
     public function testAllowedFieldsContainsExpectedFields(): void

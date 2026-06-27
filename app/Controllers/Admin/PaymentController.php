@@ -3,11 +3,13 @@
 namespace App\Controllers\Admin;
 
 use App\Models\PaymentModel;
+use App\Models\RefundModel;
 use CodeIgniter\HTTP\ResponseInterface;
 
 class PaymentController extends BaseAdminController
 {
     private PaymentModel $paymentModel;
+    private RefundModel $refundModel;
 
     public function initController(
         \CodeIgniter\HTTP\RequestInterface $request,
@@ -16,6 +18,7 @@ class PaymentController extends BaseAdminController
     ): void {
         parent::initController($request, $response, $logger);
         $this->paymentModel = model(PaymentModel::class);
+        $this->refundModel  = model(RefundModel::class);
     }
 
     // ──────────────────────────────────────────────
@@ -55,10 +58,15 @@ class PaymentController extends BaseAdminController
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
 
+        $refundedTotal = $this->refundModel->getRefundedTotal($id);
+
         return $this->render('admin/payments/show', [
-            'payment'      => $payment,
-            'statuses'     => PaymentModel::STATUSES,
-            'paymentTypes' => PaymentModel::PAYMENT_TYPES,
+            'payment'         => $payment,
+            'refunds'         => $this->refundModel->getListByPayment($id),
+            'refundedTotal'   => $refundedTotal,
+            'remainingAmount' => max(0, (int) $payment['amount'] - $refundedTotal),
+            'statuses'        => PaymentModel::STATUSES,
+            'paymentTypes'    => PaymentModel::PAYMENT_TYPES,
         ]);
     }
 
@@ -74,7 +82,7 @@ class PaymentController extends BaseAdminController
         }
 
         if ($payment['status'] === 'refunded') {
-            return redirect()->back()->with('error', '이미 환불 처리된 결제입니다.');
+            return redirect()->back()->with('error', '이미 전액 환불된 결제입니다.');
         }
 
         $rules = [
@@ -89,8 +97,12 @@ class PaymentController extends BaseAdminController
         $refundType   = (int) $this->request->getPost('refund_type');
         $refundAmount = (int) $this->request->getPost('refund_amount');
 
-        if ($refundAmount > (int) $payment['amount']) {
-            return redirect()->back()->with('error', '환불 금액이 결제 금액을 초과할 수 없습니다.');
+        $remaining = (int) $payment['amount'] - $this->refundModel->getRefundedTotal($id);
+        if ($refundAmount > $remaining) {
+            return redirect()->back()->with(
+                'error',
+                '환불 금액이 잔여 환불 가능액(' . number_format($remaining) . '원)을 초과할 수 없습니다.'
+            );
         }
 
         /** @var array<string, mixed> $authUser */

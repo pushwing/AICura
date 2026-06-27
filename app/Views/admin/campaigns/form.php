@@ -4,6 +4,7 @@
 /** @var array<int, array<string, mixed>> $contracts */
 /** @var array<int, string> $adTypes */
 /** @var array<int, string> $channels */
+/** @var array<int, array{id: int, title: string}> $categories */
 
 $isEdit   = $campaign !== null;
 $formAction = $isEdit
@@ -112,6 +113,35 @@ $old   = fn(string $key, mixed $default = '') => old($key, $campaign[$key] ?? $d
                 </div>
             </div>
 
+            <!-- 광고 카피 (이슈 #73) -->
+            <div class="card">
+                <div class="card-body">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                        <h3 style="font-size:15px;margin:0;">광고 카피</h3>
+                        <button type="button" id="aiCopyBtn" class="btn btn-outline btn-sm">✨ AI 추천</button>
+                    </div>
+
+                    <!-- 제목 후보 칩 -->
+                    <div id="aiTitleSuggestions" style="display:none;margin-bottom:12px;">
+                        <div style="font-size:12px;color:var(--color-text-muted);margin-bottom:6px;">추천 제목 (클릭하면 캠페인명에 적용)</div>
+                        <div id="aiTitleChips" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">상세문구</label>
+                        <div style="display:flex;gap:6px;margin-bottom:6px;">
+                            <button type="button" id="detailBold" class="btn btn-outline btn-sm" style="padding:2px 10px;font-weight:700;">B</button>
+                            <button type="button" id="detailItalic" class="btn btn-outline btn-sm" style="padding:2px 10px;font-style:italic;">I</button>
+                            <button type="button" id="detailBullet" class="btn btn-outline btn-sm" style="padding:2px 10px;">• 목록</button>
+                        </div>
+                        <div id="tiptapDetailEditor"
+                             style="min-height:140px;border:1px solid var(--color-border,#e5e7eb);border-radius:var(--radius-sm,6px);padding:10px;outline:none;"></div>
+                        <input type="hidden" name="ad_detail_info" id="adDetailInput"
+                               value="<?= esc($old('ad_detail_info'), 'attr') ?>">
+                    </div>
+                </div>
+            </div>
+
             <!-- 가격 정보 -->
             <div class="card">
                 <div class="card-body">
@@ -204,8 +234,15 @@ $old   = fn(string $key, mixed $default = '') => old($key, $campaign[$key] ?? $d
                         </div>
                         <div class="form-group">
                             <label class="form-label">카테고리</label>
-                            <input type="number" name="category" class="form-control"
-                                   value="<?= esc($old('category', 0)) ?>" min="0">
+                            <select name="category" class="form-control">
+                                <option value="0">미분류</option>
+                                <?php foreach (($categories ?? []) as $cat): ?>
+                                    <option value="<?= (int) $cat['id'] ?>"
+                                        <?= (int) $old('category', 0) === (int) $cat['id'] ? 'selected' : '' ?>>
+                                        <?= esc($cat['title']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -290,4 +327,97 @@ function previewImage(input, previewId) {
     const checked = document.querySelector('input[name="cost_type"]:checked');
     if (checked) toggleCostType(Number(checked.value));
 })();
+</script>
+
+<!-- 상세문구 Tiptap 에디터 + AI 카피 추천 (이슈 #73) -->
+<script type="module">
+import { Editor } from 'https://esm.sh/@tiptap/core@2'
+import StarterKit from 'https://esm.sh/@tiptap/starter-kit@2'
+import Placeholder from 'https://esm.sh/@tiptap/extension-placeholder@2'
+
+const hiddenInput = document.getElementById('adDetailInput')
+
+const editor = new Editor({
+    element: document.getElementById('tiptapDetailEditor'),
+    extensions: [
+        StarterKit,
+        Placeholder.configure({ placeholder: '상세 광고 문구를 입력하거나 AI 추천을 받아보세요.' }),
+    ],
+    content: hiddenInput.value || '',
+    onUpdate: ({ editor }) => {
+        const html = editor.getHTML()
+        // 빈 에디터는 <p></p> 로 직렬화되므로 빈 값으로 정규화
+        hiddenInput.value = editor.isEmpty ? '' : html
+    },
+})
+
+// 툴바
+document.getElementById('detailBold').addEventListener('click', () => editor.chain().focus().toggleBold().run())
+document.getElementById('detailItalic').addEventListener('click', () => editor.chain().focus().toggleItalic().run())
+document.getElementById('detailBullet').addEventListener('click', () => editor.chain().focus().toggleBulletList().run())
+
+// AI 추천
+const aiBtn = document.getElementById('aiCopyBtn')
+aiBtn.addEventListener('click', async () => {
+    const keyword  = document.querySelector('input[name="keyword"]')?.value ?? ''
+    const category = document.querySelector('select[name="category"]')?.value ?? '0'
+    const hospitalType = document.querySelector('[name="hospital_type"]')?.value ?? '1'
+
+    aiBtn.disabled = true
+    const original = aiBtn.textContent
+    aiBtn.textContent = '생성 중…'
+
+    try {
+        const body = new URLSearchParams({ keyword, category, hospital_type: hospitalType })
+        const res = await fetch('/admin/campaigns/suggest-copy', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest',
+                ...window.csrfHeaders(),
+            },
+            body,
+        })
+        const data = await res.json()
+
+        // CSRF 토큰 회전 대응 — 새 토큰으로 메타·폼 hidden 필드 갱신 (이후 폼 제출 보호)
+        if (data.csrf) {
+            const meta = document.querySelector('meta[name="csrf-token"]')
+            if (meta) meta.content = data.csrf
+            document.querySelectorAll('input[name="<?= csrf_token() ?>"]').forEach((i) => { i.value = data.csrf })
+        }
+
+        if (!data.success) {
+            alert(data.message ?? 'AI 카피 생성에 실패했습니다.')
+            return
+        }
+
+        // 제목 후보 칩
+        const chips = document.getElementById('aiTitleChips')
+        chips.innerHTML = ''
+        ;(data.titles ?? []).forEach((t) => {
+            const chip = document.createElement('button')
+            chip.type = 'button'
+            chip.className = 'btn btn-outline btn-sm'
+            chip.textContent = t
+            chip.addEventListener('click', () => {
+                const titleInput = document.querySelector('input[name="ad_title"]')
+                if (titleInput) titleInput.value = t
+            })
+            chips.appendChild(chip)
+        })
+        document.getElementById('aiTitleSuggestions').style.display = (data.titles?.length ? 'block' : 'none')
+
+        // 상세문구 에디터에 삽입
+        if (data.detail) {
+            editor.commands.setContent(data.detail)
+            hiddenInput.value = editor.getHTML()
+        }
+    } catch (e) {
+        alert('AI 카피 생성 중 오류가 발생했습니다.')
+    } finally {
+        aiBtn.disabled = false
+        aiBtn.textContent = original
+    }
+})
 </script>

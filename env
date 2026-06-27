@@ -70,3 +70,20 @@
 
 # JWT
 # JWT_SECRET = your-secret-key-here
+
+#--------------------------------------------------------------------
+# AI 일일 매출·소진 보고서 자동 생성 (이슈 #65)
+#--------------------------------------------------------------------
+
+# 공급자 선택 — 구현체: groq · gemini (다른 AI 추가 시 AiClientFactory에 등록)
+# AI_PROVIDER = groq
+
+# Groq — 일일 보고서(이슈 #65)에서 사용
+# GROQ_API_KEY =
+# GROQ_MODEL = llama-3.3-70b-versatile
+# GROQ_TIMEOUT = 30   # 호출 타임아웃(초). 429·5xx는 지수 백오프로 자동 재시도
+
+# Gemini — 의료광고 심의 사전검사(이슈 #71) 등 JSON 구조화 응답에서 사용
+# GEMINI_API_KEY =
+# GEMINI_MODEL = gemini-2.0-flash
+# GEMINI_TIMEOUT = 30   # 호출 타임아웃(초). 429·5xx는 지수 백오프로 자동 재시도

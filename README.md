@@ -42,6 +42,11 @@ database.default.password =
 database.default.DBDriver = MySQLi
 
 JWT_SECRET = your-secret-key-here   # 32자 이상 랜덤 문자열 권장
+
+# AI 일일 보고서 (이슈 #65) — 미설정 시 보고서 생성만 비활성, 그 외 기능 정상
+AI_PROVIDER = groq                     # 공급자 선택 (기본 groq)
+GROQ_API_KEY = your-groq-api-key
+GROQ_MODEL = llama-3.3-70b-versatile   # 선택 (기본값 동일)
 ```
 
 ### DB 생성
@@ -209,10 +214,101 @@ php spark migrate --group tests  # 테스트 DB 마이그레이션
 php spark migrate:rollback       # 마이그레이션 롤백
 php spark swagger:generate       # OpenAPI 스펙 생성
 php spark routes                 # 등록된 라우트 확인
+php spark reports:generate-ai    # Groq AI 일일 매출·소진 보고서 생성 (이슈 #65)
 composer test                    # PHPUnit 단위·통합 테스트
 composer analyse                 # PHPStan 정적 분석 (level 6)
 composer check                   # PHPStan + PHPUnit 순차 실행
 ```
+
+---
+
+## AI 일일 보고서 (이슈 #65)
+
+Groq AI(`llama-3.3-70b-versatile`)로 매일 1회 **매출 현황 보고서**와 **소진 보고서**를 자동 생성한다.
+
+- **매출 보고서**: 전일 1일치 + 당월 누계 충전/소진/환불/잔액을 분석해 현황·특이점을 문서화
+- **소진 보고서**: 충전금의 **5% 이하**만 남은 광고주(병원)를 추려 재충전 권고 등을 문서화
+- **노출**: 리포트 화면 상단에 종류별 최신 보고서 2건 + `더보기`(이전 목록), 보고서는 **새창**으로 표시
+- **수동 생성**: 운영자 화면(`/admin/reports`)의 `지금 생성` 버튼으로 즉시 생성 가능
+
+### 스코프 (노출 주체별 분리)
+
+`ai_reports.scope_type` / `scope_id`로 주체별 보고서를 분리 저장한다. 야간 배치가 아래를 모두 생성한다.
+
+| scope_type | 대상 | 노출 위치 |
+|-----------|------|-----------|
+| `global`   | 전체(운영자 관점) | `/admin/reports` |
+| `hospital` | 광고주 단일 병원 (자기 데이터만) | `/portal/reports` (광고주 로그인) |
+| `agency`   | 대행사 소속 광고주 합산 | `/portal/reports` (대행사 로그인) |
+
+- 포털(광고주·대행사)에는 **수동 생성 버튼이 없으며**, 본인 스코프 보고서만 조회·열람 가능(권한 검증)
+
+### 정기 실행 (crontab)
+
+`.env`에 `GROQ_API_KEY`를 설정한 뒤, 서버 crontab에 매일 1회 등록한다.
+
+```cron
+# 매일 06:00 KST 보고서 생성
+0 6 * * * cd /path/to/AICura && php spark reports:generate-ai >> writable/logs/ai-report.log 2>&1
+```
+
+특정 날짜 기준으로 생성하려면 `--date` 옵션을 사용한다.
+
+```bash
+php spark reports:generate-ai --date=2026-06-25
+```
+
+### 다른 AI로 교체
+
+AI 호출은 `AiClientInterface`로 추상화되어 있어 호출부 수정 없이 공급자를 교체할 수 있다.
+
+```
+app/Libraries/Ai/
+  ├─ AiClientInterface.php   # complete(system, user): string
+  ├─ GroqClient.php          # 기본 구현 (Groq)
+  └─ AiClientFactory.php     # env('AI_PROVIDER')로 구현체 선택
+```
+
+1. `AiClientInterface`를 구현하는 새 클라이언트 클래스 추가 (예: `OpenAiClient`)
+2. `AiClientFactory::make()`의 `match`에 한 줄 등록
+3. `.env`의 `AI_PROVIDER` 값 변경
+
+프롬프트·도메인 로직은 `AiReportService`에 있으므로 공급자와 무관하게 그대로 재사용된다.
+
+### 처리 흐름
+
+```
+서버 crontab (야간 1회)  ──┐
+관리자 '지금 생성' 버튼     ──┴─▶  AiReportService
+                                    ├─ ReportModel: 스코프별 집계 수집
+                                    ├─ AiClient(Groq): 마크다운 보고서 생성
+                                    └─ AiReportModel: ai_reports 저장 (scope 포함)
+                                                          │
+리포트 화면 ◀── 최신 매출1 + 소진1 카드 + 더보기 ─────────┘
+   └─ 전체 보기 → 새창 상세 (MarkdownRenderer로 서버 HTML 변환)
+```
+
+### 구성 요소
+
+| 경로 | 역할 |
+|------|------|
+| `app/Models/AiReportModel.php` | 보고서 저장·스코프 한정 조회 (`latestByType`/`historyByType`/`findScoped`) |
+| `app/Models/ReportModel.php` | 스코프별 집계 (전일·당월 누계 매출 / 잔액 5% 이하 광고주) |
+| `app/Libraries/Ai/` | `AiClientInterface` · `GroqClient` · `AiClientFactory` (공급자 교체 추상화) |
+| `app/Services/AiReportService.php` | 집계→AI 생성→저장 오케스트레이션 + 프롬프트 |
+| `app/Services/ReportScope.php` | 생성 범위 값 객체 (global / hospital / agency) |
+| `app/Libraries/MarkdownRenderer.php` | 마크다운→안전 HTML 변환 (서버 사이드) |
+| `app/Commands/ReportGenerateAi.php` | `reports:generate-ai` 배치 커맨드 |
+| `app/Views/reports/ai_show.php` | 새창 상세 (admin·portal 공용) |
+| `app/Views/reports/_ai_section.php` | 리포트 화면 AI 카드 섹션 파셜 (공용) |
+
+### 마크다운 렌더링
+
+AI가 생성한 마크다운 본문은 **서버에서** `league/commonmark`(GFM, 표 지원)로 HTML 변환한다.
+외부 CDN(marked/DOMPurify) 의존을 제거해 네트워크 환경과 무관하게 렌더된다.
+
+- 보안 설정: `html_input=escape`(본문 내 원시 HTML 이스케이프) · `allow_unsafe_links=false`(`javascript:` 등 위험 링크 차단)으로 XSS 방어
+- 변환 진입점: `App\Libraries\MarkdownRenderer::toSafeHtml()`
 
 ---
 

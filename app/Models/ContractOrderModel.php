@@ -25,6 +25,41 @@ class ContractOrderModel extends Model
     protected $table      = 'contract_orders';
     protected $primaryKey = 'id';
     protected $useTimestamps = true;
+    protected $returnType    = 'array';
+
+    /** @var array<int, string> 광고 상품 종류 (ad_type2) */
+    public const AD_TYPE2_LABELS = [
+        1 => '이벤트',
+        2 => '메인배너',
+        3 => '이벤트존메인배너',
+        4 => 'CPM',
+        5 => '기타',
+    ];
+
+    /** @var array<int, string> 수주계약 상태 (contract_status) */
+    public const STATUS_LABELS = [
+        1 => '정상',
+        2 => '발행환불',
+        3 => '발행취소',
+        4 => '계약취소',
+        5 => '계약환불',
+        6 => '이월종료',
+    ];
+
+    /** @var array<int, string> deposits 거래 상태 (status) — 원장 표기용 */
+    public const DEPOSIT_STATUS_LABELS = [
+        2  => '계약충전',
+        3  => 'DB소진',
+        4  => '기타충전',
+        5  => '기타차감',
+        6  => '발행환불',
+        7  => '계약환불',
+        8  => '기타소진',
+        9  => '발행취소',
+        10 => '계약취소',
+        11 => '이월소진',
+        12 => '이월충전',
+    ];
 
     protected $allowedFields = [
         'hospital_id',
@@ -36,14 +71,34 @@ class ContractOrderModel extends Model
         'contract_status',
         'deposit_date',
         'parent_id',
+        'title',
+        'contract_date',
+        'contract_agree_date',
+        'agree',
+        'deposit_check_id',
+        'main_contract',
+        'is_delete',
+        'purchase_owner_id',
+        'is_network',
+        'hospital_type',
+        'hospital_charge_name',
+        'hospital_charge_phone',
+        'hospital_charge_email',
         'agency_user_id',
         'manage_user_id',
+        'agency_company_name',
+        'agency_company_fee_rate',
+        'agency_company_charge_name',
+        'agency_company_charge_phone',
+        'agency_company_charge_email',
         'tax_charge_name',
         'tax_charge_email',
         'tax_business_no',
         'tax_issue_date',
-        'agency_company_name',
-        'agency_company_fee_rate',
+        'tax_issue_request_date',
+        'ads_count',
+        'ads_count_bonus',
+        'pay_method',
         'memo',
     ];
 
@@ -120,28 +175,120 @@ class ContractOrderModel extends Model
 
     /**
      * 잔액 계산 = 충전금액 - 소진금액
-     * 충전: status IN (2, 4, 12)
-     * 소진: status IN (3, 5, 6, 7, 8, 9, 10, 11)
+     * 충전: status IN (2, 12)
+     * 소진: status IN (3, 5, 6, 7, 8, 9, 10, 11) − CPA 환불 복원(status 4)
+     *
+     * CPA 환불 복원(status 4)은 신청DB 환불요청 승인 시 소진을 상계하는 거래이므로
+     * 충전이 아닌 소진 차감(−)으로 집계한다. (잔액 결과값은 기존과 동일)
      */
     public function getBalance(int $contractId, int $contractOrderId): int
     {
-        $charged = (int) $this->db->table('deposits')
-            ->selectSum('price')
+        $row = $this->db->table('deposits')
+            ->select('IFNULL(SUM(CASE WHEN status IN (2, 12) THEN price ELSE 0 END), 0) AS charged', false)
+            ->select('IFNULL(SUM(CASE WHEN status IN (3, 5, 6, 7, 8, 9, 10, 11) THEN price WHEN status = 4 THEN -price ELSE 0 END), 0) AS used', false)
             ->where('contract_id', $contractId)
             ->where('contract_order_id', $contractOrderId)
-            ->whereIn('status', [2, 4, 12])
             ->get()
-            ->getRowArray()['price'];
+            ->getRowArray();
 
-        $used = (int) $this->db->table('deposits')
-            ->selectSum('price')
+        return (int) ($row['charged'] ?? 0) - (int) ($row['used'] ?? 0);
+    }
+
+    /**
+     * 계약 단위 잔액 일괄 집계 — 수주계약별 잔액을 단일 쿼리로 계산 (N+1 방지)
+     *
+     * 충전: status IN (2, 12) / 소진: status IN (3, 5, 6, 7, 8, 9, 10, 11) − CPA 환불 복원(4)
+     *
+     * @return array<int, int> contract_order_id => 잔액
+     */
+    public function getBalancesByContract(int $contractId): array
+    {
+        $rows = $this->db->table('deposits')
+            ->select('contract_order_id')
+            ->select('SUM(CASE WHEN status IN (2, 12) THEN price ELSE 0 END) AS charged', false)
+            ->select('SUM(CASE WHEN status IN (3, 5, 6, 7, 8, 9, 10, 11) THEN price WHEN status = 4 THEN -price ELSE 0 END) AS used', false)
             ->where('contract_id', $contractId)
-            ->where('contract_order_id', $contractOrderId)
-            ->whereIn('status', [3, 5, 6, 7, 8, 9, 10, 11])
+            ->groupBy('contract_order_id')
             ->get()
-            ->getRowArray()['price'];
+            ->getResultArray();
 
-        return $charged - $used;
+        $balances = [];
+        foreach ($rows as $row) {
+            $balances[(int) $row['contract_order_id']] = (int) $row['charged'] - (int) $row['used'];
+        }
+
+        return $balances;
+    }
+
+    /**
+     * 병원 단위 원장 요약 — 충전금/소진/잔액 (이슈 #49 광고주 대시보드)
+     *
+     * 병원에 연결된 모든 계약의 deposits를 단일 쿼리로 집계한다 (N+1 방지).
+     * 충전: status IN (2, 12) / 소진: status IN (3, 5, 6, 7, 8, 9, 10, 11) − CPA 환불 복원(4)
+     *
+     * CPA 환불 복원(status 4)은 충전이 아닌 소진 상계(−)이므로 전체 충전금에서 제외하고
+     * 소진에서 차감한다. (잔액 결과값은 기존과 동일)
+     *
+     * @return array{charged:int, used:int, balance:int}
+     */
+    public function getHospitalLedgerSummary(int $hospitalId): array
+    {
+        $row = $this->db->table('deposits d')
+            ->select('SUM(CASE WHEN d.status IN (2, 12) THEN d.price ELSE 0 END) AS charged', false)
+            ->select('SUM(CASE WHEN d.status IN (3, 5, 6, 7, 8, 9, 10, 11) THEN d.price WHEN d.status = 4 THEN -d.price ELSE 0 END) AS used', false)
+            ->join('contracts c', 'c.id = d.contract_id')
+            ->where('c.hospital_id', $hospitalId)
+            ->get()
+            ->getRowArray();
+
+        $charged = (int) ($row['charged'] ?? 0);
+        $used    = (int) ($row['used'] ?? 0);
+
+        return [
+            'charged' => $charged,
+            'used'    => $used,
+            'balance' => $charged - $used,
+        ];
+    }
+
+    /**
+     * 수주계약 거래내역 — deposits 원장 (이슈 #49 계약 상세)
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function getDepositHistory(int $orderId): array
+    {
+        /** @var list<array<string, mixed>> $rows */
+        $rows = $this->db->table('deposits')
+            ->select('id, status, is_minus, price, note, created_at')
+            ->where('contract_order_id', $orderId)
+            ->orderBy('id', 'DESC')
+            ->get()
+            ->getResultArray();
+
+        return $rows;
+    }
+
+    /**
+     * 병원의 대행사 정보 — 수주계약에 기록된 최신 대행사 정보 (이슈 #49 내 대행사)
+     *
+     * 대행사 계정(users)에는 회사명·담당자 컬럼이 없어, 수주계약(contract_orders)에
+     * 기록된 agency_company_* 값 중 가장 최근 비어있지 않은 건을 사용한다.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findAgencyInfoByHospital(int $hospitalId): ?array
+    {
+        $row = $this->db->table('contract_orders')
+            ->select('agency_company_name, agency_company_charge_name, agency_company_charge_phone, agency_company_charge_email')
+            ->where('hospital_id', $hospitalId)
+            ->where('agency_company_name IS NOT NULL', null, false)
+            ->where('agency_company_name !=', '')
+            ->orderBy('id', 'DESC')
+            ->get()
+            ->getRowArray();
+
+        return $row ?: null;
     }
 
     /**
@@ -192,6 +339,19 @@ class ContractOrderModel extends Model
                 'contract_id'       => $contractId,
                 'contract_order_id' => $orderId,
                 'created_at'        => $now,
+            ]);
+
+            // 결제관리 노출용 — 미입금(입금대기) payments 레코드 생성 (이슈 #59)
+            $db->table('payments')->insert([
+                'user_id'           => (int) ($data['agency_user_id'] ?? 0) ?: null,
+                'hospital_id'       => $data['hospital_id'],
+                'contract_id'       => $contractId,
+                'contract_order_id' => $orderId,
+                'type'              => 1, // 가상계좌(입금대기)
+                'amount'            => (int) ($data['ad_price'] ?? 0),
+                'status'            => 'pending',
+                'created_at'        => $now,
+                'updated_at'        => $now,
             ]);
 
             // 재계약: 이전 수주계약 잔액 이월 처리
@@ -296,6 +456,16 @@ class ContractOrderModel extends Model
             'created_at'        => $now,
             'updated_at'        => $now,
         ]);
+
+        // 결제관리 — 입금대기 payments를 결제완료로 전환 (이슈 #59)
+        $this->db->table('payments')
+            ->where('contract_order_id', $orderId)
+            ->where('status', 'pending')
+            ->update([
+                'status'     => 'paid',
+                'auth_date'  => $now,
+                'updated_at' => $now,
+            ]);
 
         return true;
     }
