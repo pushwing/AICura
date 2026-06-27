@@ -148,10 +148,35 @@ final class ReportModelDatabaseTest extends CIUnitTestCase
         $today     = date('Y-m-d');
         $mtd       = model(ReportModel::class)->getMonthToDateStats($monthFrom, $today);
 
-        $this->assertSame(1000000, $mtd['charged']);   // 충전(2)만 — status 4는 충전에 미포함
-        $this->assertSame(200000, $mtd['consumed']);   // 소진(3) 300,000 - CPA환불(4) 100,000(50,000×2)
+        $this->assertSame(1000000, $mtd['charged']);      // 충전(2)만 — status 4는 충전에 미포함
+        $this->assertSame(200000, $mtd['consumed']);      // 소진(3) 300,000 - CPA환불(4) 100,000(50,000×2)
         $this->assertSame(100000, $mtd['refunded']);
-        $this->assertSame(700000, $mtd['balance']);    // 1,000,000 - 200,000 - 100,000
+        $this->assertSame(100000, $mtd['cpa_refunded']);  // setUp 50,000 + 본 테스트 50,000 — 별도 지표로 노출
+        $this->assertSame(700000, $mtd['balance']);       // 1,000,000 - 200,000 - 100,000
+    }
+
+    public function testGetDailyStatsExposesCpaRefundSeparately(): void
+    {
+        // 오늘자 CPA 환불 복원(상계, status 4) 15,000 — 소진에서 차감되면서 별도 지표로도 노출되어야 한다.
+        $today = date('Y-m-d');
+        db_connect()->table('deposits')->insert([
+            'status'            => 4,
+            'is_minus'          => 0,
+            'contract_id'       => $this->contractId,
+            'contract_order_id' => $this->contractOrder,
+            'price'             => 15000,
+            'created_at'        => $today . ' 04:35:07',
+            'updated_at'        => $today . ' 04:35:07',
+        ]);
+
+        $daily = model(ReportModel::class)->getDailyStats($today);
+
+        // setUp CPA환불복원(4) 50,000 + 본 테스트 15,000 — 별도 지표로 노출
+        $this->assertSame(65000, $daily['cpa_refunded']);
+        // 충전금 환불(6) 100,000과는 분리된 항목 — CPA 복원이 환불에 섞이지 않는다
+        $this->assertSame(100000, $daily['refunded']);
+        // 소진(3) 300,000 − CPA환불복원 65,000 = 235,000 (순소진)
+        $this->assertSame(235000, $daily['consumed']);
     }
 
     public function testGetMonthlyRevenueReturnsTwelveElements(): void

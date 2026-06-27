@@ -135,16 +135,17 @@ class AiReportService
             전달받은 충전·소진·환불 집계 수치를 바탕으로 한국어 매출 현황 보고서를 작성합니다.
             반드시 마크다운 형식으로 작성하고, 다음 구성을 따릅니다.
             1. ## 요약 — 전일 및 당월 핵심 수치 2~3문장
-            2. ## 매출 현황 — 표로 충전/소진/환불/잔액 정리
+            2. ## 매출 현황 — 표로 충전/소진/환불/CPA환불복원/잔액 정리
             3. ## 특이점 및 분석 — 전일 대비 흐름, 주목할 점, 주의가 필요한 부분
+            '환불'은 충전금 자체 환불(발행환불·계약환불)이고, 'CPA환불복원'은 신청DB 환불 승인으로 소진을 되돌린 금액으로 서로 다른 항목입니다. '소진'은 CPA환불복원이 이미 차감된 순소진 값이므로 이중으로 빼지 마십시오.
             금액은 원 단위로 천 단위 콤마를 사용합니다. 수치를 지어내지 말고 전달받은 값만 사용합니다.
             제공된 '보고 대상' 관점에 맞춰 서술합니다.
             PROMPT;
     }
 
     /**
-     * @param array{charged: int, consumed: int, refunded: int} $daily
-     * @param array{charged: int, consumed: int, refunded: int, balance: int} $monthToDate
+     * @param array{charged: int, consumed: int, refunded: int, cpa_refunded: int} $daily
+     * @param array{charged: int, consumed: int, refunded: int, cpa_refunded: int, balance: int} $monthToDate
      */
     private function revenueUserPrompt(ReportScope $scope, string $date, string $monthFrom, array $daily, array $monthToDate): string
     {
@@ -152,15 +153,17 @@ class AiReportService
             '기준일'      => $date,
             '당월_시작일' => $monthFrom,
             '전일_집계'   => [
-                '충전' => $daily['charged'],
-                '소진' => $daily['consumed'],
-                '환불' => $daily['refunded'],
+                '충전'        => $daily['charged'],
+                '소진'        => $daily['consumed'],
+                '환불'        => $daily['refunded'],
+                'CPA환불복원' => $daily['cpa_refunded'],
             ],
             '당월_누계'   => [
-                '충전' => $monthToDate['charged'],
-                '소진' => $monthToDate['consumed'],
-                '환불' => $monthToDate['refunded'],
-                '잔액' => $monthToDate['balance'],
+                '충전'        => $monthToDate['charged'],
+                '소진'        => $monthToDate['consumed'],
+                '환불'        => $monthToDate['refunded'],
+                'CPA환불복원' => $monthToDate['cpa_refunded'],
+                '잔액'        => $monthToDate['balance'],
             ],
         ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 
