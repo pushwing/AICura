@@ -33,8 +33,8 @@ class AiCopyService
 
     public function __construct(?AiClientInterface $ai = null, ?CacheInterface $cache = null)
     {
-        // 공급자는 env('AI_PROVIDER') 기준(기본 groq) — .env에서 교체 가능
-        $this->ai    = $ai    ?? AiClientFactory::make();
+        // 이슈 #71·#73은 Gemini 사용 — 공급자 명시 고정 (#65 보고서는 Groq 유지)
+        $this->ai    = $ai    ?? AiClientFactory::make('gemini');
         $this->cache = $cache ?? cache();
     }
 
