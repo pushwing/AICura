@@ -56,9 +56,10 @@
 <div class="login-wrap">
 
     <div class="login-logo">
-        <svg class="login-logo-mark" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="48" height="48" rx="10" fill="#0F6E56"/>
-            <path d="M24 12v24M12 24h24" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+        <svg class="login-logo-mark" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" role="img">
+            <title>AICura</title>
+            <rect width="48" height="48" rx="12" fill="#0F6E56"/>
+            <polygon points="24,7.5 40.5,24 24,40.5 7.5,24" fill="#fff"/>
         </svg>
         <span class="login-logo-wordmark"><span>AI</span>Cura</span>
     </div>
