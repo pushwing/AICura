@@ -2,6 +2,7 @@
 
 namespace App\Commands;
 
+use App\Exceptions\AiRateLimitException;
 use App\Models\BoardModel;
 use App\Models\SettingModel;
 use App\Services\AiReviewQualityService;
@@ -36,6 +37,12 @@ class ReviewQualityQueue extends BaseCommand
 
     private const DEFAULT_LIMIT = 50;
 
+    /**
+     * 호출 간 최소 간격(초) — 공급자 분당 한도(무료등급 Gemini 10 RPM) 준수용 스로틀.
+     * 건당 10초 간격이면 분당 6건으로 한도 아래에서 안전하게 소비한다.
+     */
+    private const THROTTLE_SECONDS = 10;
+
     /** @param array<int|string, string|null> $params */
     public function run(array $params): void
     {
@@ -60,16 +67,32 @@ class ReviewQualityQueue extends BaseCommand
 
         CLI::write(sprintf('AI 후기 신뢰성 분석 시작 — 대기 %d건', count($pending)), 'yellow');
 
-        $service = new AiReviewQualityService();
-        $ok      = 0;
-        $failed  = 0;
+        $service     = new AiReviewQualityService();
+        $ok          = 0;
+        $failed      = 0;
+        $rateLimited = false;
 
-        foreach ($pending as $row) {
+        foreach ($pending as $i => $row) {
+            // 분당 한도 준수 — 두 번째 건부터 호출 전 스로틀
+            if ($i > 0) {
+                sleep(self::THROTTLE_SECONDS);
+            }
+
             $id = (int) $row['id'];
             try {
                 $service->analyze($id);
                 $ok++;
                 CLI::write("  ✓ #{$id} 분석 완료", 'green');
+            } catch (AiRateLimitException $e) {
+                // 일시 오류(레이트리밋) — FAILED로 확정하지 않고 PENDING 유지(다음 실행 자동 재시도).
+                // 한도 창이 포화된 상태이므로 남은 건도 실패할 가능성이 커 배치를 중단한다.
+                $rateLimited = true;
+                CLI::write("  ⏸ #{$id} 레이트리밋 — 대기 상태 유지 후 배치 중단", 'yellow');
+                log_message('warning', 'AI 후기 분석 레이트리밋 [board:{id}] — PENDING 유지: {msg}', [
+                    'id'  => $id,
+                    'msg' => $e->getMessage(),
+                ]);
+                break;
             } catch (Throwable $e) {
                 $failed++;
                 $boards->markAnalysisFailed($id);
@@ -82,5 +105,8 @@ class ReviewQualityQueue extends BaseCommand
         }
 
         CLI::write(sprintf('완료 — 성공 %d건, 실패 %d건', $ok, $failed), 'green');
+        if ($rateLimited) {
+            CLI::write('레이트리밋으로 일부 건은 대기(PENDING) 상태로 남겨 다음 실행 때 재시도합니다.', 'yellow');
+        }
     }
 }
