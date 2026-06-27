@@ -2,6 +2,7 @@
 
 namespace App\Libraries\Ai;
 
+use App\Exceptions\AiRateLimitException;
 use CodeIgniter\HTTP\ResponseInterface;
 use RuntimeException;
 
@@ -27,10 +28,10 @@ class GeminiClient implements AiClientInterface
     private const MAX_TOKENS = 2048;
 
     /** 429·5xx 재시도 횟수 (총 시도 = MAX_RETRIES + 1) */
-    private const MAX_RETRIES = 2;
+    private const MAX_RETRIES = 3;
 
-    /** 백오프 상한(초) — Retry-After가 비정상적으로 길어도 이 값으로 캡 */
-    private const MAX_BACKOFF = 10;
+    /** 백오프 상한(초) — 공급자 권장 대기가 비정상적으로 길어도 이 값으로 캡 */
+    private const MAX_BACKOFF = 30;
 
     private string $apiKey;
     private string $model;
@@ -84,8 +85,8 @@ class GeminiClient implements AiClientInterface
 
             // 429(레이트리밋)·5xx(서버 일시 오류)는 백오프 후 재시도, 그 외 4xx는 즉시 실패
             $retryable = $status === 429 || $status >= 500;
+            $wait      = $this->backoffSeconds($response, $body, $attempt);
             if ($retryable && $attempt < self::MAX_RETRIES) {
-                $wait = $this->backoffSeconds($response, $attempt);
                 log_message('warning', 'Gemini API {status} — {wait}초 후 재시도 ({n}/{max})', [
                     'status' => $status,
                     'wait'   => $wait,
@@ -101,6 +102,11 @@ class GeminiClient implements AiClientInterface
                 'status' => $status,
                 'body'   => $body,
             ]);
+
+            // 일시 오류는 영구 실패와 구분 — 호출부가 PENDING 유지/재시도하도록 타입 예외로 던진다.
+            if ($retryable) {
+                throw new AiRateLimitException($status, $wait, "Gemini API 일시 오류 (HTTP {$status})");
+            }
             throw new RuntimeException("Gemini API 응답 오류 (HTTP {$status})");
         }
     }
@@ -139,15 +145,70 @@ class GeminiClient implements AiClientInterface
         ]);
     }
 
-    /** 재시도 대기 시간 — Retry-After 헤더 우선, 없으면 지수 백오프(2,4,8…), MAX_BACKOFF로 캡 */
-    private function backoffSeconds(ResponseInterface $response, int $attempt): int
+    /**
+     * 재시도 대기 시간(초) — 공급자가 안내한 값을 최우선으로 따른다.
+     *
+     * 우선순위: Retry-After 헤더 → 응답 본문의 RetryInfo.retryDelay(Gemini는 여기로 안내)
+     * → 지수 백오프(2,4,8…). 모두 MAX_BACKOFF로 캡한다. 기존엔 본문 안내를 무시해
+     * 2~4초만 대기 → 권장 14초보다 짧아 재시도가 번번이 실패하던 문제를 바로잡는다.
+     */
+    private function backoffSeconds(ResponseInterface $response, string $body, int $attempt): int
     {
         $retryAfter = (int) $response->getHeaderLine('Retry-After');
         if ($retryAfter > 0) {
             return min($retryAfter, self::MAX_BACKOFF);
         }
 
+        $fromBody = $this->retryDelayFromBody($body);
+        if ($fromBody > 0) {
+            return min($fromBody, self::MAX_BACKOFF);
+        }
+
         return min(2 ** ($attempt + 1), self::MAX_BACKOFF);
+    }
+
+    /**
+     * 응답 본문의 error.details[RetryInfo].retryDelay("14.19s"·"898ms")를 초로 환산.
+     * 찾지 못하면 0.
+     */
+    private function retryDelayFromBody(string $body): int
+    {
+        $decoded = json_decode($body, true);
+        if (! is_array($decoded)) {
+            return 0;
+        }
+
+        $details = $decoded['error']['details'] ?? null;
+        if (! is_array($details)) {
+            return 0;
+        }
+
+        foreach ($details as $detail) {
+            if (! is_array($detail)) {
+                continue;
+            }
+            $type  = (string) ($detail['@type'] ?? '');
+            $delay = $detail['retryDelay'] ?? null;
+            if (str_contains($type, 'RetryInfo') && is_string($delay)) {
+                return $this->durationToSeconds($delay);
+            }
+        }
+
+        return 0;
+    }
+
+    /** "14s"·"14.19s"·"898ms" 형태의 기간 문자열을 올림한 정수 초로 변환 */
+    private function durationToSeconds(string $duration): int
+    {
+        $duration = trim($duration);
+        if (str_ends_with($duration, 'ms')) {
+            return (int) ceil(((float) rtrim($duration, 'ms')) / 1000);
+        }
+        if (str_ends_with($duration, 's')) {
+            return (int) ceil((float) rtrim($duration, 's'));
+        }
+
+        return (int) ceil((float) $duration);
     }
 
     private function extractContent(string $body): string
