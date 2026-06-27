@@ -19,6 +19,12 @@ $reports      = $board['reports'] ?? [];
         </span>
     </div>
     <div style="display:flex;gap:8px;">
+        <?php if (!$isDeleted): ?>
+            <form method="POST" action="/admin/boards/<?= (int) $board['id'] ?>/reanalyze" style="margin:0;">
+                <?= csrf_field() ?>
+                <button type="submit" class="btn btn-outline btn-sm">AI 재분석</button>
+            </form>
+        <?php endif; ?>
         <form method="POST" action="/admin/boards/<?= (int) $board['id'] ?>/recalc" style="margin:0;">
             <?= csrf_field() ?>
             <button type="submit" class="btn btn-outline btn-sm">별점 집계 갱신</button>
@@ -69,6 +75,43 @@ $reports      = $board['reports'] ?? [];
             <div style="font-size:14px;line-height:1.7;white-space:pre-wrap;border-top:1px solid var(--color-border);padding-top:12px;">
                 <?= nl2br(esc($board['contents'] ?? '')) ?>
             </div>
+
+            <?php
+            // AI 후기 신뢰성 분석 (이슈 #74)
+            $aiStatus    = (int) ($board['ai_status'] ?? 0);
+            $aiStatusMap = [0 => '미분석', 1 => '분석 대기중', 2 => '완료', 3 => '실패'];
+            $sentimentMap = [
+                'positive' => ['긍정', '#10b981'],
+                'neutral'  => ['중립', '#6b7280'],
+                'negative' => ['부정', '#ef4444'],
+            ];
+            $flagMap = [
+                'spam' => '스팸', 'fake' => '가짜', 'exaggeration' => '과장',
+                'medical_overclaim' => '의학적과장', 'advertisement' => '광고성', 'duplicate' => '중복',
+            ];
+            $aiFlags = is_array($board['ai_flags'] ?? null) ? $board['ai_flags'] : [];
+            $trust   = $board['ai_trust_score'] ?? null;
+            $trustColor = $trust === null ? '#6b7280' : ((int) $trust < 40 ? '#ef4444' : ((int) $trust < 70 ? '#f59e0b' : '#10b981'));
+            ?>
+            <h3 style="font-size:14px;margin:20px 0 8px;color:var(--color-text-muted);border-top:1px solid var(--color-border);padding-top:16px;">AI 신뢰성 분석</h3>
+            <?php if ($aiStatus === 2): ?>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;">
+                    <span style="background:<?= $trustColor ?>20;color:<?= $trustColor ?>;padding:3px 10px;border-radius:4px;font-size:13px;font-weight:600;">
+                        신뢰점수 <?= esc((string) (int) $trust) ?>점
+                    </span>
+                    <?php if (isset($sentimentMap[$board['ai_sentiment'] ?? ''])): [$sLabel, $sColor] = $sentimentMap[$board['ai_sentiment']]; ?>
+                        <span style="background:<?= $sColor ?>20;color:<?= $sColor ?>;padding:3px 10px;border-radius:4px;font-size:13px;"><?= esc($sLabel) ?></span>
+                    <?php endif; ?>
+                    <?php foreach ($aiFlags as $flag): ?>
+                        <span style="background:#ef444420;color:#ef4444;padding:3px 10px;border-radius:4px;font-size:13px;"><?= esc($flagMap[$flag] ?? $flag) ?></span>
+                    <?php endforeach; ?>
+                </div>
+                <?php if (!empty($board['ai_reason'])): ?>
+                    <p style="font-size:13px;color:var(--color-text-muted);margin:0;">근거: <?= esc($board['ai_reason']) ?></p>
+                <?php endif; ?>
+            <?php else: ?>
+                <p style="font-size:13px;color:var(--color-text-muted);margin:0;"><?= esc($aiStatusMap[$aiStatus] ?? '미분석') ?><?= $aiStatus === 0 || $aiStatus === 3 ? ' — 상단 [AI 재분석] 버튼으로 분석을 요청할 수 있습니다.' : '' ?></p>
+            <?php endif; ?>
         </div>
     </div>
 

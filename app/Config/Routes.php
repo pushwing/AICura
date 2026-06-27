@@ -90,11 +90,13 @@ $routes->group('admin', static function (RouteCollection $routes): void {
         // POST boards/(:num)/delete    → delete   (임시/완전 삭제)
         // POST boards/(:num)/restore   → restore  (삭제 복구)
         // POST boards/(:num)/recalc    → recalcSummary (별점 집계 갱신)
-        $routes->get('boards',                  'Admin\BoardController::index');
-        $routes->get('boards/(:num)',           'Admin\BoardController::show/$1');
-        $routes->post('boards/(:num)/delete',   'Admin\BoardController::delete/$1');
-        $routes->post('boards/(:num)/restore',  'Admin\BoardController::restore/$1');
-        $routes->post('boards/(:num)/recalc',   'Admin\BoardController::recalcSummary/$1');
+        // POST boards/(:num)/reanalyze → reanalyze (AI 신뢰성 재분석 큐 적재)
+        $routes->get('boards',                   'Admin\BoardController::index');
+        $routes->get('boards/(:num)',            'Admin\BoardController::show/$1');
+        $routes->post('boards/(:num)/delete',    'Admin\BoardController::delete/$1');
+        $routes->post('boards/(:num)/restore',   'Admin\BoardController::restore/$1');
+        $routes->post('boards/(:num)/recalc',    'Admin\BoardController::recalcSummary/$1');
+        $routes->post('boards/(:num)/reanalyze', 'Admin\BoardController::reanalyze/$1');
 
         // 결제 관리
         $routes->get('payments',                    'Admin\PaymentController::index');

@@ -4,6 +4,7 @@ namespace App\Controllers\Admin;
 
 use App\Models\BoardModel;
 use App\Models\BoardSummaryModel;
+use App\Models\SettingModel;
 use CodeIgniter\HTTP\ResponseInterface;
 
 /**
@@ -35,10 +36,11 @@ class BoardController extends BaseAdminController
     public function index(): string
     {
         $params = [
-            'type'      => $this->request->getGet('type') ?? '',
-            'is_delete' => $this->request->getGet('is_delete') ?? '',
-            'reported'  => $this->request->getGet('reported') ?? '',
-            'keyword'   => $this->request->getGet('keyword') ?? '',
+            'type'       => $this->request->getGet('type') ?? '',
+            'is_delete'  => $this->request->getGet('is_delete') ?? '',
+            'reported'   => $this->request->getGet('reported') ?? '',
+            'suspicious' => $this->request->getGet('suspicious') ?? '',
+            'keyword'    => $this->request->getGet('keyword') ?? '',
             'page'      => (int) ($this->request->getGet('page') ?? 1),
             'limit'     => 20,
         ];
@@ -124,5 +126,25 @@ class BoardController extends BaseAdminController
 
         return redirect()->to('/admin/boards/' . $id)
             ->with('success', sprintf('별점 집계가 갱신되었습니다. (대상 후기 %d건, 평균 %.2f점)', $result['count'], $result['rate_sum']));
+    }
+
+    // ──────────────────────────────────────────────
+    // AI 신뢰성 재분석 (큐 적재만 — reviews:analyze가 비동기 소비)
+    // ──────────────────────────────────────────────
+
+    public function reanalyze(int $id): ResponseInterface
+    {
+        if (! model(SettingModel::class)->enabled('review_quality_enabled')) {
+            return redirect()->back()->with('error', 'AI 후기 신뢰성 분석 기능이 비활성화되어 있습니다. 설정에서 먼저 켜주세요.');
+        }
+
+        try {
+            $this->boardModel->enqueueAnalysis($id);
+        } catch (\RuntimeException $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->to('/admin/boards/' . $id)
+            ->with('success', 'AI 분석을 요청했습니다. 잠시 후 결과가 반영됩니다.');
     }
 }

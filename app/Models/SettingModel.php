@@ -32,12 +32,14 @@ class SettingModel extends Model
         'admin_email' => '대표 이메일',
         'compliance_check_enabled' => '의료광고 심의 사전검사 사용',
         'lead_analysis_enabled'    => 'AI 콜(리드) 분석 사용',
+        'review_quality_enabled'   => 'AI 후기 신뢰성 분석 사용',
     ];
 
     /** 체크박스(불리언)로 다루는 설정 키 — 뷰 렌더링·검증 분기용 */
     public const BOOLEAN_KEYS = [
         'compliance_check_enabled',
         'lead_analysis_enabled',
+        'review_quality_enabled',
     ];
 
     /**
