@@ -30,12 +30,12 @@ class AiComplianceService
         ?CampaignModel $campaignModel = null,
         ?CampaignReviewRequestModel $reviewModel = null
     ) {
-        // 심의 사전검사도 Groq 사용 — 공급자 명시 고정
-        $this->ai            = $ai            ?? AiClientFactory::make('groq');
+        // 이슈 #71·#73은 Gemini 사용 — 공급자 명시 고정 (#65 보고서는 Groq 유지)
+        $this->ai            = $ai            ?? AiClientFactory::make('gemini');
         $this->checkModel    = $checkModel    ?? model(ComplianceCheckModel::class);
         $this->campaignModel = $campaignModel ?? model(CampaignModel::class);
         $this->reviewModel   = $reviewModel   ?? model(CampaignReviewRequestModel::class);
-        $this->modelName     = (string) env('GROQ_MODEL', 'llama-3.3-70b-versatile');
+        $this->modelName     = (string) env('GEMINI_MODEL', 'gemini-2.0-flash');
     }
 
     /**
