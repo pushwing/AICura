@@ -31,6 +31,10 @@
         <input type="checkbox" name="reported" value="1" <?= !empty($params['reported']) ? 'checked' : '' ?>>
         신고만 보기
     </label>
+    <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--color-text-muted);">
+        <input type="checkbox" name="suspicious" value="1" <?= !empty($params['suspicious']) ? 'checked' : '' ?>>
+        의심 후기만
+    </label>
     <input type="text" name="keyword" class="form-control" style="width:200px;"
            placeholder="제목, 작성자 검색" value="<?= esc((string) $params['keyword']) ?>">
     <button type="submit" class="btn btn-primary btn-sm">검색</button>
@@ -56,6 +60,29 @@ function escHtml(s) {
 }
 
 const deleteColors = { 0: '#10b981', 1: '#f59e0b', 2: '#ef4444' };
+
+// AI 분석 상태/감성/플래그 (이슈 #74)
+const aiStatusLabels = { 0: '미분석', 1: '분석 대기중', 2: '완료', 3: '실패' };
+const sentimentMeta = {
+    positive: { label: '긍정', color: '#10b981' },
+    neutral:  { label: '중립', color: '#6b7280' },
+    negative: { label: '부정', color: '#ef4444' },
+};
+const flagLabels = {
+    spam: '스팸', fake: '가짜', exaggeration: '과장',
+    medical_overclaim: '의학적과장', advertisement: '광고성', duplicate: '중복',
+};
+
+// 신뢰점수 색상 — 낮을수록 위험
+function trustColor(score) {
+    if (score < 40) return '#ef4444';
+    if (score < 70) return '#f59e0b';
+    return '#10b981';
+}
+
+function badge(label, color) {
+    return `<span style="background:${color}20;color:${color};padding:2px 8px;border-radius:4px;font-size:12px;">${escHtml(label)}</span>`;
+}
 
 const columnDefs = [
     { field: 'id', headerName: 'ID', width: 80, sortable: true },
@@ -93,6 +120,39 @@ const columnDefs = [
             return n > 0
                 ? `<span style="color:#ef4444;font-weight:600;">${n}</span>`
                 : `<span style="color:#9ca3af;">0</span>`;
+        },
+    },
+    {
+        field: 'ai_trust_score',
+        headerName: '신뢰점수',
+        width: 110,
+        sortable: true,
+        cellRenderer: (p) => {
+            if (Number(p.data.ai_status) !== 2 || p.value === null || p.value === undefined) {
+                return `<span style="color:#9ca3af;font-size:12px;">${escHtml(aiStatusLabels[p.data.ai_status] ?? '미분석')}</span>`;
+            }
+            const score = Number(p.value);
+            return badge(score + '점', trustColor(score));
+        },
+    },
+    {
+        field: 'ai_sentiment',
+        headerName: '감성',
+        width: 90,
+        cellRenderer: (p) => {
+            const m = sentimentMeta[p.value];
+            return m ? badge(m.label, m.color) : `<span style="color:#9ca3af;">-</span>`;
+        },
+    },
+    {
+        field: 'ai_flags',
+        headerName: '플래그',
+        flex: 1,
+        sortable: false,
+        cellRenderer: (p) => {
+            const flags = Array.isArray(p.value) ? p.value : [];
+            if (flags.length === 0) return `<span style="color:#9ca3af;">-</span>`;
+            return flags.map((f) => badge(flagLabels[f] ?? f, '#ef4444')).join(' ');
         },
     },
     {

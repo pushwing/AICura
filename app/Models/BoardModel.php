@@ -27,6 +27,11 @@ class BoardModel extends Model
         'is_delete',
         'delete_memo',
         'delete_date',
+        'ai_sentiment',
+        'ai_trust_score',
+        'ai_flags',
+        'ai_reason',
+        'ai_status',
     ];
 
     /** @var array<int, string> 후기 유형 */
@@ -50,6 +55,27 @@ class BoardModel extends Model
     // board_estimations.type
     public const ESTIMATION_REPORT = 2; // 신고
 
+    // ──────────────────────────────────────────────
+    // AI 후기 신뢰성 분석 (이슈 #74)
+    //
+    // Redis 등 별도 큐 인프라 없이 ai_status 컬럼을 큐로 사용한다.
+    // boards는 외부 시스템이 직접 INSERT하므로 신규 행은 DEFAULT 로 PENDING이 되고,
+    // reviews:analyze 커맨드가 비동기로 소비한다.
+    // ──────────────────────────────────────────────
+    public const AI_STATUS_IDLE    = 0; // 미분석
+    public const AI_STATUS_PENDING = 1; // 대기 (큐 적재됨)
+    public const AI_STATUS_DONE    = 2; // 완료
+    public const AI_STATUS_FAILED  = 3; // 실패
+
+    /** 신뢰점수가 이 값 미만이면 '의심 후기'로 본다 */
+    public const SUSPICIOUS_SCORE = 40;
+
+    /** @var array<int, string> 감성 허용 값 */
+    public const SENTIMENTS = ['positive', 'neutral', 'negative'];
+
+    /** @var array<int, string> 플래그 허용 값 — AI가 임의 라벨을 만들지 못하도록 화이트리스트로 제한 */
+    public const FLAGS = ['spam', 'fake', 'exaggeration', 'medical_overclaim', 'advertisement', 'duplicate'];
+
     /**
      * 후기 목록 (유형·삭제상태·신고 필터, 페이징)
      *
@@ -59,7 +85,8 @@ class BoardModel extends Model
     public function getList(array $params): array
     {
         $builder = $this->db->table('boards')
-            ->select('id, type, target_id, subject, user_name, rate_sum, like_count, complain_count, is_delete, created_at');
+            ->select('id, type, target_id, subject, user_name, rate_sum, like_count, complain_count, is_delete, created_at')
+            ->select('ai_sentiment, ai_trust_score, ai_flags, ai_status');
 
         if (($params['type'] ?? '') !== '') {
             $builder->where('type', (int) $params['type']);
@@ -71,6 +98,14 @@ class BoardModel extends Model
         // 신고만 보기
         if (!empty($params['reported'])) {
             $builder->where('complain_count >', 0);
+        }
+        // 의심 후기만 보기 — 분석 완료(DONE) 중 신뢰점수 낮거나 플래그가 있는 건
+        if (!empty($params['suspicious'])) {
+            $builder->where('ai_status', self::AI_STATUS_DONE)
+                ->groupStart()
+                    ->where('ai_trust_score <', self::SUSPICIOUS_SCORE)
+                    ->orWhere('JSON_LENGTH(ai_flags) >', 0)
+                ->groupEnd();
         }
         if (($params['keyword'] ?? '') !== '') {
             $builder->groupStart()
@@ -90,6 +125,12 @@ class BoardModel extends Model
             ->get()
             ->getResultArray();
 
+        // ai_flags 는 JSON 문자열로 저장되므로 뷰에서 바로 쓰도록 list<string> 로 디코드
+        foreach ($list as &$row) {
+            $row['ai_flags'] = $this->decodeFlags($row['ai_flags'] ?? null);
+        }
+        unset($row);
+
         return ['list' => $list, 'total' => $total];
     }
 
@@ -104,6 +145,8 @@ class BoardModel extends Model
         if ($board === null) {
             return null;
         }
+
+        $board['ai_flags'] = $this->decodeFlags($board['ai_flags'] ?? null);
 
         $board['reports'] = $this->db->table('board_estimations be')
             ->select('be.id, be.user_id, be.created_at', false)
@@ -155,5 +198,86 @@ class BoardModel extends Model
             'delete_memo' => null,
             'delete_date' => null,
         ]);
+    }
+
+    // ──────────────────────────────────────────────
+    // AI 후기 신뢰성 분석 큐 (이슈 #74)
+    // ──────────────────────────────────────────────
+
+    /**
+     * 분석 큐에 적재 — ai_status를 PENDING으로 표시 (동기, AI 호출 없음).
+     *
+     * 운영자의 '재분석' 액션에서 호출한다. 실제 분석은 reviews:analyze 커맨드가
+     * 비동기로 수행하므로 요청 응답을 막지 않는다.
+     *
+     * @throws \RuntimeException 후기 없음
+     */
+    public function enqueueAnalysis(int $id): void
+    {
+        if ($this->find($id) === null) {
+            throw new \RuntimeException('후기를 찾을 수 없습니다.');
+        }
+
+        $this->update($id, ['ai_status' => self::AI_STATUS_PENDING]);
+    }
+
+    /**
+     * 분석 대기(PENDING) 건을 분석 입력 필드만 추려서 반환 (오래된 순).
+     *
+     * @return array<int, array{id: int, subject: string|null, contents: string|null}>
+     */
+    public function getPendingAnalysis(int $limit = 50): array
+    {
+        /** @var array<int, array{id: int, subject: string|null, contents: string|null}> $rows */
+        $rows = $this->select('id, subject, contents')
+            ->where('ai_status', self::AI_STATUS_PENDING)
+            ->where('is_delete', self::DELETE_NONE)
+            ->orderBy('id', 'ASC')
+            ->findAll(max(1, $limit));
+
+        return $rows;
+    }
+
+    /**
+     * 분석 결과 저장 — 감성·신뢰점수·플래그·근거 + 상태를 DONE으로.
+     *
+     * @param array{sentiment: string, trust_score: int, flags: list<string>, reason: string} $result
+     */
+    public function saveAnalysis(int $id, array $result): void
+    {
+        $this->update($id, [
+            'ai_sentiment'   => $result['sentiment'],
+            'ai_trust_score' => $result['trust_score'],
+            'ai_flags'       => json_encode($result['flags'], JSON_UNESCAPED_UNICODE),
+            'ai_reason'      => $result['reason'],
+            'ai_status'      => self::AI_STATUS_DONE,
+        ]);
+    }
+
+    /**
+     * 분석 실패 표시 — 재처리 대상에서 빠지도록 FAILED로.
+     */
+    public function markAnalysisFailed(int $id): void
+    {
+        $this->update($id, ['ai_status' => self::AI_STATUS_FAILED]);
+    }
+
+    /**
+     * ai_flags JSON 문자열을 안전하게 list<string> 로 디코드.
+     *
+     * @return list<string>
+     */
+    private function decodeFlags(mixed $raw): array
+    {
+        if (! is_string($raw) || $raw === '') {
+            return [];
+        }
+
+        $decoded = json_decode($raw, true);
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        return array_values(array_filter($decoded, 'is_string'));
     }
 }
