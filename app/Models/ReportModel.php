@@ -131,10 +131,10 @@ class ReportModel extends Model
     }
 
     /**
-     * 일자별 충전·소진·환불 합계 (AI 매출보고서용 — 전일 1일치)
+     * 일자별 충전·소진·환불·CPA환불복원 합계 (AI 매출보고서용 — 전일 1일치)
      *
      * @param list<int>|null $hospitalIds 집계 대상 병원 한정 (null이면 전체)
-     * @return array{charged: int, consumed: int, refunded: int}
+     * @return array{charged: int, consumed: int, refunded: int, cpa_refunded: int}
      */
     public function getDailyStats(string $date, ?array $hospitalIds = null): array
     {
@@ -142,19 +142,20 @@ class ReportModel extends Model
         $consumed = $this->sumByStatusesBetween(self::STATUS_CONSUMED, $date, $date, $hospitalIds);
         $cpa      = $this->sumByStatusesBetween(self::STATUS_CPA_REFUND, $date, $date, $hospitalIds);
 
-        // CPA 환불 복원(상계, status 4)은 소진에서만 차감해 순액으로 노출 (리포트 KPI와 동일, 충전 미포함)
+        // CPA 환불 복원(상계, status 4)은 소진에서만 차감해 순액으로 노출하되, 복원 규모를 별도 지표로 함께 제공
         return [
-            'charged'  => $charged,
-            'consumed' => $consumed - $cpa,
-            'refunded' => $this->sumByStatusesBetween(self::STATUS_REFUNDED, $date, $date, $hospitalIds),
+            'charged'      => $charged,
+            'consumed'     => $consumed - $cpa,
+            'refunded'     => $this->sumByStatusesBetween(self::STATUS_REFUNDED, $date, $date, $hospitalIds),
+            'cpa_refunded' => $cpa,
         ];
     }
 
     /**
-     * 당월 누계 충전·소진·환불·잔액 (AI 매출보고서용)
+     * 당월 누계 충전·소진·환불·CPA환불복원·잔액 (AI 매출보고서용)
      *
      * @param list<int>|null $hospitalIds 집계 대상 병원 한정 (null이면 전체)
-     * @return array{charged: int, consumed: int, refunded: int, balance: int}
+     * @return array{charged: int, consumed: int, refunded: int, cpa_refunded: int, balance: int}
      */
     public function getMonthToDateStats(string $fromDate, string $toDate, ?array $hospitalIds = null): array
     {
@@ -167,10 +168,11 @@ class ReportModel extends Model
 
         // CPA 환불 복원(상계, status 4)은 소진에서만 차감 — status 4만큼 잔액이 복원된다 (리포트 KPI와 동일)
         return [
-            'charged'  => $charged,
-            'consumed' => $netConsumed,
-            'refunded' => $refunded,
-            'balance'  => $charged - $netConsumed - $refunded,
+            'charged'      => $charged,
+            'consumed'     => $netConsumed,
+            'refunded'     => $refunded,
+            'cpa_refunded' => $cpa,
+            'balance'      => $charged - $netConsumed - $refunded,
         ];
     }
 
