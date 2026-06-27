@@ -15,9 +15,12 @@ class CampaignModel extends Model
         'ad_title',
         'hospital_id',
         'hospital_type',
+        'agency_user_id',
+        'user_id',
         'ad_type',
         'ad_start_date',
         'ad_end_date',
+        'ad_date_extend',
         'cost_type',
         'general_cost',
         'discount_cost',
@@ -27,12 +30,28 @@ class CampaignModel extends Model
         'exposure',
         'contract_id',
         'contract_order_id',
+        'contract_name',
         'region',
+        'cooperation',
+        'sub_hospital_id',
         'keyword',
+        'where_image',
+        'model_image_count',
+        'ad_detail_info',
+        'inspect_date',
+        'is_view_board',
+        'custom_randing',
+        'option_ad_id',
+        'custom1',
+        'custom2',
+        'custom3',
         'deliberation_code',
         'status',
+        'review_status',
         'channel',
         'is_deleted',
+        'del_date',
+        'delete_user_id',
         't1_image_name',
         't2_image_name',
         'd_image_json',
@@ -40,9 +59,7 @@ class CampaignModel extends Model
 
     /** @var array<string, string> */
     protected $validationRules = [
-        'ad_title'    => 'required|max_length[255]',
         'hospital_id' => 'required|integer',
-        'ad_type'     => 'required|in_list[1,2,3,4,5]',
         'status'      => 'in_list[pending,active,rejected,ended]',
     ];
 
@@ -67,6 +84,13 @@ class CampaignModel extends Model
         2 => '굿닥파트너스',
     ];
 
+    /** 병원 망 구분 (campaigns.hospital_type) */
+    public const HOSPITAL_TYPES = [
+        1 => '일반',
+        2 => '네트워크 모점',
+        3 => '네트워크 자점',
+    ];
+
     /**
      * 캠페인 목록 (페이징, 검색, 상태 필터)
      *
@@ -75,16 +99,33 @@ class CampaignModel extends Model
      */
     public function getCampaignList(array $params): array
     {
+        // 검수 대기 중인 캠페인은 review request 의 제목을 COALESCE로 표시
         $builder = $this->db->table('campaigns c')
-            ->select('c.id, c.ad_title, c.ad_type, c.status, c.channel, c.ad_start_date, c.ad_end_date, c.db_cost, c.created_at')
+            ->select('c.id, c.status, c.review_status, c.created_at')
+            ->select('COALESCE(c.ad_title, crr.ad_title) AS ad_title', false)
+            ->select('COALESCE(c.ad_type, crr.ad_type) AS ad_type', false)
+            ->select('COALESCE(c.channel, crr.channel) AS channel', false)
+            ->select('COALESCE(c.ad_start_date, crr.ad_start_date) AS ad_start_date', false)
+            ->select('COALESCE(c.ad_end_date, crr.ad_end_date) AS ad_end_date', false)
+            ->select('COALESCE(c.db_cost, crr.db_cost) AS db_cost', false)
             ->select('h.name as hospital_name', false)
             ->select('co.title as contract_name', false)
             ->join('hospitals h', 'h.id = c.hospital_id', 'left')
             ->join('contracts co', 'co.id = c.contract_id', 'left')
+            ->join(
+                '(SELECT campaign_id, ad_title, ad_type, channel, ad_start_date, ad_end_date, db_cost'
+                . ' FROM campaign_review_requests crr_sub'
+                . ' WHERE crr_sub.id = (SELECT MAX(id) FROM campaign_review_requests WHERE campaign_id = crr_sub.campaign_id)) crr',
+                'crr.campaign_id = c.id',
+                'left'
+            )
             ->where('c.is_deleted', 0);
 
         if (!empty($params['status'])) {
             $builder->where('c.status', $params['status']);
+        }
+        if (!empty($params['review_status'])) {
+            $builder->where('c.review_status', $params['review_status']);
         }
         if (!empty($params['ad_type'])) {
             $builder->where('c.ad_type', (int) $params['ad_type']);
@@ -114,6 +155,66 @@ class CampaignModel extends Model
     }
 
     /**
+     * 소재 관리 목록 (페이징, 검색, 상태·소재유무 필터)
+     *
+     * 검수 대기 중인 캠페인은 review request 의 콘텐츠를 COALESCE로 표시한다.
+     *
+     * @param array<string, mixed> $params
+     * @return array<string, mixed>
+     */
+    public function getCreativeList(array $params): array
+    {
+        $builder = $this->db->table('campaigns c')
+            ->select('c.id, c.status, c.review_status, c.created_at')
+            ->select('COALESCE(c.ad_title, crr.ad_title) AS ad_title', false)
+            ->select('COALESCE(c.ad_type, crr.ad_type) AS ad_type', false)
+            ->select('COALESCE(c.channel, crr.channel) AS channel', false)
+            ->select('COALESCE(c.t1_image_name, crr.t1_image_name) AS t1_image_name', false)
+            ->select('COALESCE(c.t2_image_name, crr.t2_image_name) AS t2_image_name', false)
+            ->select('COALESCE(c.d_image_json, crr.d_image_json) AS d_image_json', false)
+            ->select('h.name AS hospital_name', false)
+            ->join('hospitals h', 'h.id = c.hospital_id', 'left')
+            ->join(
+                '(SELECT campaign_id, ad_title, ad_type, channel, t1_image_name, t2_image_name, d_image_json'
+                . ' FROM campaign_review_requests crr_sub'
+                . ' WHERE crr_sub.id = (SELECT MAX(id) FROM campaign_review_requests WHERE campaign_id = crr_sub.campaign_id)) crr',
+                'crr.campaign_id = c.id',
+                'left'
+            )
+            ->where('c.is_deleted', 0);
+
+        if (!empty($params['status'])) {
+            $builder->where('c.status', $params['status']);
+        }
+
+        if (!empty($params['keyword'])) {
+            $builder->groupStart()
+                ->like('COALESCE(c.ad_title, crr.ad_title)', $params['keyword'], 'both', null, false)
+                ->orLike('h.name', $params['keyword'])
+                ->groupEnd();
+        }
+
+        if (($params['has_image'] ?? '') === '1') {
+            $builder->where("(c.t1_image_name IS NOT NULL AND c.t1_image_name != '') OR (crr.t1_image_name IS NOT NULL AND crr.t1_image_name != '')", null, false);
+        } elseif (($params['has_image'] ?? '') === '0') {
+            $builder->where("(c.t1_image_name IS NULL OR c.t1_image_name = '') AND (crr.t1_image_name IS NULL OR crr.t1_image_name = '')", null, false);
+        }
+
+        $total = (clone $builder)->countAllResults(false);
+
+        $page  = max(1, (int) ($params['page'] ?? 1));
+        $limit = (int) ($params['limit'] ?? 20);
+
+        $list = $builder
+            ->orderBy('c.id', 'DESC')
+            ->limit($limit, ($page - 1) * $limit)
+            ->get()
+            ->getResultArray();
+
+        return ['list' => $list, 'total' => $total];
+    }
+
+    /**
      * 캠페인 상세 (JOIN: hospital, contract, packages)
      *
      * @return array<string, mixed>|null
@@ -124,8 +225,10 @@ class CampaignModel extends Model
             ->select('c.*')
             ->select('h.name as hospital_name, h.type as hospital_type_label', false)
             ->select('co.title as contract_title', false)
+            ->select('ec.title as category_title', false)
             ->join('hospitals h', 'h.id = c.hospital_id', 'left')
             ->join('contracts co', 'co.id = c.contract_id', 'left')
+            ->join('event_categories ec', 'ec.id = c.category', 'left')
             ->where('c.id', $id)
             ->where('c.is_deleted', 0)
             ->get()

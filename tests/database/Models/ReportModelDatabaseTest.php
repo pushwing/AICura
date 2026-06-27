@@ -1,0 +1,215 @@
+<?php
+
+use App\Models\ReportModel;
+use CodeIgniter\Test\CIUnitTestCase;
+use CodeIgniter\Test\DatabaseTestTrait;
+
+/**
+ * @internal
+ */
+final class ReportModelDatabaseTest extends CIUnitTestCase
+{
+    use DatabaseTestTrait;
+
+    protected $migrate     = true;
+    protected $migrateOnce = true;
+    protected $refresh     = false;
+    protected $namespace   = null;
+
+    private int $hospitalId    = 0;
+    private int $campaignId    = 0;
+    private int $contractId    = 9001;
+    private int $contractOrder = 9002;
+    private int $year          = 0;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $db  = db_connect();
+        $now = date('Y-m-d H:i:s');
+        $this->year = (int) date('Y');
+
+        $db->table('hospitals')->insert([
+            'name'       => '__report_hospital__',
+            'type'       => 1,
+            'status'     => 'active',
+            'is_deleted' => 0,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+        $this->hospitalId = (int) $db->insertID();
+
+        $db->table('campaigns')->insert([
+            'ad_title'      => '__report_campaign__',
+            'hospital_id'   => $this->hospitalId,
+            'hospital_type' => 1,
+            'ad_type'       => 1,
+            'ad_start_date' => $this->year . '-01-01',
+            'ad_end_date'   => $this->year . '-12-31',
+            'cost_type'     => 1,
+            'status'        => 'active',
+            'channel'       => 1,
+            'is_deleted'    => 0,
+            'created_at'    => $now,
+            'updated_at'    => $now,
+        ]);
+        $this->campaignId = (int) $db->insertID();
+
+        // deposits: 충전(2) 1,000,000 / 소진(3) 300,000 / 환불(6) 100,000 / CPA환불복원(4) 50,000
+        // CPA 환불 복원(status 4)은 충전이 아니라 소진 상계(−)로 집계돼야 한다.
+        foreach ([[2, 1000000], [3, 300000], [6, 100000], [4, 50000]] as [$status, $price]) {
+            $db->table('deposits')->insert([
+                'status'            => $status,
+                'is_minus'          => in_array($status, [2, 4], true) ? 0 : 1,
+                'contract_id'       => $this->contractId,
+                'contract_order_id' => $this->contractOrder,
+                'price'             => $price,
+                'created_at'        => $now,
+                'updated_at'        => $now,
+            ]);
+        }
+
+        // call_requests: 신청 2건, 그 중 1건 내원완료(7)
+        foreach ([1, 7] as $status) {
+            $db->table('call_requests')->insert([
+                'hospital_id' => $this->hospitalId,
+                'campaign_id' => $this->campaignId,
+                'status'      => $status,
+                'name'        => '__report_user__',
+                'phone'       => '01000000000',
+                'event_cost'  => 30000,
+                'is_delete'   => 0,
+                'created_at'  => $now,
+                'updated_at'  => $now,
+            ]);
+        }
+    }
+
+    protected function tearDown(): void
+    {
+        $db = db_connect();
+        $db->table('deposits')->where('contract_id', $this->contractId)->delete();
+        $db->table('call_requests')->where('campaign_id', $this->campaignId)->delete();
+        $db->table('campaigns')->where('id', $this->campaignId)->delete();
+        $db->table('hospitals')->where('id', $this->hospitalId)->delete();
+
+        parent::tearDown();
+    }
+
+    public function testGetYearKpiAggregatesByStatus(): void
+    {
+        $kpi = model(ReportModel::class)->getYearKpi($this->year);
+
+        // CPA 환불 복원(50,000)은 충전에 포함되지 않고 소진에서 차감된다.
+        $this->assertSame(1000000, $kpi['charged']);          // 충전(2)만
+        $this->assertSame(250000, $kpi['consumed']);          // 소진(3) 300,000 − CPA환불(4) 50,000
+        $this->assertSame(100000, $kpi['refunded']);
+        $this->assertSame(50000, $kpi['cpa_refunded']);
+        $this->assertSame(650000, $kpi['balance']);           // 1,000,000 - 250,000 - 100,000
+    }
+
+    public function testGetYearKpiExcludesCpaRefundFromChargedAndConsumed(): void
+    {
+        // CPA 환불 복원(상계, status 4) 50,000 추가 — 소진에서만 차감되어 잔액이 복원되어야 한다.
+        db_connect()->table('deposits')->insert([
+            'status'            => 4,
+            'is_minus'          => 0,
+            'contract_id'       => $this->contractId,
+            'contract_order_id' => $this->contractOrder,
+            'price'             => 50000,
+            'created_at'        => date('Y-m-d H:i:s'),
+            'updated_at'        => date('Y-m-d H:i:s'),
+        ]);
+
+        $kpi = model(ReportModel::class)->getYearKpi($this->year);
+
+        $this->assertSame(1000000, $kpi['charged']);      // 충전(2)만 — status 4는 충전에 미포함
+        $this->assertSame(200000, $kpi['consumed']);      // 소진(3) 300,000 - CPA환불(4) 100,000(50,000×2)
+        $this->assertSame(100000, $kpi['refunded']);
+        $this->assertSame(100000, $kpi['cpa_refunded']);  // setUp 50,000 + 본 테스트 50,000
+        $this->assertSame(700000, $kpi['balance']);       // 1,000,000 - 200,000 - 100,000
+    }
+
+    public function testGetMonthToDateStatsExcludesCpaRefund(): void
+    {
+        // CPA 환불 복원(상계, status 4) 50,000 추가 — AI 매출보고서 누계에서도 소진에서 차감되어야 한다.
+        db_connect()->table('deposits')->insert([
+            'status'            => 4,
+            'is_minus'          => 0,
+            'contract_id'       => $this->contractId,
+            'contract_order_id' => $this->contractOrder,
+            'price'             => 50000,
+            'created_at'        => date('Y-m-d H:i:s'),
+            'updated_at'        => date('Y-m-d H:i:s'),
+        ]);
+
+        $monthFrom = date('Y-m-01');
+        $today     = date('Y-m-d');
+        $mtd       = model(ReportModel::class)->getMonthToDateStats($monthFrom, $today);
+
+        $this->assertSame(1000000, $mtd['charged']);      // 충전(2)만 — status 4는 충전에 미포함
+        $this->assertSame(200000, $mtd['consumed']);      // 소진(3) 300,000 - CPA환불(4) 100,000(50,000×2)
+        $this->assertSame(100000, $mtd['refunded']);
+        $this->assertSame(100000, $mtd['cpa_refunded']);  // setUp 50,000 + 본 테스트 50,000 — 별도 지표로 노출
+        $this->assertSame(700000, $mtd['balance']);       // 1,000,000 - 200,000 - 100,000
+    }
+
+    public function testGetDailyStatsExposesCpaRefundSeparately(): void
+    {
+        // 오늘자 CPA 환불 복원(상계, status 4) 15,000 — 소진에서 차감되면서 별도 지표로도 노출되어야 한다.
+        $today = date('Y-m-d');
+        db_connect()->table('deposits')->insert([
+            'status'            => 4,
+            'is_minus'          => 0,
+            'contract_id'       => $this->contractId,
+            'contract_order_id' => $this->contractOrder,
+            'price'             => 15000,
+            'created_at'        => $today . ' 04:35:07',
+            'updated_at'        => $today . ' 04:35:07',
+        ]);
+
+        $daily = model(ReportModel::class)->getDailyStats($today);
+
+        // setUp CPA환불복원(4) 50,000 + 본 테스트 15,000 — 별도 지표로 노출
+        $this->assertSame(65000, $daily['cpa_refunded']);
+        // 충전금 환불(6) 100,000과는 분리된 항목 — CPA 복원이 환불에 섞이지 않는다
+        $this->assertSame(100000, $daily['refunded']);
+        // 소진(3) 300,000 − CPA환불복원 65,000 = 235,000 (순소진)
+        $this->assertSame(235000, $daily['consumed']);
+    }
+
+    public function testGetMonthlyRevenueReturnsTwelveElements(): void
+    {
+        $monthly = model(ReportModel::class)->getMonthlyRevenue($this->year);
+
+        $this->assertCount(12, $monthly['charged']);
+        $this->assertCount(12, $monthly['consumed']);
+
+        $monthIndex = (int) date('n') - 1;
+        $this->assertSame(1000000, $monthly['charged'][$monthIndex]);
+        $this->assertSame(250000, $monthly['consumed'][$monthIndex]); // 300,000 − CPA환불(4) 50,000
+    }
+
+    public function testGetCampaignStatsCountsRequestsAndVisits(): void
+    {
+        $stats = model(ReportModel::class)->getCampaignStats([
+            'date_from' => '',
+            'date_to'   => '',
+            'ad_title'  => '',
+        ]);
+
+        $row = null;
+        foreach ($stats as $s) {
+            if ((int) $s['campaign_id'] === $this->campaignId) {
+                $row = $s;
+                break;
+            }
+        }
+
+        $this->assertNotNull($row);
+        $this->assertSame(2, (int) $row['request_count']);
+        $this->assertSame(1, (int) $row['visited_count']);
+        $this->assertSame(60000, (int) $row['total_cost']);
+    }
+}

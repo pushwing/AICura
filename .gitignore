@@ -60,6 +60,12 @@ Vagrantfile
 /writable/uploads/*
 !/writable/uploads/index.html
 
+/public/uploads/*
+!/public/uploads/index.html
+!/public/uploads/campaigns/
+/public/uploads/campaigns/*
+!/public/uploads/campaigns/index.html
+
 /writable/debugbar/*
 !/writable/debugbar/index.html
 

@@ -1,0 +1,101 @@
+<?php
+/** @var bool $hasAdvertiser */
+/** @var bool $agreed */
+/** @var string|null $contractName */
+/** @var int $totalCount */
+/** @var int $newCount */
+/** @var array{charged:int, used:int, balance:int} $ledger */
+/** @var array<int, array<string, mixed>> $invites */
+$invites = $invites ?? [];
+$ledger  = $ledger ?? ['charged' => 0, 'used' => 0, 'balance' => 0];
+?>
+<div class="page-header">
+    <h1 class="page-title">대시보드</h1>
+    <span class="text-sm" style="color:var(--color-text-muted)"><?= date('Y년 n월 j일') ?></span>
+</div>
+
+<?php foreach ($invites as $invite): ?>
+    <div class="card" style="margin-bottom:16px;border-left:3px solid var(--color-primary);">
+        <div class="card-body" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+            <div>
+                <p style="font-weight:600;margin-bottom:4px;">광고주 연결 초대</p>
+                <p class="text-sm" style="color:var(--color-text-muted);">
+                    <strong><?= esc($invite['hospital_name']) ?></strong> 광고주 계정 연결 초대가 도착했습니다.
+                    수락하면 해당 광고주의 광고 서비스를 이용할 수 있습니다.
+                    <?php if (!empty($invite['expires_at_kst'])): ?>
+                        <span class="text-xs">(<?= esc($invite['expires_at_kst']) ?> 만료)</span>
+                    <?php endif; ?>
+                </p>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <form action="/portal/invites/<?= (int) $invite['id'] ?>/accept" method="POST" style="margin:0;">
+                    <?= csrf_field() ?>
+                    <button type="submit" class="btn btn-primary btn-sm">수락</button>
+                </form>
+                <form action="/portal/invites/<?= (int) $invite['id'] ?>/reject" method="POST" style="margin:0;"
+                      onsubmit="return confirm('초대를 거절하시겠습니까?');">
+                    <?= csrf_field() ?>
+                    <button type="submit" class="btn btn-outline btn-sm">거절</button>
+                </form>
+            </div>
+        </div>
+    </div>
+<?php endforeach; ?>
+
+<?php if (!$hasAdvertiser): ?>
+    <?php if (empty($invites)): ?>
+        <div class="alert alert-danger">
+            <span class="alert-icon">!</span>
+            <div class="alert-body">연결된 광고주 정보가 없습니다. 담당 광고대행사 또는 운영팀에 문의해주세요.</div>
+        </div>
+    <?php endif; ?>
+<?php else: ?>
+
+    <?php if (!$agreed): ?>
+        <div class="card" style="margin-bottom:24px;border-left:3px solid #f59e0b;">
+            <div class="card-body" style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
+                <div>
+                    <p style="font-weight:600;margin-bottom:4px;">계약 동의가 필요합니다</p>
+                    <p class="text-sm" style="color:var(--color-text-muted);">계약에 동의해야 광고 서비스를 이용할 수 있습니다.</p>
+                </div>
+                <a href="/portal/contracts" class="btn btn-primary btn-sm">계약 확인하기</a>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <!-- 광고비 충전/소진/잔액 요약 (이슈 #49) -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px;">
+        <div class="card"><div class="card-body">
+            <p class="text-sm" style="color:var(--color-text-muted);margin-bottom:6px;">전체 충전금</p>
+            <p style="font-size:1.75rem;font-weight:700;color:#1D9E75;"><?= number_format($ledger['charged']) ?><span style="font-size:1rem;font-weight:500;">원</span></p>
+        </div></div>
+        <div class="card"><div class="card-body">
+            <p class="text-sm" style="color:var(--color-text-muted);margin-bottom:6px;">소진</p>
+            <p style="font-size:1.75rem;font-weight:700;color:#ef4444;"><?= number_format($ledger['used']) ?><span style="font-size:1rem;font-weight:500;">원</span></p>
+        </div></div>
+        <div class="card"><div class="card-body">
+            <p class="text-sm" style="color:var(--color-text-muted);margin-bottom:6px;">현재 잔액</p>
+            <p style="font-size:1.75rem;font-weight:700;color:var(--color-primary);"><?= number_format($ledger['balance']) ?><span style="font-size:1rem;font-weight:500;">원</span></p>
+        </div></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+        <div class="card"><div class="card-body">
+            <p class="text-sm" style="color:var(--color-text-muted);margin-bottom:6px;">계약 상태</p>
+            <p style="font-size:1.5rem;font-weight:700;color:<?= $agreed ? '#1D9E75' : '#f59e0b' ?>;">
+                <?= $agreed ? '사용가능' : '계약대기' ?>
+            </p>
+            <p class="text-xs" style="color:var(--color-text-muted);margin-top:4px;"><?= esc($contractName ?? '계약 없음') ?></p>
+        </div></div>
+        <div class="card"><div class="card-body">
+            <p class="text-sm" style="color:var(--color-text-muted);margin-bottom:6px;">전체 신청</p>
+            <p style="font-size:2rem;font-weight:700;color:var(--color-text)"><?= number_format($totalCount) ?></p>
+        </div></div>
+        <div class="card"><div class="card-body">
+            <p class="text-sm" style="color:var(--color-text-muted);margin-bottom:6px;">미확인 신청</p>
+            <p style="font-size:2rem;font-weight:700;color:#ef4444;"><?= number_format($newCount) ?></p>
+            <p class="text-xs" style="color:var(--color-text-muted);margin-top:4px;"><a href="/portal/call-requests?status=1" style="color:var(--color-primary);text-decoration:none;">신청DB 관리 →</a></p>
+        </div></div>
+    </div>
+
+<?php endif; ?>

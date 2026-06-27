@@ -11,6 +11,12 @@ $statusLabels = [
     'rejected' => ['label' => '반려',    'class' => 'badge-danger'],
     'ended'    => ['label' => '종료',    'class' => 'badge-secondary'],
 ];
+
+$reviewStatusLabels = [
+    'pending'  => '검수중',
+    'approved' => '검수완료',
+    'rejected' => '검수반려',
+];
 ?>
 <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
     <h1 class="page-title">캠페인 관리</h1>
@@ -27,6 +33,14 @@ $statusLabels = [
         <?php foreach ($statusLabels as $val => $info): ?>
             <option value="<?= esc($val) ?>" <?= $params['status'] === $val ? 'selected' : '' ?>>
                 <?= esc($info['label']) ?>
+            </option>
+        <?php endforeach; ?>
+    </select>
+    <select name="review_status" class="form-control" style="width:120px;">
+        <option value="">전체 검수</option>
+        <?php foreach ($reviewStatusLabels as $val => $label): ?>
+            <option value="<?= esc($val) ?>" <?= ($params['review_status'] ?? '') === $val ? 'selected' : '' ?>>
+                <?= esc($label) ?>
             </option>
         <?php endforeach; ?>
     </select>
@@ -61,6 +75,7 @@ $statusLabels = [
 
 <script>
 const statusLabels = <?= json_encode(array_map(fn($v) => $v['label'], $statusLabels)) ?>;
+const reviewStatusLabels = <?= json_encode($reviewStatusLabels) ?>;
 const adTypes = <?= json_encode($adTypes) ?>;
 const channels = <?= json_encode($channels) ?>;
 const rowData = <?= json_encode($campaigns) ?>;
@@ -94,6 +109,18 @@ const columnDefs = [
             const map = { pending: '#f59e0b', active: '#10b981', rejected: '#ef4444', ended: '#6b7280' };
             const color = map[p.value] ?? '#6b7280';
             const label = statusLabels[p.value] ?? p.value;
+            return `<span style="background:${color}20;color:${color};padding:2px 8px;border-radius:4px;font-size:12px;">${label}</span>`;
+        },
+    },
+    {
+        field: 'review_status',
+        headerName: '검수',
+        width: 90,
+        cellRenderer: (p) => {
+            if (!p.value) return '';
+            const map = { pending: '#f59e0b', approved: '#10b981', rejected: '#ef4444' };
+            const color = map[p.value] ?? '#6b7280';
+            const label = reviewStatusLabels[p.value] ?? p.value;
             return `<span style="background:${color}20;color:${color};padding:2px 8px;border-radius:4px;font-size:12px;">${label}</span>`;
         },
     },

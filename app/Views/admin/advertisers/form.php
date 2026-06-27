@@ -1,9 +1,11 @@
 <?php
 /** @var array<string, mixed>|null $advertiser */
+/** @var array<string, mixed>|null $ownerUser */
 /** @var array<int, array<string, mixed>> $hospitals */
 /** @var array<int, array<string, mixed>> $parentAdvertisers */
 
-$isEdit = $advertiser !== null;
+$isEdit       = $advertiser !== null;
+$ownerLinked  = $isEdit && $ownerUser !== null;
 $title  = $isEdit ? '광고주 수정' : '광고주 등록';
 $action = $isEdit ? '/admin/advertisers/' . (int) $advertiser['id'] : '/admin/advertisers';
 
@@ -93,6 +95,42 @@ $errors = session('errors') ?? [];
                 </div>
             </div>
 
+            <!-- 광고주 포털 로그인 계정 연결 -->
+            <div style="margin-bottom:24px;padding:16px;border:1px solid var(--color-border,#e5e7eb);border-radius:8px;background:var(--color-bg-subtle,#f9fafb);">
+                <?php if ($ownerLinked): ?>
+                    <label style="display:block;font-size:14px;font-weight:600;margin-bottom:8px;">연결된 로그인 계정</label>
+                    <div style="font-size:14px;">
+                        <span style="background:#0F6E5620;color:var(--color-primary,#0F6E56);padding:3px 10px;border-radius:4px;">연결됨</span>
+                        <span style="margin-left:8px;"><?= esc($ownerUser['email'] ?? '-') ?></span>
+                        <?php if (!empty($ownerUser['username'])): ?>
+                            <span style="color:var(--color-text-muted);">(<?= esc($ownerUser['username']) ?>)</span>
+                        <?php endif; ?>
+                    </div>
+                    <p style="font-size:12px;color:var(--color-text-muted);margin:8px 0 0;">광고주 본인이 포털에 로그인할 수 있는 계정입니다. 변경은 사용자 관리에서 처리하세요.</p>
+                <?php else: ?>
+                    <label style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;cursor:pointer;">
+                        <input type="checkbox" name="create_account" value="1" id="createAccount"
+                               onchange="toggleAccount(this.checked)"
+                               <?= old('create_account') === '1' ? 'checked' : '' ?>>
+                        광고주 포털 로그인 계정 생성·연결
+                    </label>
+                    <div id="accountWrap" style="display:<?= old('create_account') === '1' ? 'grid' : 'none' ?>;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px;">
+                        <div>
+                            <label style="display:block;font-size:13px;margin-bottom:6px;">로그인 이메일 <span style="color:#ef4444">*</span></label>
+                            <input type="email" name="login_email" id="loginEmail" class="form-control"
+                                   value="<?= esc((string) old('login_email', '')) ?>"
+                                   placeholder="광고주 로그인 이메일" maxlength="255">
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:13px;margin-bottom:6px;">비밀번호 <span style="color:#ef4444">*</span></label>
+                            <input type="password" name="login_password" class="form-control"
+                                   placeholder="8자 이상" minlength="8" autocomplete="new-password">
+                        </div>
+                    </div>
+                    <p style="font-size:12px;color:var(--color-text-muted);margin:8px 0 0;">같은 이메일의 광고주(병원) 계정이 이미 있으면 자동으로 연결되고, 없으면 새로 생성됩니다.</p>
+                <?php endif; ?>
+            </div>
+
             <?php
             $currentNetwork  = (string) old('is_network', $isEdit ? ($advertiser['is_network'] ?? 0) : 0);
             $currentParentId = (string) old('network_parent_id', $isEdit ? ($advertiser['network_parent_id'] ?? '') : '');
@@ -152,5 +190,18 @@ function onHospitalChange(select) {
 function onNetworkChange(val) {
     const wrap = document.getElementById('parentWrap');
     wrap.style.display = val === '2' ? 'block' : 'none';
+}
+
+function toggleAccount(checked) {
+    const wrap = document.getElementById('accountWrap');
+    if (!wrap) return;
+    wrap.style.display = checked ? 'grid' : 'none';
+
+    // 비어 있으면 담당자 이메일을 로그인 이메일 기본값으로 채움
+    const loginEmail = document.getElementById('loginEmail');
+    const contactEmail = document.querySelector('input[name="contact_email"]');
+    if (checked && loginEmail && !loginEmail.value && contactEmail && contactEmail.value) {
+        loginEmail.value = contactEmail.value;
+    }
 }
 </script>

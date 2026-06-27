@@ -71,6 +71,7 @@ $actionMap = [
                     ['광고 타입',  esc($adTypes[(int)$campaign['ad_type']] ?? '-')],
                     ['채널',      esc($channels[(int)$campaign['channel']] ?? '-')],
                     ['광고 기간',  esc($campaign['ad_start_date']) . ' ~ ' . esc($campaign['ad_end_date'])],
+                    ['카테고리',   esc($campaign['category_title'] ?? '') !== '' ? esc($campaign['category_title']) : ((int)($campaign['category'] ?? 0) === 0 ? '미분류' : '미분류 (#' . (int)$campaign['category'] . ')')],
                     ['노출 유형',  match((int)$campaign['exposure']) { 1 => '이벤트', 2 => '병원상세', 3 => '전체', default => '-' }],
                     ['가격 유형',  (int)$campaign['cost_type'] === 1 ? '숫자' : '텍스트'],
                     ['정상가',    number_format((int)$campaign['general_cost']) . '원'],
@@ -258,7 +259,7 @@ document.getElementById('modalConfirm').addEventListener('click', async () => {
             headers: {
                 'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': document.cookie.match(/csrf_cookie_name=([^;]+)/)?.[1] ?? '',
+                ...csrfHeaders(),
             },
             body: JSON.stringify({ action: pendingAction, memo }),
         });
