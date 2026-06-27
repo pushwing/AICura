@@ -19,10 +19,12 @@ $reports      = $board['reports'] ?? [];
         </span>
     </div>
     <div style="display:flex;gap:8px;">
-        <form method="POST" action="/admin/boards/<?= (int) $board['id'] ?>/reanalyze" style="margin:0;">
-            <?= csrf_field() ?>
-            <button type="submit" class="btn btn-outline btn-sm">AI 재분석</button>
-        </form>
+        <?php if (!$isDeleted): ?>
+            <form method="POST" action="/admin/boards/<?= (int) $board['id'] ?>/reanalyze" style="margin:0;">
+                <?= csrf_field() ?>
+                <button type="submit" class="btn btn-outline btn-sm">AI 재분석</button>
+            </form>
+        <?php endif; ?>
         <form method="POST" action="/admin/boards/<?= (int) $board['id'] ?>/recalc" style="margin:0;">
             <?= csrf_field() ?>
             <button type="submit" class="btn btn-outline btn-sm">별점 집계 갱신</button>

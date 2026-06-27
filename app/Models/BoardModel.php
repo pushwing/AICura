@@ -208,14 +208,19 @@ class BoardModel extends Model
      * 분석 큐에 적재 — ai_status를 PENDING으로 표시 (동기, AI 호출 없음).
      *
      * 운영자의 '재분석' 액션에서 호출한다. 실제 분석은 reviews:analyze 커맨드가
-     * 비동기로 수행하므로 요청 응답을 막지 않는다.
+     * 비동기로 수행하므로 요청 응답을 막지 않는다. 삭제된 후기는 getPendingAnalysis가
+     * 소비하지 않아 PENDING으로 방치되므로 적재 자체를 거부한다.
      *
-     * @throws \RuntimeException 후기 없음
+     * @throws \RuntimeException 후기 없음·삭제된 후기
      */
     public function enqueueAnalysis(int $id): void
     {
-        if ($this->find($id) === null) {
+        $board = $this->find($id);
+        if ($board === null) {
             throw new \RuntimeException('후기를 찾을 수 없습니다.');
+        }
+        if ((int) $board['is_delete'] !== self::DELETE_NONE) {
+            throw new \RuntimeException('삭제된 후기는 분석할 수 없습니다.');
         }
 
         $this->update($id, ['ai_status' => self::AI_STATUS_PENDING]);

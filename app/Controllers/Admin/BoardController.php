@@ -4,6 +4,7 @@ namespace App\Controllers\Admin;
 
 use App\Models\BoardModel;
 use App\Models\BoardSummaryModel;
+use App\Models\SettingModel;
 use CodeIgniter\HTTP\ResponseInterface;
 
 /**
@@ -133,6 +134,10 @@ class BoardController extends BaseAdminController
 
     public function reanalyze(int $id): ResponseInterface
     {
+        if (! model(SettingModel::class)->enabled('review_quality_enabled')) {
+            return redirect()->back()->with('error', 'AI 후기 신뢰성 분석 기능이 비활성화되어 있습니다. 설정에서 먼저 켜주세요.');
+        }
+
         try {
             $this->boardModel->enqueueAnalysis($id);
         } catch (\RuntimeException $e) {
