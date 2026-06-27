@@ -15,7 +15,7 @@ use RuntimeException;
  * 직결되므로, 자동 비노출은 하지 않고 플래깅까지만 수행한다(최종 노출 결정은 운영자 판단).
  *
  * 즉시 응답이 필요한 작업이 아니므로 reviews:analyze 커맨드가 비동기로 호출한다.
- * 공급자는 Groq에 고정한다(사전검사·리드분석과 동일한 배치/비용 정책).
+ * 공급자는 Gemini에 고정한다(이슈 #74).
  */
 class AiReviewQualityService
 {
@@ -36,8 +36,8 @@ class AiReviewQualityService
         ?AiClientInterface $ai = null,
         ?BoardModel $boards = null,
     ) {
-        // 공급자는 Groq 고정 — 사전검사(AiComplianceService)·리드분석과 동일 정책
-        $this->ai     = $ai     ?? AiClientFactory::make('groq');
+        // 공급자는 Gemini 고정 (이슈 #74 — 후기 신뢰성 분석은 Gemini 사용)
+        $this->ai     = $ai     ?? AiClientFactory::make('gemini');
         $this->boards = $boards ?? model(BoardModel::class);
     }
 
