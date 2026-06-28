@@ -47,6 +47,22 @@ class UserModel extends Model
         'password' => 'min_length[8]',
     ];
 
+    /** @var array<int, string> 가입 경로 라벨 (where_from) */
+    public const WHERE_FROM_LABELS = [
+        1 => '웹',
+        2 => 'iOS',
+        3 => 'Android',
+        4 => '어드민',
+    ];
+
+    /** @var array<int, string> 로그인 방식 라벨 (provider) */
+    public const PROVIDER_LABELS = [
+        9 => '이메일',
+        1 => 'Facebook',
+        2 => 'Naver',
+        3 => 'Kakao',
+    ];
+
     // user_type 상수
     public const TYPE_USER           = 1;   // 일반 사용자
     public const TYPE_OPERATOR       = 2;   // 운영자
@@ -227,5 +243,45 @@ class UserModel extends Model
             ->getResultArray();
 
         return ['list' => $list, 'total' => (int) $total];
+    }
+
+    /**
+     * 사용자 상태 변경 — 휴면 상태(is_dormant)·계정 활성(is_active)을 선택적으로 갱신. (이슈 #90)
+     *
+     * - is_dormant: 1 활성 · 0 휴면 (반전 의미). 휴면 전환 시 dormant_at 기록, 활성 복귀 시 해제.
+     * - is_active : 1 활성 · 0 비활성 (로그인 허용 여부).
+     * - null 로 전달된 항목은 변경하지 않는다.
+     *
+     * @throws \RuntimeException 사용자 없음·유효하지 않은 값·변경 항목 없음
+     */
+    public function updateStatus(int $id, ?int $isDormant, ?int $isActive): void
+    {
+        if ($this->find($id) === null) {
+            throw new \RuntimeException('사용자를 찾을 수 없습니다.');
+        }
+
+        $update = [];
+
+        if ($isDormant !== null) {
+            if (!in_array($isDormant, [0, 1], true)) {
+                throw new \RuntimeException('유효하지 않은 휴면 상태입니다.');
+            }
+            $update['is_dormant'] = $isDormant;
+            // 0 = 휴면 전환 시점 기록, 1 = 활성 복귀 시 해제
+            $update['dormant_at'] = $isDormant === 0 ? date('Y-m-d H:i:s') : null;
+        }
+
+        if ($isActive !== null) {
+            if (!in_array($isActive, [0, 1], true)) {
+                throw new \RuntimeException('유효하지 않은 계정 활성 상태입니다.');
+            }
+            $update['is_active'] = $isActive;
+        }
+
+        if ($update === []) {
+            throw new \RuntimeException('변경할 상태가 없습니다.');
+        }
+
+        $this->update($id, $update);
     }
 }
