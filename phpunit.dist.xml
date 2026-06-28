@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+    bootstrap="vendor/codeigniter4/framework/system/Test/bootstrap.php"
+    backupGlobals="false"
+    beStrictAboutOutputDuringTests="true"
+    colors="true"
+    columns="max"
+    failOnRisky="true"
+    failOnWarning="true"
+    cacheDirectory="build/.phpunit.cache"
+>
+    <coverage pathCoverage="false" ignoreDeprecatedCodeUnits="true">
+        <report>
+            <clover outputFile="build/logs/clover.xml"/>
+            <html outputDirectory="build/logs/html"/>
+            <php outputFile="build/logs/coverage.serialized"/>
+            <text outputFile="php://stdout" showUncoveredFiles="false"/>
+        </report>
+    </coverage>
+
+    <testsuites>
+        <testsuite name="App">
+            <directory>./tests</directory>
+        </testsuite>
+    </testsuites>
+
+    <logging>
+        <testdoxHtml outputFile="build/logs/testdox.html"/>
+        <testdoxText outputFile="build/logs/testdox.txt"/>
+        <junit outputFile="build/logs/logfile.xml"/>
+    </logging>
+
+    <source>
+        <include>
+            <directory suffix=".php">./app</directory>
+        </include>
+        <exclude>
+            <directory suffix=".php">./app/Views</directory>
+            <file>./app/Config/Routes.php</file>
+        </exclude>
+    </source>
+
+    <php>
+        <server name="app.baseURL" value="http://example.com/"/>
+        <server name="CODEIGNITER_SCREAM_DEPRECATIONS" value="0"/>
+        <!-- Directory containing phpunit.xml -->
+        <const name="HOMEPATH" value="./"/>
+        <!-- Directory containing the Paths config file -->
+        <const name="CONFIGPATH" value="./app/Config/"/>
+        <!-- Directory containing the front controller (index.php) -->
+        <const name="PUBLICPATH" value="./public/"/>
+        <!-- Database configuration -->
+        <server name="database.tests.hostname" value="localhost"/>
+        <server name="database.tests.database" value="aicura"/>
+        <server name="database.tests.username" value="aicura"/>
+        <server name="database.tests.password" value="Aicura@2026!Dev"/>
+        <server name="database.tests.DBDriver" value="MySQLi"/>
+        <!-- Database configuration: SQLite3 in-memory for fast, isolated tests -->
+        <!-- tests 그룹을 defaultGroup으로 사용: 모델과 시더가 같은 DB 연결 공유 -->
+        <env name="database.defaultGroup" value="tests"/>
+        <env name="database.tests.DBDriver" value="SQLite3"/>
+        <env name="database.tests.database" value=":memory:"/>
+        <!-- CSRF: session 방식으로 전환해 withSession() 으로 토큰 주입 가능하게 함 -->
+        <server name="security.csrfProtection" value="session"/>
+    </php>
+</phpunit>

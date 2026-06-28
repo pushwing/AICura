@@ -4,6 +4,7 @@ namespace Config;
 
 use App\Filters\AdminAuthFilter;
 use App\Filters\JwtAuthFilter;
+use App\Filters\PortalAuthFilter;
 use CodeIgniter\Config\Filters as BaseFilters;
 use CodeIgniter\Filters\Cors;
 use CodeIgniter\Filters\CSRF;
@@ -38,6 +39,7 @@ class Filters extends BaseFilters
         'performance'   => PerformanceMetrics::class,
         'admin_auth'    => AdminAuthFilter::class,
         'jwt_auth'      => JwtAuthFilter::class,
+        'portal_auth'   => PortalAuthFilter::class,
     ];
 
     /**

@@ -60,6 +60,12 @@ Vagrantfile
 /writable/uploads/*
 !/writable/uploads/index.html
 
+/public/uploads/*
+!/public/uploads/index.html
+!/public/uploads/campaigns/
+/public/uploads/campaigns/*
+!/public/uploads/campaigns/index.html
+
 /writable/debugbar/*
 !/writable/debugbar/index.html
 
@@ -127,3 +133,8 @@ _modules/*
 vendor/
 writable/
 public/swagger.json
+
+#-------------------------
+# Legacy app dump (절대 커밋 금지 — 라이브 인증정보 포함 레거시 CI3 앱)
+#-------------------------
+/source/
