@@ -4,6 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 AI 기반 성형·토탈 광고 솔루션. CodeIgniter 4 기반 Admin + REST API 단일 프로젝트.
 
+## 언어 규칙
+
+- 모든 응답은 반드시 한국어로 작성할 것
+- 코드 주석도 한국어로 작성할 것
+- 영어 응답은 절대 금지
+
 ## 기술 스택
 
 - **언어**: PHP 8.4+ (시스템 CLI) / PHP 8.5 (FrankenPHP 내장)
