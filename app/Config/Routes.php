@@ -187,6 +187,9 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
     $routes->post('auth/refresh',     'AuthController::refresh');
     $routes->post('auth/logout',      'AuthController::logout');
 
+    // 업로드 이미지 서빙 (인증 불필요 — 랜덤 파일명 capability) (이슈 #102)
+    $routes->get('uploads/images/(:segment)', 'UploadController::serve/$1');
+
     // 이하 jwt_auth 필터 적용
     $routes->group('', ['filter' => 'jwt_auth'], static function (RouteCollection $routes): void {
 
@@ -214,6 +217,22 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
         // 리포트
         $routes->get('reports/summary',  'ReportController::summary');
         $routes->get('reports/campaigns/(:num)', 'ReportController::campaign/$1');
+
+        // 후기 커뮤니티 (이슈 #102)
+        // 주의: (:num)/comments·like·report 를 bare (:num) 보다 먼저 선언
+        $routes->get('boards',                          'BoardController::index');
+        $routes->post('boards',                         'BoardController::create');
+        $routes->get('boards/(:num)/comments',          'BoardController::comments/$1');
+        $routes->post('boards/(:num)/comments',         'BoardController::commentCreate/$1');
+        $routes->delete('boards/(:num)/comments/(:num)', 'BoardController::commentDelete/$1/$2');
+        $routes->post('boards/(:num)/like',             'BoardController::like/$1');
+        $routes->post('boards/(:num)/report',           'BoardController::report/$1');
+        $routes->get('boards/(:num)',                   'BoardController::show/$1');
+        $routes->patch('boards/(:num)',                 'BoardController::update/$1');
+        $routes->delete('boards/(:num)',                'BoardController::delete/$1');
+
+        // 이미지 업로드 (이슈 #102)
+        $routes->post('uploads/images', 'UploadController::images');
 
         // 내 정보·마이페이지 (이슈 #97)
         $routes->get('me',                  'UserController::me');

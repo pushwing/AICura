@@ -32,6 +32,14 @@ class BoardModel extends Model
         'ai_flags',
         'ai_reason',
         'ai_status',
+        // 외부 앱 후기 작성 필드 (이슈 #102)
+        'user_id',
+        'user_name',
+        'type',
+        'target_id',
+        'rate_sum',
+        'files_count',
+        'is_secret',
     ];
 
     /** @var array<int, string> 후기 유형 */
@@ -340,6 +348,142 @@ class BoardModel extends Model
             ->where('is_secret', 0)
             ->where('is_list', 1)
             ->countAllResults();
+    }
+
+    // ──────────────────────────────────────────────
+    // 외부(소비자) 앱 — 후기 작성/관리 (이슈 #102)
+    // ──────────────────────────────────────────────
+
+    /** 후기 정렬 컬럼 화이트리스트 (sort → ORDER BY) */
+    private const SORT_COLUMNS = [
+        'latest' => 'id',
+        'rating' => 'rate_sum',
+        'likes'  => 'like_count',
+    ];
+
+    /**
+     * 후기 목록 — type·target 필터, 정렬(latest/rating/likes), 페이징. 공개글만.
+     *
+     * @param array<string, mixed> $params type·target_id·sort·page·limit
+     * @return array{list: array<int, array<string, mixed>>, total: int}
+     */
+    public function getConsumerList(array $params): array
+    {
+        // 목록은 본문 전체 대신 발췌만 조회해 전송량·페이로드를 최소화한다 (SUBSTR: MySQL·SQLite 공통)
+        $builder = $this->db->table('boards')
+            ->select('id, type, target_id, user_name, subject, SUBSTR(contents, 1, 150) AS excerpt, rate_sum, like_count, comment_count, files_count, created_at', false)
+            ->where('is_delete', self::DELETE_NONE)
+            ->where('is_secret', 0)
+            ->where('is_list', 1);
+
+        if (!empty($params['type'])) {
+            $builder->where('type', (int) $params['type']);
+        }
+        if (!empty($params['target_id'])) {
+            $builder->where('target_id', (int) $params['target_id']);
+        }
+
+        $total = (clone $builder)->countAllResults(false);
+
+        $sortCol = self::SORT_COLUMNS[$params['sort'] ?? 'latest'] ?? 'id';
+        $builder->orderBy($sortCol, 'DESC');
+        if ($sortCol !== 'id') {
+            $builder->orderBy('id', 'DESC');
+        }
+
+        $page  = max(1, (int) ($params['page'] ?? 1));
+        $limit = max(1, (int) ($params['limit'] ?? 20));
+
+        $list = $builder
+            ->limit($limit, ($page - 1) * $limit)
+            ->get()
+            ->getResultArray();
+
+        return ['list' => $list, 'total' => (int) $total];
+    }
+
+    /**
+     * 후기 상세 (공개글만) — 댓글·이미지는 Service에서 합성.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getConsumerDetail(int $id): ?array
+    {
+        return $this->db->table('boards')
+            ->select('id, type, target_id, user_id, user_name, subject, contents, rate_sum, like_count, comment_count, complain_count, files_count, created_at')
+            ->where('id', $id)
+            ->where('is_delete', self::DELETE_NONE)
+            ->where('is_secret', 0)
+            ->get()
+            ->getRowArray();
+    }
+
+    /**
+     * 후기 작성 — 생성된 id 반환. ai_status 는 DEFAULT(대기)로 자동 큐 적재.
+     *
+     * @param array<string, mixed> $data
+     */
+    public function createReview(array $data): int
+    {
+        return (int) $this->insert($data, true);
+    }
+
+    /**
+     * 본인 소유·미삭제 후기 조회 (수정·삭제 권한 확인용).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findOwnedReview(int $id, int $userId): ?array
+    {
+        return $this->select('id, user_id, type, target_id')
+            ->where('id', $id)
+            ->where('user_id', $userId)
+            ->where('is_delete', self::DELETE_NONE)
+            ->first();
+    }
+
+    /**
+     * 후기 수정 — 재분석을 위해 ai_status 를 다시 대기로 돌린다.
+     *
+     * @param array<string, mixed> $data
+     */
+    public function updateReview(int $id, array $data): void
+    {
+        $this->update($id, $data + ['ai_status' => self::AI_STATUS_PENDING]);
+    }
+
+    /**
+     * 후기 soft delete.
+     */
+    public function softDeleteReview(int $id): void
+    {
+        $this->update($id, ['is_delete' => self::DELETE_FULL]);
+    }
+
+    /**
+     * 공개 후기 존재 여부 — 좋아요·신고·댓글 전 대상 검증용.
+     */
+    public function isVisibleReview(int $id): bool
+    {
+        return $this->where('id', $id)
+            ->where('is_delete', self::DELETE_NONE)
+            ->where('is_secret', 0)
+            ->countAllResults() > 0;
+    }
+
+    /**
+     * 집계 컬럼 증감 (like_count·comment_count·complain_count). 음수 방지.
+     */
+    public function adjustCounter(int $id, string $column, int $delta): void
+    {
+        if (!in_array($column, ['like_count', 'comment_count', 'complain_count'], true)) {
+            throw new \InvalidArgumentException('허용되지 않은 카운터 컬럼: ' . $column);
+        }
+
+        $this->db->table('boards')
+            ->where('id', $id)
+            ->set($column, "CASE WHEN {$column} + {$delta} < 0 THEN 0 ELSE {$column} + {$delta} END", false)
+            ->update();
     }
 
     /**
