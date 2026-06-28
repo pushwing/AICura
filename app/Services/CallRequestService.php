@@ -59,11 +59,29 @@ class CallRequestService
             'region'                   => $this->nullableString($input['region'] ?? null),
         ]);
 
-        // CPA 과금 — 계약 미연결·금액 없음 등은 내부적으로 false 반환(신청 자체는 성공 처리)
-        $this->callRequests->chargeCpa($id, $userId);
+        // CPA 과금·AI 큐 적재는 best-effort — 신청 INSERT가 끝난 뒤의 부가 작업이므로
+        // 실패해도 신청 자체는 성공 처리한다. (계약 미연결 등 정상적 미과금은 chargeCpa가
+        // false로 조용히 반환하고, DB 오류 등 예외만 로깅 후 삼켜 500/고아 응답을 막는다.)
+
+        // CPA 과금 — 신청 즉시 호출 (계약 미연결·금액 없음 등은 내부적으로 false 반환)
+        try {
+            $this->callRequests->chargeCpa($id, $userId);
+        } catch (\Throwable $e) {
+            log_message('error', '[CallRequestService] CPA 과금 실패 (call_request:{id}): {msg}', [
+                'id'  => $id,
+                'msg' => $e->getMessage(),
+            ]);
+        }
 
         // AI 리드 분석 큐 적재 (비동기 — leads:analyze 커맨드가 소비)
-        $this->callRequests->enqueueAnalysis($id);
+        try {
+            $this->callRequests->enqueueAnalysis($id);
+        } catch (\Throwable $e) {
+            log_message('error', '[CallRequestService] AI 분석 큐 적재 실패 (call_request:{id}): {msg}', [
+                'id'  => $id,
+                'msg' => $e->getMessage(),
+            ]);
+        }
 
         return $this->detail($userId, $id);
     }

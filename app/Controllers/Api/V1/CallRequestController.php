@@ -66,6 +66,8 @@ class CallRequestController extends BaseApiController
             'age'         => 'permit_empty|is_natural_no_zero|less_than[150]',
             'sex'         => 'permit_empty|in_list[0,1,2]',
             'device'      => 'permit_empty|in_list[1,2]',
+            'funnel'      => 'permit_empty|max_length[500]',
+            'region'      => 'permit_empty|max_length[100]',
         ];
 
         if (!$this->validate($rules)) {

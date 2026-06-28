@@ -145,6 +145,17 @@ final class CallRequestApiFeatureTest extends CIUnitTestCase
         $this->authPost('api/v1/call-requests', $payload)->assertStatus(422);
     }
 
+    /** [C3-1] 컬럼 길이 초과(region) → DB 오류(500)가 아닌 422 */
+    public function testCreateValidatesFieldLength(): void
+    {
+        $payload           = $this->validPayload();
+        $payload['region'] = str_repeat('가', 101); // region VARCHAR(100) 초과
+
+        $result = $this->authPost('api/v1/call-requests', $payload);
+        $result->assertStatus(422);
+        $this->assertSame('VALIDATION_ERROR', json_decode($result->getJSON(), true)['code']);
+    }
+
     /** [C4] 비노출 캠페인 */
     public function testCreateOnHiddenCampaignReturns404(): void
     {
