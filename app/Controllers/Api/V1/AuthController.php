@@ -6,6 +6,7 @@ use App\Exceptions\DomainException;
 use App\Libraries\JwtLibrary;
 use App\Services\AppAuthService;
 use CodeIgniter\HTTP\ResponseInterface;
+use Config\Services;
 use OpenApi\Attributes as OA;
 
 /**
@@ -20,7 +21,7 @@ class AuthController extends BaseApiController
 
     public function __construct()
     {
-        $this->auth = new AppAuthService();
+        $this->auth = Services::appAuthService();
     }
 
     #[OA\Post(

@@ -2,6 +2,7 @@
 
 namespace Config;
 
+use App\Services\AppAuthService;
 use CodeIgniter\Config\BaseService;
 
 /**
@@ -19,14 +20,18 @@ use CodeIgniter\Config\BaseService;
  */
 class Services extends BaseService
 {
-    /*
-     * public static function example($getShared = true)
-     * {
-     *     if ($getShared) {
-     *         return static::getSharedInstance('example');
-     *     }
+    /**
+     * 외부(소비자) 앱 인증 서비스 (이슈 #96)
      *
-     *     return new \CodeIgniter\Example();
-     * }
+     * 컨트롤러는 `service('appAuthService')` 또는 `Services::appAuthService()` 로 주입받아
+     * 직접 `new` 없이 사용하며, 테스트에서는 `Services::injectMock()` 으로 대체할 수 있다.
      */
+    public static function appAuthService(bool $getShared = true): AppAuthService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('appAuthService');
+        }
+
+        return new AppAuthService();
+    }
 }

@@ -142,6 +142,22 @@ final class AppAuthFeatureTest extends CIUnitTestCase
         $this->assertSame(1, $count);
     }
 
+    /** [A10] 대소문자가 다른 이메일로도 로그인 성공 — 가입·로그인 정규화 일치 */
+    public function testLoginIsCaseInsensitiveForEmail(): void
+    {
+        $this->withBodyFormat('json')->post('api/v1/auth/register', [
+            'email'    => 'MixedCase@Aicura.test',
+            'password' => 'password1234',
+        ]);
+
+        $result = $this->withBodyFormat('json')->post('api/v1/auth/login', [
+            'email'    => 'MIXEDCASE@AICURA.TEST',
+            'password' => 'password1234',
+        ]);
+        $result->assertStatus(200);
+        $this->assertArrayHasKey('access_token', json_decode($result->getJSON(), true)['data']);
+    }
+
     /** [A9] 이메일 중복 확인 */
     public function testCheckEmailAvailability(): void
     {

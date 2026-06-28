@@ -47,4 +47,10 @@ final class AuthException extends DomainException
     {
         return new self(422, 'VALIDATION_ERROR', '지원하지 않는 소셜 로그인 제공자입니다.');
     }
+
+    /** 사전 검사를 통과했으나 계정 생성(insert)이 실패한 예외적 상황 — 상세는 서버 로그로만 남긴다 */
+    public static function registrationFailed(): self
+    {
+        return new self(500, 'INTERNAL_ERROR', '계정 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+    }
 }

@@ -40,7 +40,7 @@ class AppAuthService
      */
     public function loginWithEmail(string $email, string $password): array
     {
-        $user = $this->users->findAppUserForAuth($email);
+        $user = $this->users->findAppUserForAuth($this->normalizeEmail($email));
 
         if ($user === null || !is_string($user['password']) || !password_verify($password, $user['password'])) {
             throw AuthException::invalidCredentials();
@@ -67,7 +67,7 @@ class AppAuthService
             throw AuthException::emailAlreadyExists();
         }
 
-        $userId = $this->users->createAppUser([
+        $userId = $this->createUser([
             'email'      => $email,
             'password'   => (string) $input['password'],
             'username'   => $this->nullableString($input['username'] ?? null),
@@ -109,7 +109,7 @@ class AppAuthService
             return $this->finishLogin((int) $user['id']);
         }
 
-        $userId = $this->users->createAppUser([
+        $userId = $this->createUser([
             'email'      => sprintf('social_%d_%s@aicura.app', $provider, $uid),
             'username'   => $this->nullableString($input['username'] ?? null),
             'picture'    => $this->nullableString($input['picture'] ?? null),
@@ -127,6 +127,25 @@ class AppAuthService
     public function isEmailAvailable(string $email): bool
     {
         return !$this->users->emailExists($this->normalizeEmail($email));
+    }
+
+    /**
+     * 계정 생성 위임 — 모델의 저수준 실패(RuntimeException)를 도메인 예외로 변환한다.
+     *
+     * emailExists·provider+uid 사전 검사를 통과한 뒤의 insert 실패는 예외적 상황이므로,
+     * 내부 오류 상세는 서버 로그로만 남기고 클라이언트에는 안전한 메시지를 반환한다.
+     *
+     * @param array<string, mixed> $data
+     */
+    private function createUser(array $data): int
+    {
+        try {
+            return $this->users->createAppUser($data);
+        } catch (\RuntimeException $e) {
+            log_message('error', '[AppAuthService] 앱 계정 생성 실패: {message}', ['message' => $e->getMessage()]);
+
+            throw AuthException::registrationFailed();
+        }
     }
 
     /**
