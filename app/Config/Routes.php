@@ -190,8 +190,14 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
     // 이하 jwt_auth 필터 적용
     $routes->group('', ['filter' => 'jwt_auth'], static function (RouteCollection $routes): void {
 
-        // 캠페인
-        $routes->resource('campaigns', ['controller' => 'CampaignController']);
+        // 이벤트(캠페인) — 소비자 조회 전용 + 찜 토글 (이슈 #98)
+        // 주의: 정적 경로(categories/main/recommend)를 (:num) 보다 먼저 선언
+        $routes->get('campaigns/categories', 'CampaignController::categories');
+        $routes->get('campaigns/main',       'CampaignController::main');
+        $routes->get('campaigns/recommend',  'CampaignController::recommend');
+        $routes->get('campaigns',            'CampaignController::index');
+        $routes->get('campaigns/(:num)',     'CampaignController::show/$1');
+        $routes->post('campaigns/(:num)/like', 'CampaignController::like/$1');
 
         // 리포트
         $routes->get('reports/summary',  'ReportController::summary');

@@ -45,4 +45,29 @@ class EventCategoryModel extends Model
 
         return (string) ($row['title'] ?? '');
     }
+
+    /**
+     * 외부 앱 노출용 카테고리 목록 — 노출 가능 항목만, 정렬 순. 1시간 캐시(변경 빈도 낮음). (이슈 #98)
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getVisibleList(): array
+    {
+        $cacheKey = 'event_categories_visible';
+        /** @var array<int, array<string, mixed>>|null $cached */
+        $cached = cache($cacheKey);
+        if (is_array($cached)) {
+            return $cached;
+        }
+
+        $list = $this->select('id, parent_id, title, image, sort')
+            ->where('is_visible', 1)
+            ->orderBy('sort', 'ASC')
+            ->orderBy('id', 'ASC')
+            ->findAll();
+
+        cache()->save($cacheKey, $list, 3600);
+
+        return $list;
+    }
 }

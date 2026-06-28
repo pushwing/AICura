@@ -3,6 +3,7 @@
 namespace Config;
 
 use App\Services\AppAuthService;
+use App\Services\EventService;
 use CodeIgniter\Config\BaseService;
 
 /**
@@ -33,5 +34,20 @@ class Services extends BaseService
         }
 
         return new AppAuthService();
+    }
+
+    /**
+     * 외부(소비자) 앱 이벤트 서비스 (이슈 #98)
+     *
+     * 컨트롤러는 `service('eventService')` 또는 `Services::eventService()` 로 주입받아
+     * 직접 `new` 없이 사용하며, 테스트에서는 `Services::injectMock()` 으로 대체할 수 있다.
+     */
+    public static function eventService(bool $getShared = true): EventService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('eventService');
+        }
+
+        return new EventService();
     }
 }
