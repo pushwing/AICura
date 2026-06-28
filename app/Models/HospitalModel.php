@@ -90,12 +90,18 @@ class HospitalModel extends Model
     }
 
     /**
+     * Fix #7 + 이슈 #99: 병원 쓰기 시 활성 목록 캐시와 소비자 캐시(목록·상세)를 함께 무효화.
+     *
+     * 소비자 캐시는 파라미터 해시(md5) 기반이라 개별 키를 열거할 수 없으므로,
+     * 캐시 키에 포함되는 버전 토큰을 삭제해 한 번에 무효화한다(다음 조회 시 새 토큰 발급).
+     *
      * @param array<string, mixed> $data
      * @return array<string, mixed>
      */
     protected function clearActiveListCache(array $data): array
     {
         cache()->delete('hospitals_active_list');
+        cache()->delete(self::CONSUMER_CACHE_VERSION_KEY);
         return $data;
     }
 
@@ -105,6 +111,30 @@ class HospitalModel extends Model
 
     /** boards.type — 병원 후기 (별점 요약 조인용) */
     private const REVIEW_TYPE_HOSPITAL = 2;
+
+    /** 소비자 캐시(목록·상세) 무효화용 버전 토큰 캐시 키 */
+    public const CONSUMER_CACHE_VERSION_KEY = 'hospitals_consumer_cache_ver';
+
+    /** 버전 토큰 TTL (초) — 1일. 쓰기 발생 시 즉시 삭제되어 무효화된다. */
+    private const CONSUMER_CACHE_VERSION_TTL = 86400;
+
+    /**
+     * 소비자 캐시 키에 끼워 넣는 버전 토큰.
+     *
+     * 병원 쓰기(Insert·Update·Delete) 시 토큰이 삭제되며, 다음 조회에서 새 토큰이
+     * 발급되어 이전 버전으로 저장된 목록·상세 캐시는 모두 자연스럽게 무시된다(TTL 만료로 정리).
+     */
+    public function consumerCacheVersion(): string
+    {
+        /** @var string|null $ver */
+        $ver = cache(self::CONSUMER_CACHE_VERSION_KEY);
+        if (!is_string($ver)) {
+            $ver = bin2hex(random_bytes(4));
+            cache()->save(self::CONSUMER_CACHE_VERSION_KEY, $ver, self::CONSUMER_CACHE_VERSION_TTL);
+        }
+
+        return $ver;
+    }
 
     /**
      * 외부 앱 병원 목록 — 활성 병원만, 이름·지역(주소) 필터, 별점 요약 조인, 페이징.

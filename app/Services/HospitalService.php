@@ -26,6 +26,9 @@ class HospitalService
     /** 목록 캐시 TTL (초) */
     private const LIST_TTL = 300;
 
+    /** 단건 상세 캐시 TTL (초) */
+    private const DETAIL_TTL = 300;
+
     private HospitalModel $hospitals;
     private BoardModel $boards;
     private FavoriteModel $favorites;
@@ -51,7 +54,8 @@ class HospitalService
      */
     public function list(int $userId, array $params): array
     {
-        $cacheKey = 'hospitals_consumer_list_' . md5(serialize($this->normalizeListParams($params)));
+        $cacheKey = 'hospitals_consumer_list_' . $this->hospitals->consumerCacheVersion()
+            . '_' . md5(serialize($this->normalizeListParams($params)));
 
         /** @var array{list: array<int, array<string, mixed>>, total: int}|null $base */
         $base = cache($cacheKey);
@@ -74,29 +78,40 @@ class HospitalService
      */
     public function detail(int $userId, int $id): array
     {
-        $row = $this->hospitals->getConsumerDetail($id);
-        if ($row === null) {
-            throw NotFoundException::of('병원을 찾을 수 없습니다.');
+        // 사용자 무관한 기본 상세를 버전 키로 캐시하고(목록과 동일하게 쓰기 시 일괄 무효화),
+        // 사용자별 is_liked 만 캐시 조회 후 덧입힌다.
+        $cacheKey = 'hospitals_consumer_detail_' . $this->hospitals->consumerCacheVersion() . '_' . $id;
+
+        /** @var array<string, mixed>|null $base */
+        $base = cache($cacheKey);
+        if (!is_array($base)) {
+            $row = $this->hospitals->getConsumerDetail($id);
+            if ($row === null) {
+                throw NotFoundException::of('병원을 찾을 수 없습니다.');
+            }
+
+            $type = (int) $row['type'];
+            $base = [
+                'id'         => (int) $row['id'],
+                'name'       => $row['name'],
+                'type'       => $type,
+                'type_label' => self::TYPE_LABELS[$type] ?? null,
+                'phone'      => $row['phone'],
+                'address'    => $row['address'],
+                'review_summary' => [
+                    'rating' => round((float) $row['rate_sum'], 2),
+                    'rate1'  => round((float) $row['rate1'], 2),
+                    'rate2'  => round((float) $row['rate2'], 2),
+                    'rate3'  => round((float) $row['rate3'], 2),
+                    'count'  => $this->boards->countReviewsByTarget(BoardModel::TYPE_HOSPITAL, $id),
+                ],
+            ];
+            cache()->save($cacheKey, $base, self::DETAIL_TTL);
         }
 
-        $type = (int) $row['type'];
+        $base['is_liked'] = $this->favorites->likedTargetIds($userId, FavoriteModel::TYPE_HOSPITAL, [$id]) !== [];
 
-        return [
-            'id'         => (int) $row['id'],
-            'name'       => $row['name'],
-            'type'       => $type,
-            'type_label' => self::TYPE_LABELS[$type] ?? null,
-            'phone'      => $row['phone'],
-            'address'    => $row['address'],
-            'review_summary' => [
-                'rating' => round((float) $row['rate_sum'], 2),
-                'rate1'  => round((float) $row['rate1'], 2),
-                'rate2'  => round((float) $row['rate2'], 2),
-                'rate3'  => round((float) $row['rate3'], 2),
-                'count'  => $this->boards->countReviewsByTarget(BoardModel::TYPE_HOSPITAL, $id),
-            ],
-            'is_liked' => $this->favorites->likedTargetIds($userId, FavoriteModel::TYPE_HOSPITAL, [$id]) !== [],
-        ];
+        return $base;
     }
 
     /**
