@@ -137,6 +137,9 @@ class Services extends BaseService
         }
 
         return new LogIngestService();
+    }
+
+    /**
      * 외부(소비자) 앱 예약 서비스 (이슈 #101)
      */
     public static function bookingService(bool $getShared = true): BookingService
