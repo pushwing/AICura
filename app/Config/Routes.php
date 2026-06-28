@@ -199,6 +199,11 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
         $routes->get('campaigns/(:num)',     'CampaignController::show/$1');
         $routes->post('campaigns/(:num)/like', 'CampaignController::like/$1');
 
+        // 상담 신청 (이슈 #100)
+        $routes->post('call-requests',         'CallRequestController::create');
+        $routes->get('call-requests/(:num)',   'CallRequestController::show/$1');
+        $routes->delete('call-requests/(:num)', 'CallRequestController::delete/$1');
+
         // 리포트
         $routes->get('reports/summary',  'ReportController::summary');
         $routes->get('reports/campaigns/(:num)', 'ReportController::campaign/$1');

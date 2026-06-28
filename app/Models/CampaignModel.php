@@ -517,4 +517,28 @@ class CampaignModel extends Model
 
         return $builder->countAllResults() > 0;
     }
+
+    /**
+     * 상담 신청 대상 캠페인 정보 — 노출 조건 충족 건만 (병원·CPA 단가). (이슈 #100)
+     *
+     * @return array{id: int, hospital_id: int, db_cost: int}|null
+     */
+    public function getApplyTarget(int $id): ?array
+    {
+        $builder = $this->db->table('campaigns c')
+            ->select('c.id, c.hospital_id, c.db_cost')
+            ->where('c.id', $id);
+        $this->applyConsumerFilters($builder);
+
+        $row = $builder->get()->getRowArray();
+        if ($row === null) {
+            return null;
+        }
+
+        return [
+            'id'          => (int) $row['id'],
+            'hospital_id' => (int) $row['hospital_id'],
+            'db_cost'     => (int) $row['db_cost'],
+        ];
+    }
 }
