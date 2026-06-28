@@ -179,10 +179,13 @@ $routes->group('portal', static function (RouteCollection $routes): void {
 // ── API v1 ──────────────────────────────────────────────
 $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static function (RouteCollection $routes): void {
 
-    // 인증 (JWT 불필요)
-    $routes->post('auth/login',   'AuthController::login');
-    $routes->post('auth/refresh', 'AuthController::refresh');
-    $routes->post('auth/logout',  'AuthController::logout');
+    // 인증 (JWT 불필요) — 외부(소비자) 앱 전용
+    $routes->post('auth/login',       'AuthController::login');
+    $routes->post('auth/register',    'AuthController::register');
+    $routes->post('auth/social',      'AuthController::social');
+    $routes->post('auth/check-email', 'AuthController::checkEmail');
+    $routes->post('auth/refresh',     'AuthController::refresh');
+    $routes->post('auth/logout',      'AuthController::logout');
 
     // 이하 jwt_auth 필터 적용
     $routes->group('', ['filter' => 'jwt_auth'], static function (RouteCollection $routes): void {
