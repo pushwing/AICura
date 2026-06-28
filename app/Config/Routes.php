@@ -109,8 +109,11 @@ $routes->group('admin', static function (RouteCollection $routes): void {
         $routes->post('refund-requests/(:num)/reject',   'Admin\RefundRequestController::reject/$1');
 
         // 사용자 관리
-        $routes->get('users',        'Admin\UserController::index');
-        $routes->get('users/(:num)', 'Admin\UserController::show/$1');
+        $routes->get('users',                 'Admin\UserController::index');
+        $routes->get('users/(:num)',          'Admin\UserController::show/$1');
+        $routes->post('users/(:num)/status',  'Admin\UserController::updateStatus/$1'); // 상태 변경(휴면·계정활성, JSON)
+        $routes->get('users/(:num)/events',   'Admin\UserController::events/$1');       // 신청 이벤트 더보기(JSON)
+        $routes->get('users/(:num)/reviews',  'Admin\UserController::reviews/$1');      // 작성 후기 더보기(JSON)
 
         // 설정 (이슈 #63) — 내 계정(프로필·비밀번호) + 시스템 설정
         $routes->get('settings',           'Admin\SettingController::index');

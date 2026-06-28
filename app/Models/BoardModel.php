@@ -135,6 +135,28 @@ class BoardModel extends Model
     }
 
     /**
+     * 특정 사용자가 작성한 후기 목록 (페이징) — 사용자 상세용. (이슈 #90)
+     *
+     * @return array{list: array<int, array<string, mixed>>, total: int}
+     */
+    public function getByUser(int $userId, int $limit, int $offset): array
+    {
+        $builder = $this->db->table('boards')
+            ->select('id, type, target_id, subject, rate_sum, like_count, is_delete, created_at')
+            ->where('user_id', $userId);
+
+        $total = (clone $builder)->countAllResults(false);
+
+        $list = $builder
+            ->orderBy('id', 'DESC')
+            ->limit($limit, $offset)
+            ->get()
+            ->getResultArray();
+
+        return ['list' => $list, 'total' => $total];
+    }
+
+    /**
      * 후기 상세 (신고 내역 포함)
      *
      * @return array<string, mixed>|null

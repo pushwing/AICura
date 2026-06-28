@@ -1,15 +1,26 @@
 <?php
 /** @var array<string, mixed> $user */
 /** @var array<int, string> $userTypeLabels */
+/** @var array<int, string> $whereFromLabels */
+/** @var array<int, string> $providerLabels */
 /** @var list<array<string, mixed>> $agencyAdvertisers */
 /** @var array<int, string> $adType2Labels */
+/** @var list<array{id:int, campaign_title:string, status_label:string, created_at:string}> $events */
+/** @var int $eventsTotal */
+/** @var list<array{id:int, type_label:string, subject:string, rate:int, is_deleted:bool, created_at:string}> $reviews */
+/** @var int $reviewsTotal */
+/** @var int $subPerPage */
 
 $adType2Labels = $adType2Labels ?? [];
 
-$userType  = (int) $user['user_type'];
-$typeLabel = $userTypeLabels[$userType] ?? (string) $userType;
-$isDormant = (int) $user['is_dormant'];
-$isAgency  = (int) ($user['is_agency_account'] ?? 0) === 1;
+$userType   = (int) $user['user_type'];
+$typeLabel  = $userTypeLabels[$userType] ?? (string) $userType;
+$isDormant  = (int) $user['is_dormant'];
+$isActive   = (int) ($user['is_active'] ?? 1);
+$isAgency   = (int) ($user['is_agency_account'] ?? 0) === 1;
+$whereFrom  = (int) ($user['where_from'] ?? 0);
+$provider   = (int) ($user['provider'] ?? 0);
+$userId     = (int) $user['id'];
 
 $agencyAdvertisers = $agencyAdvertisers ?? [];
 
@@ -77,8 +88,8 @@ $backType = match (true) {
                 <table style="width:100%;font-size:14px;border-collapse:collapse;">
                     <?php
                     $arows = [
-                        ['가입 경로',    esc($user['where_from'] ?? '-')],
-                        ['로그인 방식',  esc($user['provider'] ?? '-')],
+                        ['가입 경로',    esc($whereFromLabels[$whereFrom] ?? '-')],
+                        ['로그인 방식',  esc($providerLabels[$provider] ?? '-')],
                         ['에이전시 계정', (int) ($user['is_agency_account'] ?? 0) === 1 ? '예' : '아니오'],
                         ['헬스 포인트', isset($user['health_point']) ? number_format((int) $user['health_point']) : '-'],
                     ];
@@ -102,8 +113,229 @@ $backType = match (true) {
             </div>
         </div>
 
+        <!-- 상태 관리 -->
+        <div class="card">
+            <div class="card-body">
+                <h3 style="margin-bottom:16px;font-size:15px;">상태 관리</h3>
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <label for="dormantSelect" style="width:90px;font-size:14px;color:var(--color-text-muted);">휴면 상태</label>
+                        <select id="dormantSelect" class="form-control" style="flex:1;">
+                            <option value="1" <?= $isDormant === 1 ? 'selected' : '' ?>>활성</option>
+                            <option value="0" <?= $isDormant === 0 ? 'selected' : '' ?>>휴면</option>
+                        </select>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <label for="activeSelect" style="width:90px;font-size:14px;color:var(--color-text-muted);">계정 활성</label>
+                        <select id="activeSelect" class="form-control" style="flex:1;">
+                            <option value="1" <?= $isActive === 1 ? 'selected' : '' ?>>활성</option>
+                            <option value="0" <?= $isActive === 0 ? 'selected' : '' ?>>비활성</option>
+                        </select>
+                    </div>
+                    <button type="button" id="statusApply" class="btn btn-primary" style="align-self:flex-end;">상태 변경</button>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
+
+<!-- 신청한 이벤트 -->
+<div class="card" style="margin-top:20px;">
+    <div class="card-body">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <h3 style="margin:0;font-size:15px;">신청한 이벤트</h3>
+            <span style="font-size:13px;color:var(--color-text-muted);">총 <strong style="color:var(--color-text);"><?= number_format($eventsTotal) ?></strong>건</span>
+        </div>
+        <?php if ($eventsTotal === 0): ?>
+        <p style="font-size:14px;color:var(--color-text-muted);margin:0;">신청한 이벤트가 없습니다.</p>
+        <?php else: ?>
+        <table style="width:100%;font-size:14px;border-collapse:collapse;">
+            <thead>
+                <tr style="border-bottom:2px solid var(--color-border,#e5e7eb);text-align:left;color:var(--color-text-muted);">
+                    <th style="padding:8px 4px;">캠페인</th>
+                    <th style="padding:8px 4px;width:100px;">상태</th>
+                    <th style="padding:8px 4px;width:120px;">신청일</th>
+                </tr>
+            </thead>
+            <tbody id="eventsBody">
+                <?php foreach ($events as $ev): ?>
+                <tr style="border-bottom:1px solid var(--color-border,#f3f4f6);">
+                    <td style="padding:8px 4px;">
+                        <a href="/admin/call-requests/<?= (int) $ev['id'] ?>" style="color:var(--color-primary,#0F6E56);text-decoration:none;">
+                            <?= esc($ev['campaign_title']) ?>
+                        </a>
+                    </td>
+                    <td style="padding:8px 4px;"><?= esc($ev['status_label']) ?></td>
+                    <td style="padding:8px 4px;"><?= esc($ev['created_at']) ?></td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php if ($eventsTotal > $subPerPage): ?>
+        <div style="text-align:center;margin-top:12px;">
+            <button type="button" id="eventsMore" class="btn btn-outline" data-page="1">더보기</button>
+        </div>
+        <?php endif; ?>
+        <?php endif; ?>
+    </div>
+</div>
+
+<!-- 작성한 후기 -->
+<div class="card" style="margin-top:20px;">
+    <div class="card-body">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <h3 style="margin:0;font-size:15px;">작성한 후기</h3>
+            <span style="font-size:13px;color:var(--color-text-muted);">총 <strong style="color:var(--color-text);"><?= number_format($reviewsTotal) ?></strong>건</span>
+        </div>
+        <?php if ($reviewsTotal === 0): ?>
+        <p style="font-size:14px;color:var(--color-text-muted);margin:0;">작성한 후기가 없습니다.</p>
+        <?php else: ?>
+        <table style="width:100%;font-size:14px;border-collapse:collapse;">
+            <thead>
+                <tr style="border-bottom:2px solid var(--color-border,#e5e7eb);text-align:left;color:var(--color-text-muted);">
+                    <th style="padding:8px 4px;width:80px;">유형</th>
+                    <th style="padding:8px 4px;">제목</th>
+                    <th style="padding:8px 4px;width:70px;text-align:right;">평점</th>
+                    <th style="padding:8px 4px;width:120px;">작성일</th>
+                </tr>
+            </thead>
+            <tbody id="reviewsBody">
+                <?php foreach ($reviews as $rv): ?>
+                <tr style="border-bottom:1px solid var(--color-border,#f3f4f6);">
+                    <td style="padding:8px 4px;"><?= esc($rv['type_label']) ?></td>
+                    <td style="padding:8px 4px;">
+                        <a href="/admin/reviews/<?= (int) $rv['id'] ?>" style="color:var(--color-primary,#0F6E56);text-decoration:none;<?= $rv['is_deleted'] ? 'text-decoration:line-through;color:#9ca3af;' : '' ?>">
+                            <?= esc($rv['subject']) ?>
+                        </a>
+                    </td>
+                    <td style="padding:8px 4px;text-align:right;"><?= (int) $rv['rate'] ?></td>
+                    <td style="padding:8px 4px;"><?= esc($rv['created_at']) ?></td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php if ($reviewsTotal > $subPerPage): ?>
+        <div style="text-align:center;margin-top:12px;">
+            <button type="button" id="reviewsMore" class="btn btn-outline" data-page="1">더보기</button>
+        </div>
+        <?php endif; ?>
+        <?php endif; ?>
+    </div>
+</div>
+
+<script>
+(function () {
+    const userId = <?= $userId ?>;
+
+    // ── 상태 변경 ──
+    const statusApply = document.getElementById('statusApply');
+    if (statusApply) {
+        statusApply.addEventListener('click', async () => {
+            statusApply.disabled = true;
+            const original = statusApply.textContent;
+            statusApply.textContent = '처리 중...';
+            try {
+                const res = await fetch('/admin/users/' + userId + '/status', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        ...csrfHeaders(),
+                    },
+                    body: JSON.stringify({
+                        is_dormant: Number(document.getElementById('dormantSelect').value),
+                        is_active: Number(document.getElementById('activeSelect').value),
+                    }),
+                });
+                const data = await res.json();
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.message ?? '처리 실패');
+                    statusApply.disabled = false;
+                    statusApply.textContent = original;
+                }
+            } catch (err) {
+                alert('오류가 발생했습니다.');
+                statusApply.disabled = false;
+                statusApply.textContent = original;
+            }
+        });
+    }
+
+    // ── 더보기 (신청 이벤트·작성 후기 공통) ──
+    function setupMore(btnId, bodyId, endpoint, renderRow) {
+        const btn = document.getElementById(btnId);
+        if (!btn) return;
+        btn.addEventListener('click', async () => {
+            const nextPage = Number(btn.dataset.page) + 1;
+            btn.disabled = true;
+            btn.textContent = '불러오는 중...';
+            try {
+                const res = await fetch('/admin/users/' + userId + '/' + endpoint + '?page=' + nextPage, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                });
+                const data = await res.json();
+                const tbody = document.getElementById(bodyId);
+                data.items.forEach((item) => tbody.appendChild(renderRow(item)));
+                btn.dataset.page = String(nextPage);
+                if (data.has_more) {
+                    btn.disabled = false;
+                    btn.textContent = '더보기';
+                } else {
+                    btn.remove();
+                }
+            } catch (err) {
+                alert('오류가 발생했습니다.');
+                btn.disabled = false;
+                btn.textContent = '더보기';
+            }
+        });
+    }
+
+    function cell(text, opts) {
+        const td = document.createElement('td');
+        td.style.padding = '8px 4px';
+        if (opts && opts.align) td.style.textAlign = opts.align;
+        if (opts && opts.link) {
+            const a = document.createElement('a');
+            a.href = opts.link;
+            a.style.color = 'var(--color-primary,#0F6E56)';
+            a.style.textDecoration = 'none';
+            if (opts.strike) { a.style.textDecoration = 'line-through'; a.style.color = '#9ca3af'; }
+            a.textContent = text;
+            td.appendChild(a);
+        } else {
+            td.textContent = text;
+        }
+        return td;
+    }
+
+    function rowBase() {
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid var(--color-border,#f3f4f6)';
+        return tr;
+    }
+
+    setupMore('eventsMore', 'eventsBody', 'events', (it) => {
+        const tr = rowBase();
+        tr.appendChild(cell(it.campaign_title, { link: '/admin/call-requests/' + it.id }));
+        tr.appendChild(cell(it.status_label));
+        tr.appendChild(cell(it.created_at));
+        return tr;
+    });
+
+    setupMore('reviewsMore', 'reviewsBody', 'reviews', (it) => {
+        const tr = rowBase();
+        tr.appendChild(cell(it.type_label));
+        tr.appendChild(cell(it.subject, { link: '/admin/reviews/' + it.id, strike: it.is_deleted }));
+        tr.appendChild(cell(String(it.rate), { align: 'right' }));
+        tr.appendChild(cell(it.created_at));
+        return tr;
+    });
+})();
+</script>
 
 <?php if ($isAgency): ?>
 <?php

@@ -149,6 +149,31 @@ class CallRequestModel extends Model
     }
 
     /**
+     * 특정 사용자가 신청한 이벤트 목록 (캠페인명 포함, 페이징) — 사용자 상세용. (이슈 #90)
+     *
+     * @return array{list: array<int, array<string, mixed>>, total: int}
+     */
+    public function getByUser(int $userId, int $limit, int $offset): array
+    {
+        $builder = $this->db->table('call_requests cr')
+            ->select('cr.id, cr.campaign_id, cr.status, cr.created_at')
+            ->select('c.ad_title AS campaign_title', false)
+            ->join('campaigns c', 'c.id = cr.campaign_id', 'left')
+            ->where('cr.user_id', $userId)
+            ->where('cr.is_delete', 0);
+
+        $total = (clone $builder)->countAllResults(false);
+
+        $list = $builder
+            ->orderBy('cr.id', 'DESC')
+            ->limit($limit, $offset)
+            ->get()
+            ->getResultArray();
+
+        return ['list' => $list, 'total' => $total];
+    }
+
+    /**
      * 신청 상세 (병원·캠페인명 + 메모 목록 포함)
      *
      * @return array<string, mixed>|null
