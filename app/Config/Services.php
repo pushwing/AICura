@@ -7,6 +7,7 @@ use App\Services\BoardService;
 use App\Services\CallRequestService;
 use App\Services\EventService;
 use App\Services\HospitalService;
+use App\Services\LogIngestService;
 use App\Services\MeService;
 use App\Services\UploadService;
 use CodeIgniter\Config\BaseService;
@@ -123,5 +124,17 @@ class Services extends BaseService
         }
 
         return new BoardService();
+    }
+
+    /**
+     * 외부(소비자) 앱 로그 수집 서비스 (이슈 #103)
+     */
+    public static function logIngestService(bool $getShared = true): LogIngestService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('logIngestService');
+        }
+
+        return new LogIngestService();
     }
 }

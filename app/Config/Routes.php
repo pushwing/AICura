@@ -190,6 +190,12 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
     // 업로드 이미지 서빙 (인증 불필요 — 랜덤 파일명 capability) (이슈 #102)
     $routes->get('uploads/images/(:segment)', 'UploadController::serve/$1');
 
+    // 공통·운영 (이슈 #103) — 앱 부트스트랩·운영 (인증 불필요)
+    $routes->get('settings',  'SystemController::settings');
+    $routes->get('codes',     'SystemController::codes');
+    $routes->post('logs',     'SystemController::logs');
+    $routes->get('health',    'SystemController::health');
+
     // 이하 jwt_auth 필터 적용
     $routes->group('', ['filter' => 'jwt_auth'], static function (RouteCollection $routes): void {
 
