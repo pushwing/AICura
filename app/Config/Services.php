@@ -3,10 +3,12 @@
 namespace Config;
 
 use App\Services\AppAuthService;
+use App\Services\BoardService;
 use App\Services\CallRequestService;
 use App\Services\EventService;
 use App\Services\HospitalService;
 use App\Services\MeService;
+use App\Services\UploadService;
 use CodeIgniter\Config\BaseService;
 
 /**
@@ -97,5 +99,29 @@ class Services extends BaseService
         }
 
         return new MeService();
+    }
+
+    /**
+     * 외부(소비자) 앱 이미지 업로드 서비스 (이슈 #102)
+     */
+    public static function uploadService(bool $getShared = true): UploadService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('uploadService');
+        }
+
+        return new UploadService();
+    }
+
+    /**
+     * 외부(소비자) 앱 후기 커뮤니티 서비스 (이슈 #102)
+     */
+    public static function boardService(bool $getShared = true): BoardService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('boardService');
+        }
+
+        return new BoardService();
     }
 }
