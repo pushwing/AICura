@@ -200,6 +200,76 @@ class CallRequestModel extends Model
         return $row;
     }
 
+    /** 신규 신청 기본 상태 — 미확인 */
+    public const STATUS_UNCONFIRMED = 1;
+
+    // ──────────────────────────────────────────────
+    // 외부(소비자) 앱 — 상담 신청 (이슈 #100)
+    // ──────────────────────────────────────────────
+
+    /** 소비자 상세 노출 컬럼 (AI 분석·과금·핑거프린트 등 내부 필드 제외) */
+    private const CONSUMER_DETAIL_COLUMNS = 'cr.id, cr.hospital_id, cr.campaign_id, cr.status, '
+        . 'cr.name, cr.phone, cr.content, cr.call_time, cr.reserved_at, cr.created_at';
+
+    /**
+     * 외부 앱 상담 신청 생성 — 입력은 Service에서 정규화해 전달한다.
+     *
+     * @param array<string, mixed> $data
+     * @return int 생성된 신청 id
+     */
+    public function createApplication(array $data): int
+    {
+        $row = array_merge($data, [
+            'status'     => self::STATUS_UNCONFIRMED,
+            'is_charged' => 0,
+            'is_delete'  => 0,
+        ]);
+
+        return (int) $this->insert($row, true);
+    }
+
+    /**
+     * 본인 소유 신청 1건 조회 (소비자 노출 컬럼 + 병원·캠페인명) — 소유자 검증 포함.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getConsumerDetail(int $id, int $userId): ?array
+    {
+        return $this->db->table('call_requests cr')
+            ->select(self::CONSUMER_DETAIL_COLUMNS)
+            ->select('h.name AS hospital_name', false)
+            ->select('c.ad_title AS campaign_title', false)
+            ->join('hospitals h', 'h.id = cr.hospital_id', 'left')
+            ->join('campaigns c', 'c.id = cr.campaign_id', 'left')
+            ->where('cr.id', $id)
+            ->where('cr.user_id', $userId)
+            ->where('cr.is_delete', 0)
+            ->get()
+            ->getRowArray();
+    }
+
+    /**
+     * 본인 소유 신청의 상태/존재 확인용 최소 조회.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findOwned(int $id, int $userId): ?array
+    {
+        return $this->select('id, status, user_id')
+            ->where('id', $id)
+            ->where('user_id', $userId)
+            ->where('is_delete', 0)
+            ->first();
+    }
+
+    /**
+     * 신청 soft delete (본인 취소).
+     */
+    public function softDelete(int $id): void
+    {
+        $this->update($id, ['is_delete' => 1]);
+    }
+
     /**
      * 상태 변경 (9단계 중 유효한 값으로만)
      *

@@ -3,6 +3,7 @@
 namespace Config;
 
 use App\Services\AppAuthService;
+use App\Services\CallRequestService;
 use App\Services\EventService;
 use CodeIgniter\Config\BaseService;
 
@@ -49,5 +50,20 @@ class Services extends BaseService
         }
 
         return new EventService();
+    }
+
+    /**
+     * 외부(소비자) 앱 상담 신청 서비스 (이슈 #100)
+     *
+     * 컨트롤러는 `service('callRequestService')` 또는 `Services::callRequestService()` 로 주입받아
+     * 직접 `new` 없이 사용하며, 테스트에서는 `Services::injectMock()` 으로 대체할 수 있다.
+     */
+    public static function callRequestService(bool $getShared = true): CallRequestService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('callRequestService');
+        }
+
+        return new CallRequestService();
     }
 }
