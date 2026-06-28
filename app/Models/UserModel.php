@@ -44,7 +44,8 @@ class UserModel extends Model
     /** @var array<string, string> */
     protected $validationRules = [
         'email'    => 'required|valid_email|max_length[255]',
-        'password' => 'min_length[8]',
+        // 소셜 계정은 비밀번호가 없으므로(null) permit_empty — 값이 있을 때만 길이 검증
+        'password' => 'permit_empty|min_length[8]',
     ];
 
     /** @var array<int, string> 가입 경로 라벨 (where_from) */
@@ -191,6 +192,91 @@ class UserModel extends Model
     public function emailExists(string $email): bool
     {
         return $this->where('email', $email)->countAllResults() > 0;
+    }
+
+    /**
+     * 외부 앱(소비자) 로그인 인증용 — password 포함 조회 ($hidden 우회) (이슈 #96)
+     *
+     * 일반 사용자(user_type=1) 한정. 운영자·병원·대행사 계정은 앱 로그인 불가.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findAppUserForAuth(string $email): ?array
+    {
+        return $this->db->table($this->table)
+            ->select('id, email, username, password, provider, is_active')
+            ->where('email', $email)
+            ->where('user_type', self::TYPE_USER)
+            ->where('deleted_at IS NULL', null, false)
+            ->limit(1)
+            ->get()
+            ->getRowArray() ?: null;
+    }
+
+    /**
+     * 소셜 로그인 계정 조회 — provider + uid 로 식별 (이슈 #96)
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findAppUserByProviderUid(int $provider, string $uid): ?array
+    {
+        return $this->db->table($this->table)
+            ->select('id, email, username, is_active')
+            ->where('provider', $provider)
+            ->where('uid', $uid)
+            ->where('user_type', self::TYPE_USER)
+            ->where('deleted_at IS NULL', null, false)
+            ->limit(1)
+            ->get()
+            ->getRowArray() ?: null;
+    }
+
+    /**
+     * 외부 앱(소비자) 계정 생성 — user_type=1 고정, 비밀번호 해시 처리 (이슈 #96)
+     *
+     * @param array<string, mixed> $data email·password(평문, 선택)·username·phone·age·sex·where_from·provider·uid·picture
+     * @return int 생성된 user id
+     */
+    public function createAppUser(array $data): int
+    {
+        $plainPassword = $data['password'] ?? null;
+
+        $row = [
+            'email'      => $data['email'],
+            'password'   => is_string($plainPassword) && $plainPassword !== ''
+                ? password_hash($plainPassword, PASSWORD_DEFAULT)
+                : null,
+            'username'   => $data['username'] ?? null,
+            'user_type'  => self::TYPE_USER,
+            'where_from' => $data['where_from'] ?? 2,
+            'provider'   => $data['provider'] ?? 9,
+            'phone'      => $data['phone'] ?? null,
+            'age'        => $data['age'] ?? null,
+            'sex'        => $data['sex'] ?? null,
+            'picture'    => $data['picture'] ?? null,
+            'uid'        => $data['uid'] ?? null,
+            'is_dormant' => 1, // 1 = 활성 (반전 의미)
+            'is_active'  => 1,
+        ];
+
+        $id = $this->insert($row, true);
+
+        if ($id === false) {
+            throw new \RuntimeException('앱 계정 생성에 실패했습니다: ' . implode(' ', $this->errors()));
+        }
+
+        return (int) $id;
+    }
+
+    /**
+     * 로그인 시각 갱신 (이슈 #96)
+     */
+    public function touchLogin(int $id): void
+    {
+        $now = date('Y-m-d H:i:s');
+        $this->db->table($this->table)
+            ->where('id', $id)
+            ->update(['last_login_at' => $now, 'last_activity_at' => $now]);
     }
 
     /**
