@@ -204,6 +204,13 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
         $routes->get('call-requests/(:num)',   'CallRequestController::show/$1');
         $routes->delete('call-requests/(:num)', 'CallRequestController::delete/$1');
 
+        // 병원 (이슈 #99)
+        $routes->get('hospitals',                    'HospitalController::index');
+        $routes->get('hospitals/(:num)',             'HospitalController::show/$1');
+        $routes->get('hospitals/(:num)/campaigns',   'HospitalController::campaigns/$1');
+        $routes->get('hospitals/(:num)/reviews',     'HospitalController::reviews/$1');
+        $routes->post('hospitals/(:num)/like',       'HospitalController::like/$1');
+
         // 리포트
         $routes->get('reports/summary',  'ReportController::summary');
         $routes->get('reports/campaigns/(:num)', 'ReportController::campaign/$1');

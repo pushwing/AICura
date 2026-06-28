@@ -5,6 +5,7 @@ namespace Config;
 use App\Services\AppAuthService;
 use App\Services\CallRequestService;
 use App\Services\EventService;
+use App\Services\HospitalService;
 use CodeIgniter\Config\BaseService;
 
 /**
@@ -65,5 +66,20 @@ class Services extends BaseService
         }
 
         return new CallRequestService();
+    }
+
+    /**
+     * 외부(소비자) 앱 병원 서비스 (이슈 #99)
+     *
+     * 컨트롤러는 `service('hospitalService')` 또는 `Services::hospitalService()` 로 주입받아
+     * 직접 `new` 없이 사용하며, 테스트에서는 `Services::injectMock()` 으로 대체할 수 있다.
+     */
+    public static function hospitalService(bool $getShared = true): HospitalService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('hospitalService');
+        }
+
+        return new HospitalService();
     }
 }

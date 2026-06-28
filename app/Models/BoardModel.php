@@ -289,6 +289,53 @@ class BoardModel extends Model
         $this->update($id, ['ai_status' => self::AI_STATUS_FAILED]);
     }
 
+    // ──────────────────────────────────────────────
+    // 외부(소비자) 앱 — 후기 조회 (이슈 #99)
+    // ──────────────────────────────────────────────
+
+    /** boards.type — 1 이벤트 · 2 병원 · 3 접수 */
+    public const TYPE_EVENT    = 1;
+    public const TYPE_HOSPITAL = 2;
+
+    /**
+     * 대상(type+target_id)의 공개 후기 목록 — 비밀글·삭제글 제외, 최신순, 페이징.
+     *
+     * @return array{list: array<int, array<string, mixed>>, total: int}
+     */
+    public function getReviewsByTarget(int $type, int $targetId, int $page, int $limit): array
+    {
+        $builder = $this->db->table('boards')
+            ->select('id, user_name, subject, contents, rate_sum, like_count, comment_count, files_count, created_at')
+            ->where('type', $type)
+            ->where('target_id', $targetId)
+            ->where('is_delete', self::DELETE_NONE)
+            ->where('is_secret', 0)
+            ->where('is_list', 1);
+
+        $total = (clone $builder)->countAllResults(false);
+
+        $list = $builder
+            ->orderBy('id', 'DESC')
+            ->limit($limit, ($page - 1) * $limit)
+            ->get()
+            ->getResultArray();
+
+        return ['list' => $list, 'total' => (int) $total];
+    }
+
+    /**
+     * 대상(type+target_id)의 공개 후기 수 — 상세 요약용.
+     */
+    public function countReviewsByTarget(int $type, int $targetId): int
+    {
+        return $this->where('type', $type)
+            ->where('target_id', $targetId)
+            ->where('is_delete', self::DELETE_NONE)
+            ->where('is_secret', 0)
+            ->where('is_list', 1)
+            ->countAllResults();
+    }
+
     /**
      * ai_flags JSON 문자열을 안전하게 list<string> 로 디코드.
      *
