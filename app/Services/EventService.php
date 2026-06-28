@@ -274,12 +274,13 @@ class EventService
     private function normalizeListParams(array $params): array
     {
         return [
-            'category' => (int) ($params['category'] ?? 0),
-            'region'   => (string) ($params['region'] ?? ''),
-            'keyword'  => (string) ($params['keyword'] ?? ''),
-            'sort'     => (string) ($params['sort'] ?? 'latest'),
-            'page'     => max(1, (int) ($params['page'] ?? 1)),
-            'limit'    => max(1, (int) ($params['limit'] ?? 20)),
+            'hospital_id' => (int) ($params['hospital_id'] ?? 0),
+            'category'    => (int) ($params['category'] ?? 0),
+            'region'      => (string) ($params['region'] ?? ''),
+            'keyword'     => (string) ($params['keyword'] ?? ''),
+            'sort'        => (string) ($params['sort'] ?? 'latest'),
+            'page'        => max(1, (int) ($params['page'] ?? 1)),
+            'limit'       => max(1, (int) ($params['limit'] ?? 20)),
         ];
     }
 }

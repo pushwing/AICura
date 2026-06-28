@@ -385,6 +385,9 @@ class CampaignModel extends Model
 
         $this->applyConsumerFilters($builder);
 
+        if (!empty($params['hospital_id'])) {
+            $builder->where('c.hospital_id', (int) $params['hospital_id']);
+        }
         if (!empty($params['category'])) {
             $builder->where('c.category', (int) $params['category']);
         }
