@@ -6,6 +6,7 @@ use App\Services\AppAuthService;
 use App\Services\CallRequestService;
 use App\Services\EventService;
 use App\Services\HospitalService;
+use App\Services\MeService;
 use CodeIgniter\Config\BaseService;
 
 /**
@@ -81,5 +82,20 @@ class Services extends BaseService
         }
 
         return new HospitalService();
+    }
+
+    /**
+     * 외부(소비자) 앱 마이페이지 서비스 (이슈 #97)
+     *
+     * 컨트롤러는 `service('meService')` 또는 `Services::meService()` 로 주입받아
+     * 직접 `new` 없이 사용하며, 테스트에서는 `Services::injectMock()` 으로 대체할 수 있다.
+     */
+    public static function meService(bool $getShared = true): MeService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('meService');
+        }
+
+        return new MeService();
     }
 }

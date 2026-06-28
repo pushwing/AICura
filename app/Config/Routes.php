@@ -215,8 +215,15 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
         $routes->get('reports/summary',  'ReportController::summary');
         $routes->get('reports/campaigns/(:num)', 'ReportController::campaign/$1');
 
-        // 사용자 프로필
-        $routes->get('me',        'UserController::me');
-        $routes->patch('me',      'UserController::update');
+        // 내 정보·마이페이지 (이슈 #97)
+        $routes->get('me',                  'UserController::me');
+        $routes->patch('me',                'UserController::updateProfile');
+        $routes->delete('me',               'UserController::withdraw');
+        $routes->post('me/device',          'UserController::registerDevice');
+        $routes->get('me/call-requests',    'UserController::callRequests');
+        $routes->get('me/boards',           'UserController::boards');
+        $routes->get('me/bookings',         'UserController::bookings');
+        $routes->get('me/likes',            'UserController::likes');
+        $routes->get('me/health-point',     'UserController::healthPoint');
     });
 });

@@ -137,13 +137,19 @@ class BoardModel extends Model
     /**
      * 특정 사용자가 작성한 후기 목록 (페이징) — 사용자 상세용. (이슈 #90)
      *
+     * @param bool $onlyActive 삭제(임시·완전) 후기를 제외할지 여부. 소비자 노출(#97)은 true,
+     *                         어드민 상세는 삭제 상태까지 보여주므로 false(기본).
      * @return array{list: array<int, array<string, mixed>>, total: int}
      */
-    public function getByUser(int $userId, int $limit, int $offset): array
+    public function getByUser(int $userId, int $limit, int $offset, bool $onlyActive = false): array
     {
         $builder = $this->db->table('boards')
             ->select('id, type, target_id, subject, rate_sum, like_count, is_delete, created_at')
             ->where('user_id', $userId);
+
+        if ($onlyActive) {
+            $builder->where('is_delete', self::DELETE_NONE);
+        }
 
         $total = (clone $builder)->countAllResults(false);
 

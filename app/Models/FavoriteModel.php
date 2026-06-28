@@ -66,6 +66,45 @@ class FavoriteModel extends Model
     }
 
     /**
+     * 사용자가 찜한 대상 목록 (유형별, 최신순, 페이징) — 대상 제목/이름 조인.
+     *
+     * - campaign: campaigns(ad_title·t1_image_name) + hospitals(name) 조인, 삭제 캠페인 제외
+     * - hospital: hospitals(name·address) 조인, 삭제 병원 제외
+     *
+     * @return array{list: array<int, array<string, mixed>>, total: int}
+     */
+    public function listByUser(int $userId, string $targetType, int $page, int $limit): array
+    {
+        $builder = $this->db->table('favorites f')
+            ->where('f.user_id', $userId)
+            ->where('f.target_type', $targetType);
+
+        if ($targetType === self::TYPE_CAMPAIGN) {
+            $builder->select('f.target_id, f.created_at AS liked_at')
+                ->select('c.ad_title, c.t1_image_name', false)
+                ->select('h.name AS hospital_name', false)
+                ->join('campaigns c', 'c.id = f.target_id', 'left')
+                ->join('hospitals h', 'h.id = c.hospital_id', 'left')
+                ->where('(c.is_deleted = 0 OR c.is_deleted IS NULL)', null, false);
+        } else {
+            $builder->select('f.target_id, f.created_at AS liked_at')
+                ->select('h.name AS hospital_name, h.address AS hospital_address', false)
+                ->join('hospitals h', 'h.id = f.target_id', 'left')
+                ->where('(h.is_deleted = 0 OR h.is_deleted IS NULL)', null, false);
+        }
+
+        $total = (clone $builder)->countAllResults(false);
+
+        $list = $builder
+            ->orderBy('f.id', 'DESC')
+            ->limit($limit, ($page - 1) * $limit)
+            ->get()
+            ->getResultArray();
+
+        return ['list' => $list, 'total' => (int) $total];
+    }
+
+    /**
      * 주어진 대상 ID 목록 중 사용자가 찜한 ID만 반환 — 목록 is_liked 오버레이용 (N+1 방지)
      *
      * @param array<int, int> $targetIds

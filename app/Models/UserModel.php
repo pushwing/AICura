@@ -195,6 +195,36 @@ class UserModel extends Model
     }
 
     /**
+     * 외부 앱 내 프로필 조회 — 소비자 노출 컬럼만. (이슈 #97)
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getProfile(int $id): ?array
+    {
+        return $this->db->table($this->table)
+            ->select('id, email, username, picture, phone, age, sex, job, health_point, provider, where_from, created_at')
+            ->where('id', $id)
+            ->where('deleted_at IS NULL', null, false)
+            ->get()
+            ->getRowArray() ?: null;
+    }
+
+    /**
+     * 외부 앱 내 프로필 수정 — 허용 필드만 갱신. (이슈 #97)
+     *
+     * @param array<string, mixed> $data
+     */
+    public function updateProfile(int $id, array $data): void
+    {
+        $allowed = ['username', 'phone', 'age', 'sex', 'job', 'picture'];
+        $update  = array_intersect_key($data, array_flip($allowed));
+
+        if ($update !== []) {
+            $this->update($id, $update);
+        }
+    }
+
+    /**
      * 외부 앱(소비자) 로그인 인증용 — password 포함 조회 ($hidden 우회) (이슈 #96)
      *
      * 일반 사용자(user_type=1) 한정. 운영자·병원·대행사 계정은 앱 로그인 불가.
