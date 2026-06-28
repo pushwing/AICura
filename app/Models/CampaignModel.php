@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use CodeIgniter\Database\BaseBuilder;
 use CodeIgniter\Model;
 
 class CampaignModel extends Model
@@ -327,5 +328,189 @@ class CampaignModel extends Model
             ->orderBy('cpm.sort_order', 'ASC')
             ->get()
             ->getResultArray();
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // 외부(소비자) 앱 — 이벤트 조회 (이슈 #98)
+    // ──────────────────────────────────────────────────────────────
+
+    /** 목록 응답용 소비자 노출 컬럼 (내부 과금·계약·심의 필드 제외) */
+    private const LIST_COLUMNS = 'c.id, c.ad_title, c.hospital_id, c.category, c.region, c.ad_type, '
+        . 'c.cost_type, c.general_cost, c.discount_cost, c.text_cost, c.t1_image_name, '
+        . 'c.ad_start_date, c.ad_end_date, c.created_at';
+
+    /** 상세 응답용 소비자 노출 컬럼 */
+    private const DETAIL_COLUMNS = 'c.id, c.ad_title, c.hospital_id, c.category, c.region, c.ad_type, '
+        . 'c.cost_type, c.general_cost, c.discount_cost, c.text_cost, c.t1_image_name, c.t2_image_name, '
+        . 'c.d_image_json, c.ad_detail_info, c.ad_start_date, c.ad_end_date, c.created_at';
+
+    /**
+     * 소비자 노출 조건을 빌더에 적용한다.
+     *
+     * 노출: status='active' · is_deleted=0 · exposure IN(1 이벤트, 3 둘다) · 노출기간 내(기간 없으면 항상)
+     */
+    private function applyConsumerFilters(BaseBuilder $builder, string $alias = 'c'): void
+    {
+        $today = date('Y-m-d');
+
+        $builder->where("{$alias}.status", 'active')
+            ->where("{$alias}.is_deleted", 0)
+            ->whereIn("{$alias}.exposure", [1, 3])
+            ->groupStart()
+                ->where("{$alias}.ad_start_date IS NULL", null, false)
+                ->orWhere("{$alias}.ad_start_date <=", $today)
+            ->groupEnd()
+            ->groupStart()
+                ->where("{$alias}.ad_end_date IS NULL", null, false)
+                ->orWhere("{$alias}.ad_end_date >=", $today)
+            ->groupEnd();
+    }
+
+    /**
+     * 이벤트 목록 — 카테고리·지역·검색 필터, 정렬(latest/price_asc/price_desc/popular), 페이징.
+     *
+     * @param array<string, mixed> $params category·region·keyword·sort·page·limit
+     * @return array{list: array<int, array<string, mixed>>, total: int}
+     */
+    public function getEventList(array $params): array
+    {
+        $sort = (string) ($params['sort'] ?? 'latest');
+
+        $builder = $this->db->table('campaigns c')
+            ->select(self::LIST_COLUMNS)
+            ->select('h.name AS hospital_name', false)
+            ->select('ec.title AS category_title', false)
+            ->join('hospitals h', 'h.id = c.hospital_id', 'left')
+            ->join('event_categories ec', 'ec.id = c.category', 'left');
+
+        $this->applyConsumerFilters($builder);
+
+        if (!empty($params['category'])) {
+            $builder->where('c.category', (int) $params['category']);
+        }
+        if (!empty($params['region'])) {
+            $builder->like('c.region', (string) $params['region']);
+        }
+        if (!empty($params['keyword'])) {
+            $builder->groupStart()
+                ->like('c.ad_title', (string) $params['keyword'])
+                ->orLike('h.name', (string) $params['keyword'])
+                ->groupEnd();
+        }
+
+        // 인기순 — 상담신청(call_requests) 수 기준 (A안: 인라인 집계)
+        if ($sort === 'popular') {
+            $builder->select('COALESCE(cr.cnt, 0) AS request_count', false)
+                ->join(
+                    '(SELECT campaign_id, COUNT(*) AS cnt FROM call_requests WHERE is_delete = 0 GROUP BY campaign_id) cr',
+                    'cr.campaign_id = c.id',
+                    'left'
+                );
+        }
+
+        $total = (clone $builder)->countAllResults(false);
+
+        match ($sort) {
+            'price_asc'  => $builder->orderBy('c.discount_cost', 'ASC')->orderBy('c.id', 'DESC'),
+            'price_desc' => $builder->orderBy('c.discount_cost', 'DESC')->orderBy('c.id', 'DESC'),
+            'popular'    => $builder->orderBy('request_count', 'DESC')->orderBy('c.id', 'DESC'),
+            default      => $builder->orderBy('c.id', 'DESC'),
+        };
+
+        $page  = max(1, (int) ($params['page'] ?? 1));
+        $limit = max(1, (int) ($params['limit'] ?? 20));
+
+        $list = $builder
+            ->limit($limit, ($page - 1) * $limit)
+            ->get()
+            ->getResultArray();
+
+        // 인기순 정렬용 내부 집계값은 응답에서 제거
+        foreach ($list as &$row) {
+            unset($row['request_count']);
+        }
+        unset($row);
+
+        return ['list' => $list, 'total' => (int) $total];
+    }
+
+    /**
+     * 이벤트 상세 — 노출 조건 충족 건만, 병원·카테고리 조인.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getEventDetail(int $id): ?array
+    {
+        $builder = $this->db->table('campaigns c')
+            ->select(self::DETAIL_COLUMNS)
+            ->select('h.name AS hospital_name, h.address AS hospital_address, h.phone AS hospital_phone', false)
+            ->select('ec.title AS category_title', false)
+            ->join('hospitals h', 'h.id = c.hospital_id', 'left')
+            ->join('event_categories ec', 'ec.id = c.category', 'left')
+            ->where('c.id', $id);
+
+        $this->applyConsumerFilters($builder);
+
+        return $builder->get()->getRowArray();
+    }
+
+    /**
+     * 메인 노출 이벤트 — ad_main_maps(is_main=1, is_inspect=1) 기준.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getMainEvents(int $limit = 10): array
+    {
+        $builder = $this->db->table('ad_main_maps amm')
+            ->select(self::LIST_COLUMNS)
+            ->select('h.name AS hospital_name', false)
+            ->select('ec.title AS category_title', false)
+            ->join('campaigns c', 'c.id = amm.campaign_id')
+            ->join('hospitals h', 'h.id = c.hospital_id', 'left')
+            ->join('event_categories ec', 'ec.id = c.category', 'left')
+            ->where('amm.is_main', 1)
+            ->where('amm.is_inspect', 1);
+
+        $this->applyConsumerFilters($builder);
+
+        return $builder->orderBy('amm.id', 'DESC')
+            ->limit($limit)
+            ->get()
+            ->getResultArray();
+    }
+
+    /**
+     * 추천 이벤트 — ad_recommend_maps(is_delete=0), ads_order 정렬.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getRecommendEvents(int $limit = 10): array
+    {
+        $builder = $this->db->table('ad_recommend_maps arm')
+            ->select(self::LIST_COLUMNS)
+            ->select('h.name AS hospital_name', false)
+            ->select('ec.title AS category_title', false)
+            ->join('campaigns c', 'c.id = arm.campaign_id')
+            ->join('hospitals h', 'h.id = c.hospital_id', 'left')
+            ->join('event_categories ec', 'ec.id = c.category', 'left')
+            ->where('arm.is_delete', 0);
+
+        $this->applyConsumerFilters($builder);
+
+        return $builder->orderBy('arm.ads_order', 'ASC')
+            ->limit($limit)
+            ->get()
+            ->getResultArray();
+    }
+
+    /**
+     * 노출 조건을 충족하는 이벤트인지 확인 — 찜 토글 전 대상 유효성 검사용.
+     */
+    public function isVisibleEvent(int $id): bool
+    {
+        $builder = $this->db->table('campaigns c')->where('c.id', $id);
+        $this->applyConsumerFilters($builder);
+
+        return $builder->countAllResults() > 0;
     }
 }
