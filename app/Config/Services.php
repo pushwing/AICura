@@ -4,6 +4,7 @@ namespace Config;
 
 use App\Services\AppAuthService;
 use App\Services\BoardService;
+use App\Services\BookingService;
 use App\Services\CallRequestService;
 use App\Services\EventService;
 use App\Services\HospitalService;
@@ -123,5 +124,17 @@ class Services extends BaseService
         }
 
         return new BoardService();
+    }
+
+    /**
+     * 외부(소비자) 앱 예약 서비스 (이슈 #101)
+     */
+    public static function bookingService(bool $getShared = true): BookingService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('bookingService');
+        }
+
+        return new BookingService();
     }
 }
