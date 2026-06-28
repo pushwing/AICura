@@ -209,11 +209,13 @@ class AuthController extends BaseApiController
     {
         $refreshToken = (string) ($this->json()['refresh_token'] ?? '');
 
-        $jwt     = new JwtLibrary();
-        $payload = $jwt->validateRefreshToken($refreshToken);
+        $jwt = new JwtLibrary();
 
-        if (!$payload) {
-            return $this->error('INVALID_TOKEN', '유효하지 않은 리프레시 토큰입니다.', 401);
+        try {
+            // 만료(TOKEN_EXPIRED)와 무효(INVALID_TOKEN)를 구분해 응답한다.
+            $payload = $jwt->validateRefreshToken($refreshToken);
+        } catch (DomainException $e) {
+            return $this->error($e->errorCode(), $e->getMessage(), $e->httpStatusCode());
         }
 
         return $this->success([
