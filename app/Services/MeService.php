@@ -124,7 +124,8 @@ class MeService
      */
     public function boards(int $userId, int $page, int $limit): array
     {
-        $base  = $this->boards->getByUser($userId, $limit, ($page - 1) * $limit);
+        // 소비자 마이페이지는 삭제(임시·완전)한 후기를 제외하고 본인이 노출 중인 후기만 보여준다.
+        $base  = $this->boards->getByUser($userId, $limit, ($page - 1) * $limit, true);
         $items = array_map(static function (array $r): array {
             $type = (int) $r['type'];
 

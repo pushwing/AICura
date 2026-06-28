@@ -72,6 +72,8 @@ final class MeApiFeatureTest extends CIUnitTestCase
         $db->table('call_requests')->insert(['hospital_id' => $this->hospitalId, 'campaign_id' => $this->campaignId, 'user_id' => $this->otherId, 'status' => 1, 'is_delete' => 0, 'created_at' => $now, 'updated_at' => $now]);
 
         $db->table('boards')->insert(['user_id' => $this->userId, 'type' => 2, 'target_id' => $this->hospitalId, 'subject' => '내 후기', 'rate_sum' => 4.0, 'like_count' => 1, 'is_delete' => 0, 'is_secret' => 0, 'is_list' => 1, 'created_at' => $now, 'updated_at' => $now]);
+        // 삭제(임시)한 후기 — 소비자 마이페이지에는 노출되면 안 됨
+        $db->table('boards')->insert(['user_id' => $this->userId, 'type' => 2, 'target_id' => $this->hospitalId, 'subject' => '삭제한 후기', 'rate_sum' => 3.0, 'like_count' => 0, 'is_delete' => 1, 'is_secret' => 0, 'is_list' => 1, 'created_at' => $now, 'updated_at' => $now]);
 
         $db->table('bookings')->insert(['user_id' => $this->userId, 'hospital_id' => $this->hospitalId, 'status' => 1, 'book_date' => $now, 'created_at' => $now, 'updated_at' => $now]);
 
