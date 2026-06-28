@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use Throwable;
 
 /**
  * 찜/즐겨찾기 모델 — 외부(소비자) 앱 공용 (이슈 #98)
@@ -28,6 +29,10 @@ class FavoriteModel extends Model
 
     /**
      * 찜 토글 — 있으면 삭제, 없으면 추가. 토글 후 찜 상태(true=찜됨)를 반환한다.
+     *
+     * 동시 더블탭(같은 사용자가 거의 동시에 두 번 요청)으로 insert 가 유니크 키
+     * (uniq_favorites_user_target)를 위반하면, 다른 요청이 이미 찜을 생성한 것이므로
+     * 멱등하게 찜됨(true)으로 처리한다.
      */
     public function toggle(int $userId, string $targetType, int $targetId): bool
     {
@@ -42,11 +47,20 @@ class FavoriteModel extends Model
             return false;
         }
 
-        $this->insert([
-            'user_id'     => $userId,
-            'target_type' => $targetType,
-            'target_id'   => $targetId,
-        ]);
+        try {
+            $this->insert([
+                'user_id'     => $userId,
+                'target_type' => $targetType,
+                'target_id'   => $targetId,
+            ]);
+        } catch (Throwable $e) {
+            // 유니크 키 충돌(uniq_favorites_user_target)만 멱등 처리하고,
+            // 그 외 DB 오류는 그대로 전파한다.
+            if (stripos($e->getMessage(), 'uniq_favorites_user_target') === false
+                && stripos($e->getMessage(), 'Duplicate') === false) {
+                throw $e;
+            }
+        }
 
         return true;
     }

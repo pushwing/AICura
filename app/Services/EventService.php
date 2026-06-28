@@ -105,7 +105,7 @@ class EventService
      */
     public function main(int $userId, int $limit = 10): array
     {
-        return $this->feed($userId, 'events_main', fn (): array => $this->campaigns->getMainEvents($limit));
+        return $this->feed($userId, 'events_main_' . $limit, fn (): array => $this->campaigns->getMainEvents($limit));
     }
 
     /**
@@ -115,7 +115,7 @@ class EventService
      */
     public function recommend(int $userId, int $limit = 10): array
     {
-        return $this->feed($userId, 'events_recommend', fn (): array => $this->campaigns->getRecommendEvents($limit));
+        return $this->feed($userId, 'events_recommend_' . $limit, fn (): array => $this->campaigns->getRecommendEvents($limit));
     }
 
     /**

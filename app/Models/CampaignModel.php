@@ -425,12 +425,8 @@ class CampaignModel extends Model
             ->get()
             ->getResultArray();
 
-        // 인기순 정렬용 내부 집계값은 응답에서 제거
-        foreach ($list as &$row) {
-            unset($row['request_count']);
-        }
-        unset($row);
-
+        // 인기순 집계값(request_count) 등 내부 필드는 EventService::transformListItem 의
+        // 화이트리스트 변환에서 응답에 포함되지 않는다.
         return ['list' => $list, 'total' => (int) $total];
     }
 
@@ -465,6 +461,7 @@ class CampaignModel extends Model
             ->select(self::LIST_COLUMNS)
             ->select('h.name AS hospital_name', false)
             ->select('ec.title AS category_title', false)
+            ->select('MAX(amm.id) AS main_order', false)
             ->join('campaigns c', 'c.id = amm.campaign_id')
             ->join('hospitals h', 'h.id = c.hospital_id', 'left')
             ->join('event_categories ec', 'ec.id = c.category', 'left')
@@ -473,7 +470,10 @@ class CampaignModel extends Model
 
         $this->applyConsumerFilters($builder);
 
-        return $builder->orderBy('amm.id', 'DESC')
+        // ad_main_maps 는 캠페인당 1:N(버전 히스토리) 이므로 캠페인 기준으로 중복 제거.
+        // 정렬은 최신 매핑(MAX(amm.id)) 기준 — ONLY_FULL_GROUP_BY 호환
+        return $builder->groupBy('c.id')
+            ->orderBy('main_order', 'DESC')
             ->limit($limit)
             ->get()
             ->getResultArray();
@@ -490,6 +490,7 @@ class CampaignModel extends Model
             ->select(self::LIST_COLUMNS)
             ->select('h.name AS hospital_name', false)
             ->select('ec.title AS category_title', false)
+            ->select('MIN(arm.ads_order) AS recommend_order', false)
             ->join('campaigns c', 'c.id = arm.campaign_id')
             ->join('hospitals h', 'h.id = c.hospital_id', 'left')
             ->join('event_categories ec', 'ec.id = c.category', 'left')
@@ -497,7 +498,10 @@ class CampaignModel extends Model
 
         $this->applyConsumerFilters($builder);
 
-        return $builder->orderBy('arm.ads_order', 'ASC')
+        // ad_recommend_maps 도 캠페인당 다중 행이 가능하므로 캠페인 기준 중복 제거.
+        // 정렬은 가장 앞선 노출순서(MIN(ads_order)) 기준 — ONLY_FULL_GROUP_BY 호환
+        return $builder->groupBy('c.id')
+            ->orderBy('recommend_order', 'ASC')
             ->limit($limit)
             ->get()
             ->getResultArray();
