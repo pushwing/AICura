@@ -110,6 +110,9 @@ class BoardService
 
         $images = $this->normalizeImages($input['images'] ?? []);
 
+        $db = db_connect();
+        $db->transStart();
+
         $id = $this->boards->createReview([
             'user_id'     => $userId,
             'user_name'   => $this->userName($userId),
@@ -126,6 +129,8 @@ class BoardService
         }
 
         $this->summaries->recalculate($type, $targetId);
+
+        $db->transComplete();
 
         return $this->detail($userId, $id);
     }
@@ -155,6 +160,9 @@ class BoardService
             $data['rate_sum'] = $this->clampRating($input['rating']);
         }
 
+        $db = db_connect();
+        $db->transStart();
+
         // 이미지가 전달되면 전체 교체
         if (array_key_exists('images', $input)) {
             $images = $this->normalizeImages($input['images']);
@@ -168,6 +176,8 @@ class BoardService
         }
 
         $this->summaries->recalculate((int) $review['type'], (int) $review['target_id']);
+
+        $db->transComplete();
 
         return $this->detail($userId, $id);
     }
@@ -184,8 +194,13 @@ class BoardService
             throw NotFoundException::of('후기를 찾을 수 없습니다.');
         }
 
+        $db = db_connect();
+        $db->transStart();
+
         $this->boards->softDeleteReview($id);
         $this->summaries->recalculate((int) $review['type'], (int) $review['target_id']);
+
+        $db->transComplete();
     }
 
     /**
@@ -323,10 +338,12 @@ class BoardService
     }
 
     /**
+     * 목록·상세 공통 필드.
+     *
      * @param array<string, mixed> $row
      * @return array<string, mixed>
      */
-    private function transformListItem(array $row): array
+    private function baseFields(array $row): array
     {
         $type = (int) $row['type'];
 
@@ -337,7 +354,6 @@ class BoardService
             'target_id'     => (int) $row['target_id'],
             'user_name'     => $row['user_name'],
             'subject'       => $row['subject'],
-            'contents'      => $row['contents'],
             'rating'        => round((float) $row['rate_sum'], 2),
             'like_count'    => (int) $row['like_count'],
             'comment_count' => (int) $row['comment_count'],
@@ -347,16 +363,29 @@ class BoardService
     }
 
     /**
+     * 목록 아이템 — 본문은 발췌(excerpt)만 노출해 페이로드를 최소화한다.
+     *
+     * @param array<string, mixed> $row
+     * @return array<string, mixed>
+     */
+    private function transformListItem(array $row): array
+    {
+        return $this->baseFields($row) + ['excerpt' => (string) ($row['excerpt'] ?? '')];
+    }
+
+    /**
+     * 상세 아이템 — 본문 전체와 작성자·신고수를 포함한다.
+     *
      * @param array<string, mixed> $row
      * @return array<string, mixed>
      */
     private function transformDetail(array $row): array
     {
-        $item = $this->transformListItem($row);
-        $item['user_id']        = (int) $row['user_id'];
-        $item['complain_count'] = (int) $row['complain_count'];
-
-        return $item;
+        return $this->baseFields($row) + [
+            'contents'       => $row['contents'],
+            'user_id'        => (int) $row['user_id'],
+            'complain_count' => (int) $row['complain_count'],
+        ];
     }
 
     /**

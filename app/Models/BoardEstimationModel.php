@@ -45,7 +45,11 @@ class BoardEstimationModel extends Model
             return false;
         }
 
-        $this->insert(['type' => self::TYPE_LIKE, 'board_id' => $boardId, 'user_id' => $userId]);
+        try {
+            $this->insert(['type' => self::TYPE_LIKE, 'board_id' => $boardId, 'user_id' => $userId]);
+        } catch (Throwable) {
+            return true; // 동시 좋아요 경쟁 — 유니크 제약 충돌, 이미 추가된 상태로 간주
+        }
 
         return true;
     }

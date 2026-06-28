@@ -369,8 +369,9 @@ class BoardModel extends Model
      */
     public function getConsumerList(array $params): array
     {
+        // 목록은 본문 전체 대신 발췌만 조회해 전송량·페이로드를 최소화한다 (SUBSTR: MySQL·SQLite 공통)
         $builder = $this->db->table('boards')
-            ->select('id, type, target_id, user_name, subject, contents, rate_sum, like_count, comment_count, files_count, created_at')
+            ->select('id, type, target_id, user_name, subject, SUBSTR(contents, 1, 150) AS excerpt, rate_sum, like_count, comment_count, files_count, created_at', false)
             ->where('is_delete', self::DELETE_NONE)
             ->where('is_secret', 0)
             ->where('is_list', 1);

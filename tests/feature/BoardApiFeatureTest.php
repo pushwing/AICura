@@ -116,6 +116,11 @@ final class BoardApiFeatureTest extends CIUnitTestCase
         $body = json_decode($res->getJSON(), true);
         $this->assertSame(1, $body['meta']['total']);
         $this->assertFalse($body['data'][0]['is_liked']);
+
+        // 목록은 본문 전체 대신 발췌(excerpt)만 노출 (페이로드 최소화)
+        $this->assertArrayHasKey('excerpt', $body['data'][0]);
+        $this->assertArrayNotHasKey('contents', $body['data'][0]);
+        $this->assertSame('친절합니다', $body['data'][0]['excerpt']);
     }
 
     /** [B4] 상세 */
