@@ -231,6 +231,12 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
         $routes->patch('boards/(:num)',                 'BoardController::update/$1');
         $routes->delete('boards/(:num)',                'BoardController::delete/$1');
 
+        // 예약 (이슈 #101)
+        $routes->post('bookings',        'BookingController::create');
+        $routes->get('bookings/(:num)',  'BookingController::show/$1');
+        $routes->patch('bookings/(:num)', 'BookingController::update/$1');
+        $routes->delete('bookings/(:num)', 'BookingController::delete/$1');
+
         // 이미지 업로드 (이슈 #102)
         $routes->post('uploads/images', 'UploadController::images');
 
