@@ -21,6 +21,9 @@ class AuthProvider extends ChangeNotifier {
   AuthStatus _status = AuthStatus.unknown;
   AuthStatus get status => _status;
 
+  /// 로그인 완료 상태 여부 — 신청·찜 등 보호 동작 게이팅에 사용
+  bool get isAuthenticated => _status == AuthStatus.authenticated;
+
   bool _busy = false;
   bool get busy => _busy;
 

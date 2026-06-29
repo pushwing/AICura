@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../auth/auth_provider.dart';
+import '../auth/login_screen.dart';
+import 'event_detail_screen.dart';
 import 'event_provider.dart';
 import 'models/event.dart';
 import 'widgets/event_card.dart';
@@ -58,11 +60,17 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         actions: [
-          IconButton(
-            tooltip: '로그아웃',
-            onPressed: () => context.read<AuthProvider>().logout(),
-            icon: const Icon(Icons.logout),
-          ),
+          if (context.watch<AuthProvider>().isAuthenticated)
+            IconButton(
+              tooltip: '로그아웃',
+              onPressed: () => context.read<AuthProvider>().logout(),
+              icon: const Icon(Icons.logout),
+            )
+          else
+            TextButton(
+              onPressed: _login,
+              child: const Text('로그인'),
+            ),
         ],
       ),
       body: _buildBody(provider),
@@ -122,7 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 return EventCard(
                   event: event,
                   onTap: () => _openDetail(event),
-                  onToggleLike: () => provider.toggleLike(event),
+                  onToggleLike: () => _toggleLike(event),
                 );
               },
             ),
@@ -131,11 +139,26 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// 상세 화면으로 이동 (비로그인도 열람 가능)
   void _openDetail(Event event) {
-    // 상세 화면은 이슈 #117의 다음 증분에서 연결 (GET /campaigns/{id})
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('상세 화면 준비 중: ${event.adTitle}')),
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => EventDetailScreen(eventId: event.id),
+      ),
     );
+  }
+
+  /// 찜 토글 — 로그인 필요. 비로그인 시 로그인 유도 후 진행.
+  Future<void> _toggleLike(Event event) async {
+    final ok = await requireLogin(context);
+    if (!ok || !mounted) return;
+    await context.read<EventProvider>().toggleLike(event);
+  }
+
+  /// 앱바 로그인 — 성공 시 목록을 새로고침해 찜 상태를 반영한다.
+  Future<void> _login() async {
+    final ok = await requireLogin(context);
+    if (ok && mounted) await context.read<EventProvider>().refresh();
   }
 }
 

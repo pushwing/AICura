@@ -58,7 +58,8 @@ class _SignupScreenState extends State<SignupScreen> {
         username: _username.text.trim(),
         phone: _phone.text.trim(),
       );
-      // 성공 시 토큰이 저장되고 AuthGate 가 홈으로 전환한다.
+      // 성공 시 토큰이 저장된 상태로 이 화면을 닫고 true 를 돌려준다.
+      if (mounted) Navigator.of(context).pop(true);
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)

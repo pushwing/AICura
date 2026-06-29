@@ -6,7 +6,7 @@ import 'core/storage/token_storage.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/auth_provider.dart';
 import 'features/auth/auth_repository.dart';
-import 'features/auth/login_screen.dart';
+import 'features/call_request/call_request_repository.dart';
 import 'features/events/event_provider.dart';
 import 'features/events/event_repository.dart';
 import 'features/events/home_screen.dart';
@@ -23,6 +23,8 @@ class _AicuraAppState extends State<AicuraApp> {
   late final TokenStorage _storage;
   late final ApiClient _api;
   late final AuthProvider _auth;
+  late final EventRepository _eventRepo;
+  late final CallRequestRepository _callRepo;
   late final EventProvider _events;
 
   @override
@@ -38,7 +40,9 @@ class _AicuraAppState extends State<AicuraApp> {
       repository: AuthRepository(_api),
       storage: _storage,
     );
-    _events = EventProvider(EventRepository(_api));
+    _eventRepo = EventRepository(_api);
+    _callRepo = CallRequestRepository(_api);
+    _events = EventProvider(_eventRepo);
     _auth.bootstrap();
   }
 
@@ -48,29 +52,16 @@ class _AicuraAppState extends State<AicuraApp> {
       providers: [
         ChangeNotifierProvider.value(value: _auth),
         ChangeNotifierProvider.value(value: _events),
+        Provider<EventRepository>.value(value: _eventRepo),
+        Provider<CallRequestRepository>.value(value: _callRepo),
       ],
       child: MaterialApp(
         title: 'AICura',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),
-        home: const _AuthGate(),
+        // 첫 화면은 항상 이벤트 리스트(홈). 로그인은 신청·찜 시점에만 요구한다.
+        home: const HomeScreen(),
       ),
     );
-  }
-}
-
-/// 인증 상태에 따라 홈/로그인을 분기한다.
-class _AuthGate extends StatelessWidget {
-  const _AuthGate();
-
-  @override
-  Widget build(BuildContext context) {
-    final status = context.watch<AuthProvider>().status;
-    return switch (status) {
-      AuthStatus.unknown =>
-        const Scaffold(body: Center(child: CircularProgressIndicator())),
-      AuthStatus.authenticated => const HomeScreen(),
-      AuthStatus.unauthenticated => const LoginScreen(),
-    };
   }
 }
