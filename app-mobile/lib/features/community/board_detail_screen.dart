@@ -217,7 +217,7 @@ class _BoardDetailScreenState extends State<BoardDetailScreen> {
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.send, color: Color(0xFF0F6E56)),
+                  : const Icon(Icons.send, color: Color(0xFFFB2D6F)),
             ),
           ],
         ),

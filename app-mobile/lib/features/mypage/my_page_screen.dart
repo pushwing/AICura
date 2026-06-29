@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/theme/app_colors.dart';
 import '../auth/auth_provider.dart';
 import '../auth/login_screen.dart';
 import '../booking/models/booking.dart';
@@ -37,7 +38,9 @@ class _MyPageScreenState extends State<MyPageScreen> {
     });
 
     return Scaffold(
+      backgroundColor: AppColors.bg,
       appBar: AppBar(
+        backgroundColor: AppColors.bg,
         title: const Text('마이페이지'),
         actions: [
           if (auth.isAuthenticated)
@@ -80,28 +83,53 @@ class _MyPageScreenState extends State<MyPageScreen> {
     return RefreshIndicator(
       onRefresh: provider.load,
       child: ListView(
+        padding: const EdgeInsets.symmetric(vertical: 12),
         children: [
           _ProfileHeader(provider: provider),
-          const SizedBox(height: 8),
-          _SectionTitle('내 찜 ${provider.likes.length}'),
-          if (provider.likes.isEmpty)
-            const _EmptyHint('찜한 이벤트가 없습니다')
-          else
-            ...provider.likes.map((e) => _LikeTile(item: e)),
-          const Divider(height: 24),
-          _SectionTitle('내 상담신청 ${provider.callRequests.length}'),
-          if (provider.callRequests.isEmpty)
-            const _EmptyHint('상담 신청 내역이 없습니다')
-          else
-            ...provider.callRequests.map((e) => _CallRequestTile(item: e)),
-          const Divider(height: 24),
-          _SectionTitle('내 예약 ${provider.bookings.length}'),
-          if (provider.bookings.isEmpty)
-            const _EmptyHint('예약 내역이 없습니다')
-          else
-            ...provider.bookings.map((e) => _BookingTile(item: e)),
-          const Divider(height: 24),
-          const _AppInfoLinks(),
+          const SizedBox(height: 12),
+          _StatsRow(
+            bookings: provider.bookings.length,
+            callRequests: provider.callRequests.length,
+            likes: provider.likes.length,
+          ),
+          const SizedBox(height: 12),
+          _Card(
+            child: Column(
+              children: [
+                _SectionTitle('내 찜 ${provider.likes.length}'),
+                if (provider.likes.isEmpty)
+                  const _EmptyHint('찜한 이벤트가 없습니다')
+                else
+                  ...provider.likes.map((e) => _LikeTile(item: e)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          _Card(
+            child: Column(
+              children: [
+                _SectionTitle('내 상담신청 ${provider.callRequests.length}'),
+                if (provider.callRequests.isEmpty)
+                  const _EmptyHint('상담 신청 내역이 없습니다')
+                else
+                  ...provider.callRequests.map((e) => _CallRequestTile(item: e)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          _Card(
+            child: Column(
+              children: [
+                _SectionTitle('내 예약 ${provider.bookings.length}'),
+                if (provider.bookings.isEmpty)
+                  const _EmptyHint('예약 내역이 없습니다')
+                else
+                  ...provider.bookings.map((e) => _BookingTile(item: e)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          const _Card(child: _AppInfoLinks()),
           const SizedBox(height: 24),
         ],
       ),
@@ -199,13 +227,17 @@ class _ProfileHeader extends StatelessWidget {
     if (p == null) return const SizedBox.shrink();
     return Container(
       width: double.infinity,
-      color: Colors.white,
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
       padding: const EdgeInsets.all(20),
       child: Row(
         children: [
           CircleAvatar(
             radius: 28,
-            backgroundColor: const Color(0xFF0F6E56),
+            backgroundColor: const Color(0xFFFB2D6F),
             backgroundImage: (p.picture != null && p.picture!.isNotEmpty)
                 ? NetworkImage(p.picture!)
                 : null,
@@ -232,11 +264,91 @@ class _ProfileHeader extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text('헬스포인트 ${p.healthPoint}',
                     style: const TextStyle(
-                        color: Color(0xFF1D9E75),
+                        color: Color(0xFFFB2D6F),
                         fontWeight: FontWeight.w600,),),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 둥근 흰색 카드 컨테이너 (마이페이지 섹션 래퍼)
+class _Card extends StatelessWidget {
+  const _Card({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        clipBehavior: Clip.antiAlias,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+/// 예약/상담/찜 통계 3분할
+class _StatsRow extends StatelessWidget {
+  const _StatsRow({
+    required this.bookings,
+    required this.callRequests,
+    required this.likes,
+  });
+
+  final int bookings;
+  final int callRequests;
+  final int likes;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 18),
+      child: Row(
+        children: [
+          _stat('예약', bookings, false),
+          _divider(),
+          _stat('상담', callRequests, false),
+          _divider(),
+          _stat('찜', likes, true),
+        ],
+      ),
+    );
+  }
+
+  Widget _divider() =>
+      Container(width: 1, height: 28, color: AppColors.line);
+
+  Widget _stat(String label, int value, bool accent) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            '$value',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: accent ? AppColors.accent : AppColors.ink,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(label,
+              style: const TextStyle(fontSize: 12.5, color: AppColors.muted),),
         ],
       ),
     );
@@ -251,9 +363,15 @@ class _SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      child: Text(text,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(text,
+            style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 15,
+                color: AppColors.ink,),),
+      ),
     );
   }
 }
@@ -333,8 +451,8 @@ class _BookingTile extends StatelessWidget {
       subtitle: Text(item.bookDate ?? item.createdAt ?? ''),
       trailing: Chip(
         label: Text(item.label),
-        backgroundColor: const Color(0xFFEAF5F0),
-        labelStyle: const TextStyle(color: Color(0xFF0F6E56), fontSize: 12),
+        backgroundColor: const Color(0xFFFEE6EE),
+        labelStyle: const TextStyle(color: Color(0xFFFB2D6F), fontSize: 12),
         visualDensity: VisualDensity.compact,
       ),
       onTap: () => Navigator.of(context).push(
@@ -359,8 +477,8 @@ class _CallRequestTile extends StatelessWidget {
       subtitle: Text(item.createdAt ?? ''),
       trailing: Chip(
         label: Text(item.statusLabel),
-        backgroundColor: const Color(0xFFEAF5F0),
-        labelStyle: const TextStyle(color: Color(0xFF0F6E56), fontSize: 12),
+        backgroundColor: const Color(0xFFFEE6EE),
+        labelStyle: const TextStyle(color: Color(0xFFFB2D6F), fontSize: 12),
         visualDensity: VisualDensity.compact,
       ),
       onTap: () => Navigator.of(context).push(
