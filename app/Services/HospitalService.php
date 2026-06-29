@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Exceptions\NotFoundException;
 use App\Models\BoardModel;
+use App\Models\DepartmentModel;
 use App\Models\FavoriteModel;
 use App\Models\HospitalModel;
 
@@ -32,18 +33,21 @@ class HospitalService
     private HospitalModel $hospitals;
     private BoardModel $boards;
     private FavoriteModel $favorites;
+    private DepartmentModel $departments;
     private EventService $events;
 
     public function __construct(
         ?HospitalModel $hospitals = null,
         ?BoardModel $boards = null,
         ?FavoriteModel $favorites = null,
+        ?DepartmentModel $departments = null,
         ?EventService $events = null,
     ) {
-        $this->hospitals = $hospitals ?? model(HospitalModel::class);
-        $this->boards    = $boards    ?? model(BoardModel::class);
-        $this->favorites = $favorites ?? model(FavoriteModel::class);
-        $this->events    = $events    ?? service('eventService');
+        $this->hospitals   = $hospitals   ?? model(HospitalModel::class);
+        $this->boards      = $boards      ?? model(BoardModel::class);
+        $this->favorites   = $favorites   ?? model(FavoriteModel::class);
+        $this->departments = $departments ?? model(DepartmentModel::class);
+        $this->events      = $events      ?? service('eventService');
     }
 
     /**
@@ -66,6 +70,7 @@ class HospitalService
 
         $items = array_map([$this, 'transformListItem'], $base['list']);
         $items = $this->overlayLikes($userId, $items);
+        $items = $this->overlayDepartments($items);
 
         return ['items' => $items, 'total' => $base['total']];
     }
@@ -110,6 +115,8 @@ class HospitalService
         }
 
         $base['is_liked'] = $this->favorites->likedTargetIds($userId, FavoriteModel::TYPE_HOSPITAL, [$id]) !== [];
+        // 진료과는 캐시된 기본 상세와 별개로 매번 최신을 덧입힌다(매핑 변경 즉시 반영).
+        $base['departments'] = $this->departments->byHospitalIds([$id])[$id] ?? [];
 
         return $base;
     }
@@ -199,6 +206,29 @@ class HospitalService
     }
 
     /**
+     * 진료과 일괄 오버레이 (N+1 방지) — 병원별 departments 배열 부착.
+     *
+     * @param array<int, array<string, mixed>> $items
+     * @return array<int, array<string, mixed>>
+     */
+    private function overlayDepartments(array $items): array
+    {
+        if ($items === []) {
+            return $items;
+        }
+
+        $ids = array_map(static fn (array $i): int => (int) $i['id'], $items);
+        $map = $this->departments->byHospitalIds($ids);
+
+        foreach ($items as &$item) {
+            $item['departments'] = $map[(int) $item['id']] ?? [];
+        }
+        unset($item);
+
+        return $items;
+    }
+
+    /**
      * 병원 목록 행 → 소비자 응답
      *
      * @param array<string, mixed> $row
@@ -249,11 +279,12 @@ class HospitalService
     private function normalizeListParams(array $params): array
     {
         return [
-            'keyword' => (string) ($params['keyword'] ?? ''),
-            'region'  => (string) ($params['region'] ?? ''),
-            'type'    => (int) ($params['type'] ?? 0),
-            'page'    => max(1, (int) ($params['page'] ?? 1)),
-            'limit'   => max(1, (int) ($params['limit'] ?? 20)),
+            'keyword'    => (string) ($params['keyword'] ?? ''),
+            'region'     => (string) ($params['region'] ?? ''),
+            'department' => (string) ($params['department'] ?? ''),
+            'type'       => (int) ($params['type'] ?? 0),
+            'page'       => max(1, (int) ($params['page'] ?? 1)),
+            'limit'      => max(1, (int) ($params['limit'] ?? 20)),
         ];
     }
 }

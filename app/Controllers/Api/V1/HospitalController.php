@@ -32,6 +32,7 @@ class HospitalController extends BaseApiController
         parameters: [
             new OA\Parameter(name: 'keyword', in: 'query', schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'filter[region]', in: 'query', description: '주소 부분일치', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'filter[department]', in: 'query', description: '진료과 코드 일치 (예: plastic_surgery)', schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'filter[type]', in: 'query', description: '1 일반·2 네트워크모·3 네트워크자', schema: new OA\Schema(type: 'integer')),
             new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer', default: 1)),
             new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'integer', default: 20)),
@@ -150,7 +151,7 @@ class HospitalController extends BaseApiController
     }
 
     /**
-     * 목록 쿼리 파라미터 — keyword·filter[region]·filter[type]·page·per_page
+     * 목록 쿼리 파라미터 — keyword·filter[region]·filter[department]·filter[type]·page·per_page
      *
      * @return array<string, mixed>
      */
@@ -160,11 +161,12 @@ class HospitalController extends BaseApiController
         $filter = is_array($filter) ? $filter : [];
 
         return [
-            'keyword' => (string) ($this->request->getGet('keyword') ?? ''),
-            'region'  => isset($filter['region']) ? (string) $filter['region'] : '',
-            'type'    => isset($filter['type']) ? (int) $filter['type'] : 0,
-            'page'    => max(1, (int) ($this->request->getGet('page') ?? 1)),
-            'limit'   => max(1, min(100, (int) ($this->request->getGet('per_page') ?? 20))),
+            'keyword'    => (string) ($this->request->getGet('keyword') ?? ''),
+            'region'     => isset($filter['region']) ? (string) $filter['region'] : '',
+            'department' => isset($filter['department']) ? (string) $filter['department'] : '',
+            'type'       => isset($filter['type']) ? (int) $filter['type'] : 0,
+            'page'       => max(1, (int) ($this->request->getGet('page') ?? 1)),
+            'limit'      => max(1, min(100, (int) ($this->request->getGet('per_page') ?? 20))),
         ];
     }
 
