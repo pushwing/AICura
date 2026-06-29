@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../community/community_list_screen.dart';
 import '../events/home_screen.dart';
 import '../hospital/hospital_list_screen.dart';
 import '../mypage/my_page_screen.dart';
@@ -18,6 +19,7 @@ class _MainShellState extends State<MainShell> {
   static const _tabs = [
     HomeScreen(),
     HospitalListScreen(),
+    CommunityListScreen(),
     MyPageScreen(),
   ];
 
@@ -38,6 +40,11 @@ class _MainShellState extends State<MainShell> {
             icon: Icon(Icons.local_hospital_outlined),
             selectedIcon: Icon(Icons.local_hospital),
             label: '병원',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.forum_outlined),
+            selectedIcon: Icon(Icons.forum),
+            label: '커뮤니티',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),

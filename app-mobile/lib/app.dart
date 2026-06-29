@@ -7,6 +7,7 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/auth_provider.dart';
 import 'features/auth/auth_repository.dart';
 import 'features/call_request/call_request_repository.dart';
+import 'features/community/board_repository.dart';
 import 'features/events/event_provider.dart';
 import 'features/events/event_repository.dart';
 import 'features/hospital/hospital_repository.dart';
@@ -30,6 +31,7 @@ class _AicuraAppState extends State<AicuraApp> {
   late final CallRequestRepository _callRepo;
   late final MeRepository _meRepo;
   late final HospitalRepository _hospitalRepo;
+  late final BoardRepository _boardRepo;
   late final EventProvider _events;
   late final MyPageProvider _myPage;
 
@@ -50,6 +52,7 @@ class _AicuraAppState extends State<AicuraApp> {
     _callRepo = CallRequestRepository(_api);
     _meRepo = MeRepository(_api);
     _hospitalRepo = HospitalRepository(_api);
+    _boardRepo = BoardRepository(_api);
     _events = EventProvider(_eventRepo);
     _myPage = MyPageProvider(_meRepo);
     _auth.bootstrap();
@@ -66,6 +69,7 @@ class _AicuraAppState extends State<AicuraApp> {
         Provider<CallRequestRepository>.value(value: _callRepo),
         Provider<MeRepository>.value(value: _meRepo),
         Provider<HospitalRepository>.value(value: _hospitalRepo),
+        Provider<BoardRepository>.value(value: _boardRepo),
       ],
       child: MaterialApp(
         title: 'AICura',
