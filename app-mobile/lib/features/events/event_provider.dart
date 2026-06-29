@@ -76,6 +76,9 @@ class EventProvider extends ChangeNotifier {
       await _loadFirstPage();
     } on ApiException catch (e) {
       _error = e.message;
+    } catch (e) {
+      // 파싱 오류 등 비정상 응답도 빈 화면 대신 에러로 노출
+      _error = '데이터를 불러오지 못했습니다.';
     } finally {
       _initialLoading = false;
       notifyListeners();
@@ -109,8 +112,15 @@ class EventProvider extends ChangeNotifier {
     items.clear();
     _page = 0;
     _lastPage = 1;
+    _error = null;
     notifyListeners();
-    await _loadFirstPage();
+    try {
+      await _loadFirstPage();
+    } on ApiException catch (e) {
+      _error = e.message;
+    } catch (e) {
+      _error = '데이터를 불러오지 못했습니다.';
+    }
     notifyListeners();
   }
 
@@ -143,7 +153,7 @@ class EventProvider extends ChangeNotifier {
       items.addAll(pageData.items);
       _page = pageData.page;
       _lastPage = pageData.lastPage;
-    } on ApiException {
+    } catch (_) {
       // 다음 페이지 실패는 조용히 무시 (다시 스크롤하면 재시도)
     } finally {
       _loadingMore = false;

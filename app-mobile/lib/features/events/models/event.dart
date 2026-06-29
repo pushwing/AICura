@@ -1,3 +1,5 @@
+import '../../../core/util/json_parse.dart';
+
 /// 이벤트(캠페인) 목록/상세 아이템.
 ///
 /// 서버 transformListItem / transformDetailItem 응답에 대응한다.
@@ -61,7 +63,7 @@ class Event {
   }
 
   factory Event.fromJson(Map<String, dynamic> j) {
-    int asInt(dynamic v) => (v as num?)?.toInt() ?? 0;
+    int asInt(dynamic v) => parseInt(v);
     return Event(
       id: asInt(j['id']),
       adTitle: (j['ad_title'] as String?) ?? '',
