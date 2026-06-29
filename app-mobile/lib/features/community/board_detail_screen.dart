@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/network/api_exception.dart';
+import '../../core/theme/app_colors.dart';
 import '../auth/login_screen.dart';
 import 'board_repository.dart';
 import 'models/board.dart';
@@ -110,19 +111,7 @@ class _BoardDetailScreenState extends State<BoardDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('후기'),
-        actions: [
-          if (_board != null)
-            IconButton(
-              onPressed: _toggleLike,
-              icon: Icon(
-                _board!.isLiked ? Icons.favorite : Icons.favorite_border,
-                color: _board!.isLiked ? Colors.redAccent : null,
-              ),
-            ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('후기 상세')),
       body: _buildBody(),
       bottomNavigationBar: _board == null ? null : _buildCommentBar(),
     );
@@ -147,38 +136,101 @@ class _BoardDetailScreenState extends State<BoardDetailScreen> {
 
     final b = _board!;
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       children: [
-        Text(b.subject,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),),
-        const SizedBox(height: 6),
+        // 작성자 / 평점 헤더
         Row(
           children: [
-            Text(b.userName,
-                style: const TextStyle(color: Colors.black54),),
-            if (b.rating > 0) ...[
-              const SizedBox(width: 8),
-              const Icon(Icons.star, size: 15, color: Colors.amber),
-              const SizedBox(width: 2),
-              Text(b.rating.toStringAsFixed(1),
-                  style: const TextStyle(color: Colors.black54),),
-            ],
-            const Spacer(),
-            Text(b.createdAt ?? '',
-                style: const TextStyle(color: Colors.black38, fontSize: 12),),
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: AppColors.accentTint,
+              child: Text(
+                b.userName.isNotEmpty ? b.userName.characters.first : '?',
+                style: const TextStyle(
+                    fontWeight: FontWeight.w700, color: AppColors.accent,),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(b.userName,
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w700,),),
+                  if (b.createdAt != null)
+                    Text(b.createdAt!,
+                        style: const TextStyle(
+                            fontSize: 12, color: AppColors.muted,),),
+                ],
+              ),
+            ),
+            if (b.rating > 0)
+              Row(
+                children: [
+                  const Icon(Icons.star, size: 18, color: AppColors.star),
+                  const SizedBox(width: 3),
+                  Text(b.rating.toStringAsFixed(1),
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w700,),),
+                ],
+              ),
           ],
         ),
-        const Divider(height: 24),
-        Text(b.contents ?? '', style: const TextStyle(fontSize: 15, height: 1.5)),
-        const Divider(height: 32),
+        const SizedBox(height: 16),
+        // 시술 정보 캡슐 (유형/제목)
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.bg,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            children: [
+              if (b.typeLabel != null) ...[
+                _Tag(b.typeLabel!),
+                const SizedBox(width: 10),
+              ],
+              Expanded(
+                child: Text(b.subject,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w600,),),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 18),
+        // 본문 풀텍스트
+        Text(b.contents ?? '',
+            style: const TextStyle(fontSize: 15, height: 1.8),),
+        const SizedBox(height: 22),
+        // 도움돼요 버튼 (= 좋아요 토글)
+        OutlinedButton.icon(
+          onPressed: _toggleLike,
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size.fromHeight(48),
+            foregroundColor: b.isLiked ? AppColors.accent : AppColors.ink2,
+            side: BorderSide(
+                color: b.isLiked ? AppColors.accent : AppColors.lineStrong,),
+          ),
+          icon: Icon(
+            b.isLiked ? Icons.favorite : Icons.favorite_border,
+            size: 18,
+            color: b.isLiked ? AppColors.accent : AppColors.ink3,
+          ),
+          label: Text('이 후기가 도움돼요 · ${b.likeCount}'),
+        ),
+        const Divider(height: 36),
         Text('댓글 ${_comments.length}',
-            style: const TextStyle(fontWeight: FontWeight.bold),),
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),),
         const SizedBox(height: 8),
         if (_comments.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
             child: Text('첫 댓글을 남겨보세요',
-                style: TextStyle(color: Colors.black45),),
+                style: TextStyle(color: AppColors.muted),),
           )
         else
           ..._comments.map((c) => _CommentTile(comment: c)),
@@ -222,6 +274,28 @@ class _BoardDetailScreenState extends State<BoardDetailScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _Tag extends StatelessWidget {
+  const _Tag(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.accentTint,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(text,
+          style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppColors.accent,),),
     );
   }
 }
