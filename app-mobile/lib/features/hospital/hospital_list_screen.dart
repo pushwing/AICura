@@ -95,9 +95,9 @@ class _HospitalTile extends StatelessWidget {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       leading: const CircleAvatar(
-        backgroundColor: Color(0xFFEAF5F0),
+        backgroundColor: Color(0xFFFEE6EE),
         child: Icon(Icons.local_hospital_outlined,
-            color: Color(0xFF0F6E56),),
+            color: Color(0xFFFB2D6F),),
       ),
       title: Text(hospital.name,
           maxLines: 1, overflow: TextOverflow.ellipsis,),

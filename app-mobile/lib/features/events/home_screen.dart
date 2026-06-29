@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/theme/app_colors.dart';
 import '../auth/auth_provider.dart';
 import '../auth/login_screen.dart';
 import 'event_detail_screen.dart';
@@ -55,8 +56,10 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text(
           'AICura',
           style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF0F6E56),
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            color: AppColors.accent,
+            letterSpacing: -0.5,
           ),
         ),
         actions: [
@@ -93,8 +96,9 @@ class _HomeScreenState extends State<HomeScreen> {
       child: CustomScrollView(
         controller: _scroll,
         slivers: [
-          if (provider.banners.isNotEmpty)
-            SliverToBoxAdapter(child: _BannerCarousel(events: provider.banners)),
+          SliverToBoxAdapter(
+            child: _SearchField(onSubmit: provider.search),
+          ),
           SliverToBoxAdapter(
             child: _CategoryBar(
               categories: provider.categories,
@@ -102,6 +106,7 @@ class _HomeScreenState extends State<HomeScreen> {
               onSelect: provider.selectCategory,
             ),
           ),
+          const SliverToBoxAdapter(child: _PromoBanner()),
           SliverToBoxAdapter(
             child: _SortBar(
               sort: provider.sort,
@@ -118,7 +123,7 @@ class _HomeScreenState extends State<HomeScreen> {
             SliverList.separated(
               itemCount: provider.items.length + (provider.hasMore ? 1 : 0),
               separatorBuilder: (_, __) =>
-                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  const SizedBox(height: 7, child: ColoredBox(color: AppColors.band)),
               itemBuilder: (context, index) {
                 if (index >= provider.items.length) {
                   return const Padding(
@@ -162,67 +167,91 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-/// 상단 배너 캐러셀 (메인 노출 이벤트)
-class _BannerCarousel extends StatelessWidget {
-  const _BannerCarousel({required this.events});
+/// 검색 필드
+class _SearchField extends StatelessWidget {
+  const _SearchField({required this.onSubmit});
 
-  final List<Event> events;
+  final void Function(String) onSubmit;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 160,
-      child: PageView.builder(
-        controller: PageController(viewportFraction: 0.9),
-        itemCount: events.length,
-        itemBuilder: (context, i) {
-          final e = events[i];
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  if (e.thumbnailUrl != null)
-                    Image.network(
-                      e.thumbnailUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
-                          Container(color: const Color(0xFF0F6E56)),
-                    )
-                  else
-                    Container(color: const Color(0xFF0F6E56)),
-                  // 가독성용 그라데이션
-                  const DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Colors.transparent, Colors.black54],
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 16,
-                    bottom: 16,
-                    right: 16,
-                    child: Text(
-                      e.adTitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 6, 18, 10),
+      child: TextField(
+        onSubmitted: onSubmit,
+        textInputAction: TextInputAction.search,
+        decoration: InputDecoration(
+          isDense: true,
+          filled: true,
+          fillColor: AppColors.field,
+          hintText: '시술, 병원, 이벤트를 검색해 보세요',
+          hintStyle: const TextStyle(color: AppColors.muted, fontSize: 14),
+          prefixIcon: const Icon(Icons.search, color: AppColors.muted, size: 22),
+          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(13),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(13),
+            borderSide: BorderSide.none,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 프로모 배너
+class _PromoBanner extends StatelessWidget {
+  const _PromoBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 4, 18, 8),
+      child: Container(
+        height: 96,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: AppColors.bannerGradient,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              right: -10,
+              top: -20,
+              child: Container(
+                width: 110,
+                height: 110,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
               ),
             ),
-          );
-        },
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '최대 15만원 상담 혜택',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  '지금 인기 이벤트를 둘러보세요',
+                  style: TextStyle(color: Colors.white70, fontSize: 12.5),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -244,10 +273,10 @@ class _CategoryBar extends StatelessWidget {
   Widget build(BuildContext context) {
     if (categories.isEmpty) return const SizedBox.shrink();
     return SizedBox(
-      height: 48,
+      height: 46,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14),
         children: [
           _chip('전체', selectedId == 0, () => onSelect(0)),
           for (final c in categories)
@@ -259,14 +288,27 @@ class _CategoryBar extends StatelessWidget {
 
   Widget _chip(String label, bool selected, VoidCallback onTap) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-      child: ChoiceChip(
-        label: Text(label),
-        selected: selected,
-        onSelected: (_) => onTap(),
-        selectedColor: const Color(0xFF1D9E75),
-        labelStyle: TextStyle(
-          color: selected ? Colors.white : Colors.black87,
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 9),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.accent : Colors.white,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: selected ? AppColors.accent : AppColors.lineStrong,
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: selected ? Colors.white : const Color(0xFF5A5A66),
+            ),
+          ),
         ),
       ),
     );
@@ -288,14 +330,23 @@ class _SortBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
+      padding: const EdgeInsets.fromLTRB(18, 8, 10, 4),
       child: Row(
         children: [
-          Text('이벤트 $total', style: const TextStyle(color: Colors.black54)),
+          Text(
+            '이벤트 $total개',
+            style: const TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w700,
+              color: AppColors.ink2,
+            ),
+          ),
           const Spacer(),
           DropdownButton<EventSort>(
             value: sort,
             underline: const SizedBox.shrink(),
+            isDense: true,
+            style: const TextStyle(fontSize: 13, color: AppColors.ink3),
             items: [
               for (final s in EventSort.values)
                 DropdownMenuItem(value: s, child: Text(s.label)),

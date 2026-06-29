@@ -205,7 +205,7 @@ class _ProfileHeader extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 28,
-            backgroundColor: const Color(0xFF0F6E56),
+            backgroundColor: const Color(0xFFFB2D6F),
             backgroundImage: (p.picture != null && p.picture!.isNotEmpty)
                 ? NetworkImage(p.picture!)
                 : null,
@@ -232,7 +232,7 @@ class _ProfileHeader extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text('헬스포인트 ${p.healthPoint}',
                     style: const TextStyle(
-                        color: Color(0xFF1D9E75),
+                        color: Color(0xFFFB2D6F),
                         fontWeight: FontWeight.w600,),),
               ],
             ),
@@ -333,8 +333,8 @@ class _BookingTile extends StatelessWidget {
       subtitle: Text(item.bookDate ?? item.createdAt ?? ''),
       trailing: Chip(
         label: Text(item.label),
-        backgroundColor: const Color(0xFFEAF5F0),
-        labelStyle: const TextStyle(color: Color(0xFF0F6E56), fontSize: 12),
+        backgroundColor: const Color(0xFFFEE6EE),
+        labelStyle: const TextStyle(color: Color(0xFFFB2D6F), fontSize: 12),
         visualDensity: VisualDensity.compact,
       ),
       onTap: () => Navigator.of(context).push(
@@ -359,8 +359,8 @@ class _CallRequestTile extends StatelessWidget {
       subtitle: Text(item.createdAt ?? ''),
       trailing: Chip(
         label: Text(item.statusLabel),
-        backgroundColor: const Color(0xFFEAF5F0),
-        labelStyle: const TextStyle(color: Color(0xFF0F6E56), fontSize: 12),
+        backgroundColor: const Color(0xFFFEE6EE),
+        labelStyle: const TextStyle(color: Color(0xFFFB2D6F), fontSize: 12),
         visualDensity: VisualDensity.compact,
       ),
       onTap: () => Navigator.of(context).push(

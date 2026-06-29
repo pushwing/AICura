@@ -200,11 +200,11 @@ class _Tag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
       decoration: BoxDecoration(
-        color: const Color(0xFFEAF5F0),
+        color: const Color(0xFFFEE6EE),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(text,
-          style: const TextStyle(fontSize: 11, color: Color(0xFF0F6E56)),),
+          style: const TextStyle(fontSize: 11, color: Color(0xFFFB2D6F)),),
     );
   }
 }

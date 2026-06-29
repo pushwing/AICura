@@ -169,7 +169,7 @@ class _HospitalDetailScreenState extends State<HospitalDetailScreen> {
       child: ListView(
         children: [
           _Header(hospital: h),
-          const Divider(height: 8, thickness: 8, color: Color(0xFFF0F2F2)),
+          const Divider(height: 8, thickness: 8, color: Color(0xFFF4F5F7)),
           const _SectionTitle('진행 이벤트'),
           if (_events.isEmpty)
             const _EmptyHint('진행 중인 이벤트가 없습니다')
@@ -185,7 +185,7 @@ class _HospitalDetailScreenState extends State<HospitalDetailScreen> {
                 onToggleLike: () => _toggleEventLike(e),
               ),
             ),
-          const Divider(height: 8, thickness: 8, color: Color(0xFFF0F2F2)),
+          const Divider(height: 8, thickness: 8, color: Color(0xFFF4F5F7)),
           _SectionTitle('후기 ${_reviews.length}'),
           if (_reviews.isEmpty)
             const _EmptyHint('등록된 후기가 없습니다')

@@ -169,7 +169,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF1D9E75),
+                        color: Color(0xFFFB2D6F),
                       ),
                     ),
                     const SizedBox(width: 8),
