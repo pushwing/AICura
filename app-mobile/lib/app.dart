@@ -16,6 +16,9 @@ import 'features/events/event_repository.dart';
 import 'features/hospital/hospital_repository.dart';
 import 'features/mypage/me_repository.dart';
 import 'features/mypage/my_page_provider.dart';
+import 'features/push/device_registrar.dart';
+import 'features/push/device_repository.dart';
+import 'features/push/push_token_provider.dart';
 import 'features/shell/main_shell.dart';
 import 'features/system/settings_provider.dart';
 import 'features/system/system_repository.dart';
@@ -39,6 +42,7 @@ class _AicuraAppState extends State<AicuraApp> {
   late final BoardRepository _boardRepo;
   late final BookingRepository _bookingRepo;
   late final SystemRepository _systemRepo;
+  late final DeviceRegistrar _deviceRegistrar;
   late final EventProvider _events;
   late final MyPageProvider _myPage;
   late final SettingsProvider _settings;
@@ -66,6 +70,12 @@ class _AicuraAppState extends State<AicuraApp> {
     _events = EventProvider(_eventRepo);
     _myPage = MyPageProvider(_meRepo);
     _settings = SettingsProvider(_systemRepo);
+    _deviceRegistrar = DeviceRegistrar(
+      tokenProvider: DebugPushTokenProvider(),
+      repository: DeviceRepository(_api),
+    );
+    // 로그인 상태가 되면 디바이스 푸시 토큰을 등록한다.
+    _auth.addListener(_onAuthChanged);
     _auth.bootstrap();
     // 부팅 시 공개 설정 로드 + 앱 실행 로그 전송(fire-and-forget)
     _settings.load();
@@ -74,6 +84,21 @@ class _AicuraAppState extends State<AicuraApp> {
       'platform': Platform.operatingSystem,
       'occurred_at': DateTime.now().toIso8601String(),
     });
+  }
+
+  /// 인증 상태 변화 → 로그인 시 디바이스 등록, 로그아웃 시 상태 초기화.
+  void _onAuthChanged() {
+    if (_auth.isAuthenticated) {
+      _deviceRegistrar.registerIfAvailable();
+    } else {
+      _deviceRegistrar.reset();
+    }
+  }
+
+  @override
+  void dispose() {
+    _auth.removeListener(_onAuthChanged);
+    super.dispose();
   }
 
   @override
