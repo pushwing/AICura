@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -15,6 +17,8 @@ import 'features/hospital/hospital_repository.dart';
 import 'features/mypage/me_repository.dart';
 import 'features/mypage/my_page_provider.dart';
 import 'features/shell/main_shell.dart';
+import 'features/system/settings_provider.dart';
+import 'features/system/system_repository.dart';
 
 /// 앱 루트 — 의존성 조립(DI) 및 라우팅(인증 게이트).
 class AicuraApp extends StatefulWidget {
@@ -34,8 +38,10 @@ class _AicuraAppState extends State<AicuraApp> {
   late final HospitalRepository _hospitalRepo;
   late final BoardRepository _boardRepo;
   late final BookingRepository _bookingRepo;
+  late final SystemRepository _systemRepo;
   late final EventProvider _events;
   late final MyPageProvider _myPage;
+  late final SettingsProvider _settings;
 
   @override
   void initState() {
@@ -56,9 +62,18 @@ class _AicuraAppState extends State<AicuraApp> {
     _hospitalRepo = HospitalRepository(_api);
     _boardRepo = BoardRepository(_api);
     _bookingRepo = BookingRepository(_api);
+    _systemRepo = SystemRepository(_api);
     _events = EventProvider(_eventRepo);
     _myPage = MyPageProvider(_meRepo);
+    _settings = SettingsProvider(_systemRepo);
     _auth.bootstrap();
+    // 부팅 시 공개 설정 로드 + 앱 실행 로그 전송(fire-and-forget)
+    _settings.load();
+    _systemRepo.log({
+      'event': 'app_open',
+      'platform': Platform.operatingSystem,
+      'occurred_at': DateTime.now().toIso8601String(),
+    });
   }
 
   @override
@@ -68,6 +83,7 @@ class _AicuraAppState extends State<AicuraApp> {
         ChangeNotifierProvider.value(value: _auth),
         ChangeNotifierProvider.value(value: _events),
         ChangeNotifierProvider.value(value: _myPage),
+        ChangeNotifierProvider.value(value: _settings),
         Provider<EventRepository>.value(value: _eventRepo),
         Provider<CallRequestRepository>.value(value: _callRepo),
         Provider<MeRepository>.value(value: _meRepo),
