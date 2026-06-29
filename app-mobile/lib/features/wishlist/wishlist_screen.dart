@@ -8,6 +8,7 @@ import '../auth/login_screen.dart';
 import '../events/event_detail_screen.dart';
 import '../mypage/me_repository.dart';
 import '../mypage/models/like_item.dart';
+import '../shell/main_shell.dart';
 
 /// 찜 화면 — 내가 찜한 이벤트(GET /me/likes). 로그인 필요.
 class WishlistScreen extends StatefulWidget {
@@ -18,9 +19,13 @@ class WishlistScreen extends StatefulWidget {
 }
 
 class _WishlistScreenState extends State<WishlistScreen> {
+  /// MainShell 탭 순서상 찜 탭 인덱스 (홈/검색/후기/찜/마이)
+  static const _tabIndex = 3;
+
   List<LikeItem> _items = [];
   bool _loading = false;
   bool _loaded = false;
+  bool _wasActive = false;
   String? _error;
 
   Future<void> _load() async {
@@ -48,18 +53,27 @@ class _WishlistScreenState extends State<WishlistScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    // 찜 탭이 현재 활성인지 (홈에서 찜 후 탭 전환 시 최신화하기 위함)
+    final active = context.watch<ShellController>().index == _tabIndex;
 
-    // 로그인 상태가 되면 1회 로드, 로그아웃 시 초기화
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (auth.isAuthenticated && !_loaded && !_loading) {
-        _load();
-      } else if (!auth.isAuthenticated && _loaded) {
-        setState(() {
-          _items = [];
-          _loaded = false;
-        });
+      if (!auth.isAuthenticated) {
+        if (_loaded || _items.isNotEmpty) {
+          setState(() {
+            _items = [];
+            _loaded = false;
+          });
+        }
+        _wasActive = active;
+        return;
       }
+      // 최초 진입 + 찜 탭으로 새로 전환될 때마다 서버에서 다시 불러온다.
+      final justEntered = active && !_wasActive;
+      if (!_loading && ((active && !_loaded) || justEntered)) {
+        _load();
+      }
+      _wasActive = active;
     });
 
     return Scaffold(
