@@ -117,7 +117,7 @@ class _AicuraAppState extends State<AicuraApp> {
         Provider<BookingRepository>.value(value: _bookingRepo),
       ],
       child: MaterialApp(
-        title: 'AICura',
+        title: '뷰니',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),
         // 첫 화면은 항상 메인 셸(홈 탭). 로그인은 신청·찜·마이페이지에서만 요구한다.
