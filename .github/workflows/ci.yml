@@ -41,7 +41,9 @@ jobs:
         with:
           php-version: "8.4"
           extensions: mbstring, intl, mysqli, curl, dom, xml, tokenizer
-          coverage: none
+          # phpunit.dist.xml 이 failOnWarning + <coverage> 를 켜 두어
+          # 커버리지 드라이버가 없으면 경고→실패. pcov 로 드라이버 제공.
+          coverage: pcov
           tools: composer:v2
 
       - name: Composer 캐시
