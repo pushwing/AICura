@@ -9,7 +9,9 @@ import 'features/auth/auth_repository.dart';
 import 'features/call_request/call_request_repository.dart';
 import 'features/events/event_provider.dart';
 import 'features/events/event_repository.dart';
-import 'features/events/home_screen.dart';
+import 'features/mypage/me_repository.dart';
+import 'features/mypage/my_page_provider.dart';
+import 'features/shell/main_shell.dart';
 
 /// 앱 루트 — 의존성 조립(DI) 및 라우팅(인증 게이트).
 class AicuraApp extends StatefulWidget {
@@ -25,7 +27,9 @@ class _AicuraAppState extends State<AicuraApp> {
   late final AuthProvider _auth;
   late final EventRepository _eventRepo;
   late final CallRequestRepository _callRepo;
+  late final MeRepository _meRepo;
   late final EventProvider _events;
+  late final MyPageProvider _myPage;
 
   @override
   void initState() {
@@ -42,7 +46,9 @@ class _AicuraAppState extends State<AicuraApp> {
     );
     _eventRepo = EventRepository(_api);
     _callRepo = CallRequestRepository(_api);
+    _meRepo = MeRepository(_api);
     _events = EventProvider(_eventRepo);
+    _myPage = MyPageProvider(_meRepo);
     _auth.bootstrap();
   }
 
@@ -52,15 +58,17 @@ class _AicuraAppState extends State<AicuraApp> {
       providers: [
         ChangeNotifierProvider.value(value: _auth),
         ChangeNotifierProvider.value(value: _events),
+        ChangeNotifierProvider.value(value: _myPage),
         Provider<EventRepository>.value(value: _eventRepo),
         Provider<CallRequestRepository>.value(value: _callRepo),
+        Provider<MeRepository>.value(value: _meRepo),
       ],
       child: MaterialApp(
         title: 'AICura',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),
-        // 첫 화면은 항상 이벤트 리스트(홈). 로그인은 신청·찜 시점에만 요구한다.
-        home: const HomeScreen(),
+        // 첫 화면은 항상 메인 셸(홈 탭). 로그인은 신청·찜·마이페이지에서만 요구한다.
+        home: const MainShell(),
       ),
     );
   }
