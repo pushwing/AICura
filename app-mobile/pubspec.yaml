@@ -26,6 +26,19 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  # 런처 아이콘(Android·iOS) 일괄 생성
+  flutter_launcher_icons: ^0.14.1
+
+# 뷰니 런처 아이콘 — 핑크(#FB2D6F) 배경 + 흰색 '뷰니' 워드마크
+# 마스터 이미지에서 Android(adaptive 포함)·iOS 전 사이즈 생성.
+# 재생성: dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  image_path: "assets/icon/icon_master.png"
+  adaptive_icon_background: "#FB2D6F"
+  adaptive_icon_foreground: "assets/icon/icon_foreground.png"
 
 flutter:
   uses-material-design: true
