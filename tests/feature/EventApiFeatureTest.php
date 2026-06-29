@@ -279,9 +279,11 @@ final class EventApiFeatureTest extends CIUnitTestCase
         $this->assertFalse($liked[$this->c2]);
     }
 
-    /** [E11] 토큰 없으면 401 */
-    public function testRequiresAuth(): void
+    /** [E11] 조회는 비로그인 허용(200), 찜은 로그인 필요(401) */
+    public function testAuthPolicy(): void
     {
-        $this->get('api/v1/campaigns')->assertStatus(401);
+        $this->get('api/v1/campaigns')->assertStatus(200);
+        $this->get('api/v1/campaigns/' . $this->c1)->assertStatus(200);
+        $this->post('api/v1/campaigns/' . $this->c1 . '/like')->assertStatus(401);
     }
 }

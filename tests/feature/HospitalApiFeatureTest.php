@@ -213,9 +213,11 @@ final class HospitalApiFeatureTest extends CIUnitTestCase
             ->assertStatus(404);
     }
 
-    /** [H7] 토큰 없으면 401 */
-    public function testRequiresAuth(): void
+    /** [H7] 조회는 비로그인 허용(200), 찜은 로그인 필요(401) */
+    public function testAuthPolicy(): void
     {
-        $this->get('api/v1/hospitals')->assertStatus(401);
+        $this->get('api/v1/hospitals')->assertStatus(200);
+        $this->get('api/v1/hospitals/' . $this->h1)->assertStatus(200);
+        $this->post('api/v1/hospitals/' . $this->h1 . '/like')->assertStatus(401);
     }
 }
