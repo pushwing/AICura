@@ -46,8 +46,9 @@ class _CommunityListScreenState extends State<CommunityListScreen> {
     }
   }
 
-  List<Board> get _visible =>
-      _filterType == 0 ? _items : _items.where((b) => b.type == _filterType).toList();
+  List<Board> get _visible => _filterType == 0
+      ? _items
+      : _items.where((b) => b.type == _filterType).toList();
 
   Future<void> _loadFirst() async {
     setState(() {
@@ -238,11 +239,14 @@ class _ReviewCard extends StatelessWidget {
                       radius: 16,
                       backgroundColor: AppColors.accentTint,
                       child: Text(
-                        b.userName.isNotEmpty ? b.userName.characters.first : '?',
+                        b.userName.isNotEmpty
+                            ? b.userName.characters.first
+                            : '?',
                         style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.accent,),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.accent,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -250,15 +254,22 @@ class _ReviewCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(b.userName,
-                              style: const TextStyle(
-                                  fontSize: 13.5,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.ink2,),),
+                          Text(
+                            b.userName,
+                            style: const TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.ink2,
+                            ),
+                          ),
                           if (b.createdAt != null)
-                            Text(b.createdAt!,
-                                style: const TextStyle(
-                                    fontSize: 11.5, color: AppColors.muted,),),
+                            Text(
+                              b.createdAt!,
+                              style: const TextStyle(
+                                fontSize: 11.5,
+                                color: AppColors.muted,
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -270,20 +281,28 @@ class _ReviewCard extends StatelessWidget {
                   _Tag(b.typeLabel!),
                   const SizedBox(height: 8),
                 ],
-                Text(b.subject,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontSize: 15.5,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.ink,),),
+                Text(
+                  b.subject,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 15.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.ink,
+                  ),
+                ),
                 if (b.excerpt != null && b.excerpt!.isNotEmpty) ...[
                   const SizedBox(height: 4),
-                  Text(b.excerpt!,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontSize: 14, height: 1.5, color: AppColors.ink3,),),
+                  Text(
+                    b.excerpt!,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      height: 1.5,
+                      color: AppColors.ink3,
+                    ),
+                  ),
                 ],
                 const SizedBox(height: 12),
                 Row(
@@ -294,16 +313,27 @@ class _ReviewCard extends StatelessWidget {
                       color: b.isLiked ? AppColors.accent : AppColors.muted,
                     ),
                     const SizedBox(width: 4),
-                    Text('도움돼요 ${b.likeCount}',
-                        style: const TextStyle(
-                            fontSize: 12.5, color: AppColors.muted,),),
+                    Text(
+                      '도움돼요 ${b.likeCount}',
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        color: AppColors.muted,
+                      ),
+                    ),
                     const SizedBox(width: 14),
-                    const Icon(Icons.mode_comment_outlined,
-                        size: 15, color: AppColors.muted,),
+                    const Icon(
+                      Icons.mode_comment_outlined,
+                      size: 15,
+                      color: AppColors.muted,
+                    ),
                     const SizedBox(width: 4),
-                    Text('${b.commentCount}',
-                        style: const TextStyle(
-                            fontSize: 12.5, color: AppColors.muted,),),
+                    Text(
+                      '${b.commentCount}',
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        color: AppColors.muted,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -326,9 +356,14 @@ class _RatingPill extends StatelessWidget {
       children: [
         const Icon(Icons.star, size: 15, color: AppColors.star),
         const SizedBox(width: 2),
-        Text(rating.toStringAsFixed(1),
-            style: const TextStyle(
-                fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink2,),),
+        Text(
+          rating.toStringAsFixed(1),
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: AppColors.ink2,
+          ),
+        ),
       ],
     );
   }
@@ -347,9 +382,14 @@ class _Tag extends StatelessWidget {
         color: AppColors.accentTint,
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Text(text,
-          style: const TextStyle(
-              fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.accent,),),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: AppColors.accent,
+        ),
+      ),
     );
   }
 }

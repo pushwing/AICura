@@ -16,13 +16,16 @@ class CallRequestRepository {
     String? content,
     String? callTime,
   }) async {
-    await _api.post('/call-requests', body: {
-      'campaign_id': campaignId,
-      'name': name,
-      'phone': phone,
-      if (content != null && content.isNotEmpty) 'content': content,
-      if (callTime != null && callTime.isNotEmpty) 'call_time': callTime,
-      'privacy_agree': true,
-    },);
+    await _api.post(
+      '/call-requests',
+      body: {
+        'campaign_id': campaignId,
+        'name': name,
+        'phone': phone,
+        if (content != null && content.isNotEmpty) 'content': content,
+        if (callTime != null && callTime.isNotEmpty) 'call_time': callTime,
+        'privacy_agree': true,
+      },
+    );
   }
 }

@@ -179,8 +179,7 @@ class ApiResponse {
   /// `meta` 필드 — 페이지네이션 정보 (page, per_page, total, last_page)
   final Map<String, dynamic>? meta;
 
-  Map<String, dynamic> get dataAsMap =>
-      (data as Map).cast<String, dynamic>();
+  Map<String, dynamic> get dataAsMap => (data as Map).cast<String, dynamic>();
 
   List<dynamic> get dataAsList => (data as List?) ?? const [];
 }

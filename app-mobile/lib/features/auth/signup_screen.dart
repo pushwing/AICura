@@ -100,9 +100,8 @@ class _SignupScreenState extends State<SignupScreen> {
                   decoration: const InputDecoration(
                     labelText: '비밀번호 * (8자 이상)',
                   ),
-                  validator: (v) => (v == null || v.length < 8)
-                      ? '비밀번호는 8자 이상이어야 합니다'
-                      : null,
+                  validator: (v) =>
+                      (v == null || v.length < 8) ? '비밀번호는 8자 이상이어야 합니다' : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(

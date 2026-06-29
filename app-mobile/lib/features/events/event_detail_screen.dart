@@ -43,7 +43,8 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       _error = null;
     });
     try {
-      final event = await context.read<EventRepository>().detail(widget.eventId);
+      final event =
+          await context.read<EventRepository>().detail(widget.eventId);
       if (!mounted) return;
       setState(() {
         _event = event;
@@ -176,14 +177,17 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                   Text(
                     '$rate%',
                     style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.accent,),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.accent,
+                    ),
                   ),
                 Text(
                   '${_won.format(e.discountCost)}원',
                   style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w800,),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ],
             ),
@@ -225,10 +229,11 @@ class _InfoSegment extends StatelessWidget {
           Text(
             e.adTitle,
             style: const TextStyle(
-                fontSize: 21,
-                fontWeight: FontWeight.w800,
-                height: 1.3,
-                letterSpacing: -0.4,),
+              fontSize: 21,
+              fontWeight: FontWeight.w800,
+              height: 1.3,
+              letterSpacing: -0.4,
+            ),
           ),
           const SizedBox(height: 14),
           Container(
@@ -248,25 +253,29 @@ class _InfoSegment extends StatelessWidget {
                       Text(
                         '$rate%',
                         style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.accent,),
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.accent,
+                        ),
                       ),
                       const SizedBox(width: 10),
                     ],
                     Text(
                       '${_won.format(e.discountCost)}원',
                       style: const TextStyle(
-                          fontSize: 24, fontWeight: FontWeight.w800,),
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     if (rate != null) ...[
                       const SizedBox(width: 8),
                       Text(
                         '${_won.format(e.generalCost)}원',
                         style: const TextStyle(
-                            fontSize: 14,
-                            color: AppColors.faint,
-                            decoration: TextDecoration.lineThrough,),
+                          fontSize: 14,
+                          color: AppColors.faint,
+                          decoration: TextDecoration.lineThrough,
+                        ),
                       ),
                     ],
                   ],
@@ -281,8 +290,10 @@ class _InfoSegment extends StatelessWidget {
           ),
           if (e.adDetailInfo != null && e.adDetailInfo!.trim().isNotEmpty) ...[
             const SizedBox(height: 22),
-            const Text('이벤트 안내',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),),
+            const Text(
+              '이벤트 안내',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+            ),
             const SizedBox(height: 4),
             Html(
               data: e.adDetailInfo!,
@@ -298,8 +309,10 @@ class _InfoSegment extends StatelessWidget {
           for (final url in e.detailImages)
             Padding(
               padding: const EdgeInsets.only(top: 8),
-              child: Image.network(url,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),),
+              child: Image.network(
+                url,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
             ),
         ],
       ),
@@ -319,11 +332,16 @@ class _ReviewSegment extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(18, 28, 18, 28),
       child: Column(
         children: [
-          const Icon(Icons.rate_review_outlined,
-              size: 48, color: AppColors.faint,),
+          const Icon(
+            Icons.rate_review_outlined,
+            size: 48,
+            color: AppColors.faint,
+          ),
           const SizedBox(height: 12),
-          const Text('이 이벤트의 후기를 남겨보세요',
-              style: TextStyle(color: AppColors.muted),),
+          const Text(
+            '이 이벤트의 후기를 남겨보세요',
+            style: TextStyle(color: AppColors.muted),
+          ),
           const SizedBox(height: 16),
           OutlinedButton.icon(
             onPressed: onWrite,
@@ -350,25 +368,34 @@ class _HospitalSegment extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(e.hospitalName,
-              style:
-                  const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),),
+          Text(
+            e.hospitalName,
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+          ),
           if (e.hospitalAddress != null && e.hospitalAddress!.isNotEmpty) ...[
             const SizedBox(height: 10),
-            Row(children: [
-              const Icon(Icons.place_outlined,
-                  size: 18, color: AppColors.muted,),
-              const SizedBox(width: 6),
-              Expanded(child: Text(e.hospitalAddress!)),
-            ],),
+            Row(
+              children: [
+                const Icon(
+                  Icons.place_outlined,
+                  size: 18,
+                  color: AppColors.muted,
+                ),
+                const SizedBox(width: 6),
+                Expanded(child: Text(e.hospitalAddress!)),
+              ],
+            ),
           ],
           if (e.hospitalPhone != null && e.hospitalPhone!.isNotEmpty) ...[
             const SizedBox(height: 6),
-            Row(children: [
-              const Icon(Icons.call_outlined, size: 18, color: AppColors.muted),
-              const SizedBox(width: 6),
-              Text(e.hospitalPhone!),
-            ],),
+            Row(
+              children: [
+                const Icon(Icons.call_outlined,
+                    size: 18, color: AppColors.muted),
+                const SizedBox(width: 6),
+                Text(e.hospitalPhone!),
+              ],
+            ),
           ],
           const SizedBox(height: 16),
           OutlinedButton(
@@ -438,7 +465,9 @@ class _Hero extends StatelessWidget {
                 child: Text(
                   e.categoryTitle,
                   style: const TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.w700,),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ),
@@ -580,9 +609,10 @@ class _ReviewWriteSheetState extends State<_ReviewWriteSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('${widget.event.adTitle} 후기 작성',
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),),
+            Text(
+              '${widget.event.adTitle} 후기 작성',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -622,7 +652,9 @@ class _ReviewWriteSheetState extends State<_ReviewWriteSheet> {
                       height: 22,
                       width: 22,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white,),
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : const Text('후기 등록'),
             ),

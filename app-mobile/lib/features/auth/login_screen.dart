@@ -49,8 +49,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _showError(String msg) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   /// 회원가입 화면을 띄우고, 가입에 성공하면 로그인 화면도 함께 닫는다.
@@ -106,9 +105,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _password,
                     obscureText: true,
                     decoration: const InputDecoration(labelText: '비밀번호'),
-                    validator: (v) => (v == null || v.length < 6)
-                        ? '비밀번호를 확인해주세요'
-                        : null,
+                    validator: (v) =>
+                        (v == null || v.length < 6) ? '비밀번호를 확인해주세요' : null,
                   ),
                   const SizedBox(height: 24),
                   FilledButton(

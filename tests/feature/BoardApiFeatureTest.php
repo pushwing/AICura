@@ -238,9 +238,10 @@ final class BoardApiFeatureTest extends CIUnitTestCase
         @unlink($dir . 'serve_test.png');
     }
 
-    /** [B12] 토큰 없으면 401 */
-    public function testRequiresAuth(): void
+    /** [B12] 조회는 비로그인 허용(200), 작성은 로그인 필요(401) */
+    public function testAuthPolicy(): void
     {
-        $this->get('api/v1/boards')->assertStatus(401);
+        $this->get('api/v1/boards')->assertStatus(200);
+        $this->post('api/v1/boards')->assertStatus(401);
     }
 }

@@ -11,9 +11,12 @@ class DeviceRepository {
     required String pushToken,
     required int platform,
   }) async {
-    await _api.post('/me/device', body: {
-      'push_token': pushToken,
-      'platform': platform,
-    },);
+    await _api.post(
+      '/me/device',
+      body: {
+        'push_token': pushToken,
+        'platform': platform,
+      },
+    );
   }
 }

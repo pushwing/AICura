@@ -54,9 +54,8 @@ class _MyPageScreenState extends State<MyPageScreen> {
             ),
         ],
       ),
-      body: auth.isAuthenticated
-          ? _buildAuthed(provider)
-          : const _LoginPrompt(),
+      body:
+          auth.isAuthenticated ? _buildAuthed(provider) : const _LoginPrompt(),
     );
   }
 
@@ -112,7 +111,8 @@ class _MyPageScreenState extends State<MyPageScreen> {
                 if (provider.callRequests.isEmpty)
                   const _EmptyHint('상담 신청 내역이 없습니다')
                 else
-                  ...provider.callRequests.map((e) => _CallRequestTile(item: e)),
+                  ...provider.callRequests
+                      .map((e) => _CallRequestTile(item: e)),
               ],
             ),
           ),
@@ -197,11 +197,16 @@ class _LoginPrompt extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.account_circle_outlined,
-                size: 64, color: Colors.black26,),
+            const Icon(
+              Icons.account_circle_outlined,
+              size: 64,
+              color: Colors.black26,
+            ),
             const SizedBox(height: 12),
-            const Text('로그인하고 내 정보를 확인하세요',
-                style: TextStyle(color: Colors.black54),),
+            const Text(
+              '로그인하고 내 정보를 확인하세요',
+              style: TextStyle(color: Colors.black54),
+            ),
             const SizedBox(height: 16),
             FilledButton(
               onPressed: () => requireLogin(context),
@@ -256,16 +261,23 @@ class _ProfileHeader extends StatelessWidget {
                 Text(
                   p.username.isNotEmpty ? p.username : '사용자',
                   style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold,),
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 2),
-                Text(p.email,
-                    style: const TextStyle(color: Colors.black54, fontSize: 13),),
+                Text(
+                  p.email,
+                  style: const TextStyle(color: Colors.black54, fontSize: 13),
+                ),
                 const SizedBox(height: 6),
-                Text('헬스포인트 ${p.healthPoint}',
-                    style: const TextStyle(
-                        color: Color(0xFFFB2D6F),
-                        fontWeight: FontWeight.w600,),),
+                Text(
+                  '헬스포인트 ${p.healthPoint}',
+                  style: const TextStyle(
+                    color: Color(0xFFFB2D6F),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
           ),
@@ -331,8 +343,7 @@ class _StatsRow extends StatelessWidget {
     );
   }
 
-  Widget _divider() =>
-      Container(width: 1, height: 28, color: AppColors.line);
+  Widget _divider() => Container(width: 1, height: 28, color: AppColors.line);
 
   Widget _stat(String label, int value, bool accent) {
     return Expanded(
@@ -347,8 +358,10 @@ class _StatsRow extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Text(label,
-              style: const TextStyle(fontSize: 12.5, color: AppColors.muted),),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 12.5, color: AppColors.muted),
+          ),
         ],
       ),
     );
@@ -366,11 +379,14 @@ class _SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
       child: Align(
         alignment: Alignment.centerLeft,
-        child: Text(text,
-            style: const TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: 15,
-                color: AppColors.ink,),),
+        child: Text(
+          text,
+          style: const TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 15,
+            color: AppColors.ink,
+          ),
+        ),
       ),
     );
   }
@@ -446,8 +462,11 @@ class _BookingTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      title: Text(item.hospitalName,
-          maxLines: 1, overflow: TextOverflow.ellipsis,),
+      title: Text(
+        item.hospitalName,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
       subtitle: Text(item.bookDate ?? item.createdAt ?? ''),
       trailing: Chip(
         label: Text(item.label),
@@ -472,8 +491,11 @@ class _CallRequestTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      title: Text(item.campaignTitle,
-          maxLines: 1, overflow: TextOverflow.ellipsis,),
+      title: Text(
+        item.campaignTitle,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
       subtitle: Text(item.createdAt ?? ''),
       trailing: Chip(
         label: Text(item.statusLabel),

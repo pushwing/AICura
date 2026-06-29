@@ -83,10 +83,9 @@ class Event {
       adEndDate: j['ad_end_date'] as String?,
       isLiked: (j['is_liked'] as bool?) ?? false,
       subThumbnailUrl: j['sub_thumbnail_url'] as String?,
-      detailImages: (j['detail_images'] as List?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          const [],
+      detailImages:
+          (j['detail_images'] as List?)?.map((e) => e.toString()).toList() ??
+              const [],
       adDetailInfo: j['ad_detail_info'] as String?,
       hospitalAddress: j['hospital_address'] as String?,
       hospitalPhone: j['hospital_phone'] as String?,
