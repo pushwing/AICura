@@ -204,6 +204,12 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
         $routes->get('campaigns/recommend',  'CampaignController::recommend');
         $routes->get('campaigns',            'CampaignController::index');
         $routes->get('campaigns/(:num)',     'CampaignController::show/$1');
+
+        // 병원 조회 — 비로그인 열람 허용 (이슈 #99)
+        $routes->get('hospitals',                  'HospitalController::index');
+        $routes->get('hospitals/(:num)',           'HospitalController::show/$1');
+        $routes->get('hospitals/(:num)/campaigns', 'HospitalController::campaigns/$1');
+        $routes->get('hospitals/(:num)/reviews',   'HospitalController::reviews/$1');
     });
 
     // 이하 jwt_auth 필터 적용 (로그인 필수)
@@ -217,11 +223,7 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
         $routes->get('call-requests/(:num)',   'CallRequestController::show/$1');
         $routes->delete('call-requests/(:num)', 'CallRequestController::delete/$1');
 
-        // 병원 (이슈 #99)
-        $routes->get('hospitals',                    'HospitalController::index');
-        $routes->get('hospitals/(:num)',             'HospitalController::show/$1');
-        $routes->get('hospitals/(:num)/campaigns',   'HospitalController::campaigns/$1');
-        $routes->get('hospitals/(:num)/reviews',     'HospitalController::reviews/$1');
+        // 병원 찜 토글 — 로그인 필요 (이슈 #99)
         $routes->post('hospitals/(:num)/like',       'HospitalController::like/$1');
 
         // 리포트
