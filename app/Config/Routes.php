@@ -196,16 +196,20 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
     $routes->post('logs',     'SystemController::logs');
     $routes->get('health',    'SystemController::health');
 
-    // 이하 jwt_auth 필터 적용
-    $routes->group('', ['filter' => 'jwt_auth'], static function (RouteCollection $routes): void {
-
-        // 이벤트(캠페인) — 소비자 조회 전용 + 찜 토글 (이슈 #98)
-        // 주의: 정적 경로(categories/main/recommend)를 (:num) 보다 먼저 선언
+    // 이벤트(캠페인) 조회 — 비로그인 열람 허용 (선택적 인증)
+    // 로그인 시 is_liked 등 부가 정보 제공. 주의: 정적 경로를 (:num) 보다 먼저 선언
+    $routes->group('', ['filter' => 'jwt_optional'], static function (RouteCollection $routes): void {
         $routes->get('campaigns/categories', 'CampaignController::categories');
         $routes->get('campaigns/main',       'CampaignController::main');
         $routes->get('campaigns/recommend',  'CampaignController::recommend');
         $routes->get('campaigns',            'CampaignController::index');
         $routes->get('campaigns/(:num)',     'CampaignController::show/$1');
+    });
+
+    // 이하 jwt_auth 필터 적용 (로그인 필수)
+    $routes->group('', ['filter' => 'jwt_auth'], static function (RouteCollection $routes): void {
+
+        // 이벤트 찜 토글 — 로그인 필요 (이슈 #98)
         $routes->post('campaigns/(:num)/like', 'CampaignController::like/$1');
 
         // 상담 신청 (이슈 #100)
