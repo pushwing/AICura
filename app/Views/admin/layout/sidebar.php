@@ -23,6 +23,16 @@ $nav = [
         'icon'  => '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 21h18M9 21V7l6-4v18M9 11h6M9 15h6"/></svg>',
     ],
     [
+        'label' => '병원 관리',
+        'href'  => '/admin/hospitals',
+        'icon'  => '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3M9 9v.01M9 12v.01M9 15v.01"/></svg>',
+    ],
+    [
+        'label' => '진료과 관리',
+        'href'  => '/admin/departments',
+        'icon'  => '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M12 2v20M2 12h20" /><circle cx="12" cy="12" r="9"/></svg>',
+    ],
+    [
         'label' => '캠페인 관리',
         'href'  => '/admin/campaigns',
         'icon'  => '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>',

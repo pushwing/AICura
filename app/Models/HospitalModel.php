@@ -212,6 +212,18 @@ class HospitalModel extends Model
     }
 
     /**
+     * 소비자 캐시(목록·상세) 일괄 무효화.
+     *
+     * 병원 쓰기는 모델 콜백(clearActiveListCache)이 처리하지만, 진료과 매핑 변경처럼
+     * hospitals 테이블을 직접 건드리지 않는 변경은 이 메서드로 명시적으로 무효화한다.
+     */
+    public function invalidateConsumerCache(): void
+    {
+        cache()->delete('hospitals_active_list');
+        cache()->delete(self::CONSUMER_CACHE_VERSION_KEY);
+    }
+
+    /**
      * 활성 병원 존재 여부 — 찜·하위 리소스 접근 전 검증용.
      */
     public function isVisible(int $id): bool

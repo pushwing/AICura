@@ -115,6 +115,20 @@ $routes->group('admin', static function (RouteCollection $routes): void {
         $routes->get('users/(:num)/events',   'Admin\UserController::events/$1');       // 신청 이벤트 더보기(JSON)
         $routes->get('users/(:num)/reviews',  'Admin\UserController::reviews/$1');      // 작성 후기 더보기(JSON)
 
+        // 병원 관리 (이슈 #113)
+        $routes->get('hospitals',                'Admin\HospitalController::index');
+        $routes->get('hospitals/new',            'Admin\HospitalController::newForm');
+        $routes->post('hospitals',               'Admin\HospitalController::create');
+        $routes->get('hospitals/(:num)/edit',    'Admin\HospitalController::edit/$1');
+        $routes->post('hospitals/(:num)',        'Admin\HospitalController::update/$1');
+        $routes->post('hospitals/(:num)/delete', 'Admin\HospitalController::delete/$1');
+
+        // 진료과 마스터 관리 (이슈 #113)
+        $routes->get('departments',                'Admin\DepartmentController::index');
+        $routes->post('departments',               'Admin\DepartmentController::create');
+        $routes->post('departments/(:num)',        'Admin\DepartmentController::update/$1');
+        $routes->post('departments/(:num)/delete', 'Admin\DepartmentController::delete/$1');
+
         // 설정 (이슈 #63) — 내 계정(프로필·비밀번호) + 시스템 설정
         $routes->get('settings',           'Admin\SettingController::index');
         $routes->post('settings/profile',  'Admin\SettingController::updateProfile');
