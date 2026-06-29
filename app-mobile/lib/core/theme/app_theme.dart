@@ -19,7 +19,7 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: scheme,
       scaffoldBackgroundColor: AppColors.surface,
-      // Pretendard 번들 시 fontFamily: 'Pretendard' 로 교체 (현재 시스템 폰트)
+      fontFamily: 'Pretendard',
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.white,
         foregroundColor: AppColors.ink,
