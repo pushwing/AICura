@@ -137,11 +137,12 @@ class HospitalModel extends Model
     }
 
     /**
-     * 외부 앱 병원 목록 — 활성 병원만, 이름·지역(주소) 필터, 별점 요약 조인, 페이징.
+     * 외부 앱 병원 목록 — 활성 병원만, 이름·지역(주소)·진료과 필터, 별점 요약 조인, 페이징.
      *
-     * 주의: hospitals 에는 진료과(department) 컬럼이 없어 지역은 address LIKE 로 처리한다.
+     * 지역은 address LIKE, 진료과는 department_hospital 피벗 조인(코드 일치)으로 처리한다.
+     * 단일 진료과 코드로만 필터링하므로 INNER JOIN 시 병원 행 중복은 발생하지 않는다.
      *
-     * @param array<string, mixed> $params keyword·region·type·page·limit
+     * @param array<string, mixed> $params keyword·region·type·department·page·limit
      * @return array{list: array<int, array<string, mixed>>, total: int}
      */
     public function getConsumerList(array $params): array
@@ -165,6 +166,12 @@ class HospitalModel extends Model
         }
         if (!empty($params['type'])) {
             $builder->where('h.type', (int) $params['type']);
+        }
+        if (!empty($params['department'])) {
+            $builder->join('department_hospital dh', 'dh.hospital_id = h.id', 'inner')
+                ->join('departments d', 'd.id = dh.department_id', 'inner')
+                ->where('d.code', (string) $params['department'])
+                ->where('d.is_active', 1);
         }
 
         $total = (clone $builder)->countAllResults(false);

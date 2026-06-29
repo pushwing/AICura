@@ -17,6 +17,7 @@ class SampleDataSeeder extends Seeder
         $now = date('Y-m-d H:i:s');
 
         $this->insertHospitals($now);
+        $this->call(DepartmentSeeder::class);
         $links = $this->insertUsers($now);
         $this->insertAdvertisers($now, $links);
         $this->insertEventCategories($now);

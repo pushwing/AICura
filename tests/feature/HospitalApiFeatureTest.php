@@ -54,6 +54,13 @@ final class HospitalApiFeatureTest extends CIUnitTestCase
         $this->h2        = $this->insertHospital('부산피부과', '부산 해운대구', 'active');
         $this->hInactive = $this->insertHospital('폐업의원', '서울 종로구', 'inactive');
 
+        // 진료과 마스터 + 매핑: h1 = 성형외과·피부과(다진료과), h2 = 피부과
+        $dPlastic = $this->insertDepartment('plastic_surgery', '성형외과');
+        $dDerma   = $this->insertDepartment('dermatology', '피부과');
+        $this->mapDepartment($this->h1, $dPlastic);
+        $this->mapDepartment($this->h1, $dDerma);
+        $this->mapDepartment($this->h2, $dDerma);
+
         // h1 별점 요약 (board_summaries type=2)
         $db->table('board_summaries')->insert([
             'type' => 2, 'target_id' => $this->h1, 'rate_sum' => 4.5, 'rate1' => 4.0, 'rate2' => 5.0, 'rate3' => 4.5,
@@ -83,6 +90,25 @@ final class HospitalApiFeatureTest extends CIUnitTestCase
         ]);
 
         return (int) $db->insertID();
+    }
+
+    private function insertDepartment(string $code, string $name): int
+    {
+        $db  = db_connect();
+        $now = date('Y-m-d H:i:s');
+        $db->table('departments')->insert([
+            'code' => $code, 'name' => $name, 'sort' => 0, 'is_active' => 1,
+            'created_at' => $now, 'updated_at' => $now,
+        ]);
+
+        return (int) $db->insertID();
+    }
+
+    private function mapDepartment(int $hospitalId, int $departmentId): void
+    {
+        db_connect()->table('department_hospital')->insert([
+            'hospital_id' => $hospitalId, 'department_id' => $departmentId,
+        ]);
     }
 
     private function insertCampaign(int $hospitalId, string $title): int
@@ -143,6 +169,32 @@ final class HospitalApiFeatureTest extends CIUnitTestCase
         $this->assertSame($this->h2, $body['data'][0]['id']);
     }
 
+    /** [H8] 진료과 필터 + 응답 departments 배열 */
+    public function testListFilterByDepartment(): void
+    {
+        // 성형외과 → h1 만 (다진료과 병원도 단일 코드로 매칭, 행 중복 없음)
+        $body = $this->authGet('api/v1/hospitals?filter[department]=plastic_surgery');
+        $this->assertSame(1, $body['meta']['total']);
+        $this->assertSame($this->h1, $body['data'][0]['id']);
+
+        // 피부과 → h1·h2 둘 다
+        $body = $this->authGet('api/v1/hospitals?filter[department]=dermatology');
+        $this->assertSame(2, $body['meta']['total']);
+
+        // 응답에 병원별 진료과 배열 포함 (h1 = 2개)
+        $byId = [];
+        foreach ($body['data'] as $h) {
+            $byId[$h['id']] = $h;
+        }
+        $codes = array_column($byId[$this->h1]['departments'], 'code');
+        sort($codes);
+        $this->assertSame(['dermatology', 'plastic_surgery'], $codes);
+
+        // 미존재 코드 → 빈 결과
+        $body = $this->authGet('api/v1/hospitals?filter[department]=unknown_code');
+        $this->assertSame(0, $body['meta']['total']);
+    }
+
     /** [H3] 상세 */
     public function testDetail(): void
     {
@@ -150,6 +202,7 @@ final class HospitalApiFeatureTest extends CIUnitTestCase
         $this->assertSame('강남성형외과', $body['data']['name']);
         $this->assertEqualsWithDelta(4.5, $body['data']['review_summary']['rating'], 0.001);
         $this->assertSame(1, $body['data']['review_summary']['count']); // 공개 후기 1건
+        $this->assertCount(2, $body['data']['departments']); // 성형외과·피부과
 
         // 비활성 404
         $this->withHeaders(['Authorization' => 'Bearer ' . $this->token])
