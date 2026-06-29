@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/network/api_exception.dart';
 import '../auth/login_screen.dart';
+import '../booking/booking_repository.dart';
 import '../events/event_detail_screen.dart';
 import '../events/event_repository.dart';
 import '../events/models/event.dart';
@@ -97,6 +98,18 @@ class _HospitalDetailScreenState extends State<HospitalDetailScreen> {
     }
   }
 
+  /// 예약하기 — 로그인 필요. 로그인 후 예약 폼(바텀시트) 노출.
+  Future<void> _book() async {
+    final h = _hospital;
+    if (h == null) return;
+    if (!await requireLogin(context) || !mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _BookingSheet(hospital: h),
+    );
+  }
+
   void _snack(String msg) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
@@ -119,6 +132,17 @@ class _HospitalDetailScreenState extends State<HospitalDetailScreen> {
         ],
       ),
       body: _buildBody(),
+      bottomNavigationBar: _hospital == null
+          ? null
+          : SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: FilledButton(
+                  onPressed: _book,
+                  child: const Text('예약하기'),
+                ),
+              ),
+            ),
     );
   }
 
@@ -298,6 +322,108 @@ class _ReviewTile extends StatelessWidget {
                 maxLines: 3, overflow: TextOverflow.ellipsis,),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// 병원 예약 입력 시트.
+class _BookingSheet extends StatefulWidget {
+  const _BookingSheet({required this.hospital});
+
+  final Hospital hospital;
+
+  @override
+  State<_BookingSheet> createState() => _BookingSheetState();
+}
+
+class _BookingSheetState extends State<_BookingSheet> {
+  final _formKey = GlobalKey<FormState>();
+  final _name = TextEditingController();
+  final _phone = TextEditingController();
+  bool _busy = false;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _phone.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _busy = true);
+    try {
+      await context.read<BookingRepository>().create(
+            hospitalId: widget.hospital.id,
+            name: _name.text.trim(),
+            phone: _phone.text.trim(),
+          );
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('예약이 접수되었습니다')),
+      );
+    } on ApiException catch (e) {
+      if (mounted) {
+        setState(() => _busy = false);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16, 16, 16, bottomInset + 16),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              '${widget.hospital.name} 예약 신청',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _name,
+              decoration: const InputDecoration(labelText: '이름 *'),
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? '이름을 입력해주세요' : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _phone,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(labelText: '연락처 *'),
+              validator: (v) =>
+                  (v == null || v.trim().length < 8) ? '연락처를 확인해주세요' : null,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '예약 접수 후 병원에서 일정 확정을 위해 연락드립니다.',
+              style: TextStyle(color: Colors.black.withValues(alpha: 0.5), fontSize: 12),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: _busy ? null : _submit,
+              child: _busy
+                  ? const SizedBox(
+                      height: 22,
+                      width: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('예약 접수'),
+            ),
+          ],
+        ),
       ),
     );
   }

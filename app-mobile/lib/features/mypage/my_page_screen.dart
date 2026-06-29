@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../auth/auth_provider.dart';
 import '../auth/login_screen.dart';
+import '../booking/models/booking.dart';
 import '../events/event_detail_screen.dart';
+import '../hospital/hospital_detail_screen.dart';
+import '../system/settings_provider.dart';
 import 'models/call_request_item.dart';
 import 'models/like_item.dart';
 import 'my_page_provider.dart';
@@ -90,9 +94,65 @@ class _MyPageScreenState extends State<MyPageScreen> {
             const _EmptyHint('상담 신청 내역이 없습니다')
           else
             ...provider.callRequests.map((e) => _CallRequestTile(item: e)),
+          const Divider(height: 24),
+          _SectionTitle('내 예약 ${provider.bookings.length}'),
+          if (provider.bookings.isEmpty)
+            const _EmptyHint('예약 내역이 없습니다')
+          else
+            ...provider.bookings.map((e) => _BookingTile(item: e)),
+          const Divider(height: 24),
+          const _AppInfoLinks(),
           const SizedBox(height: 24),
         ],
       ),
+    );
+  }
+}
+
+/// 약관·개인정보 등 앱 정보 링크 (설정에서 URL 로드).
+class _AppInfoLinks extends StatelessWidget {
+  const _AppInfoLinks();
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.watch<SettingsProvider>().settings;
+    return Column(
+      children: [
+        _LinkTile(label: '이용약관', url: s.termsUrl),
+        _LinkTile(label: '개인정보 처리방침', url: s.privacyUrl),
+      ],
+    );
+  }
+}
+
+class _LinkTile extends StatelessWidget {
+  const _LinkTile({required this.label, required this.url});
+
+  final String label;
+  final String url;
+
+  Future<void> _open(BuildContext context) async {
+    if (url.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('준비 중입니다')));
+      return;
+    }
+    final uri = Uri.tryParse(url);
+    if (uri == null ||
+        !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('링크를 열 수 없습니다')));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      title: Text(label),
+      trailing: const Icon(Icons.open_in_new, size: 18),
+      onTap: () => _open(context),
     );
   }
 }
@@ -119,6 +179,8 @@ class _LoginPrompt extends StatelessWidget {
               onPressed: () => requireLogin(context),
               child: const Text('로그인'),
             ),
+            const SizedBox(height: 24),
+            const _AppInfoLinks(),
           ],
         ),
       ),
@@ -253,6 +315,32 @@ class _LikeTile extends StatelessWidget {
         height: size,
         color: const Color(0xFFEDEFEF),
         child: const Icon(Icons.broken_image_outlined, color: Colors.black26),
+      ),
+    );
+  }
+}
+
+class _BookingTile extends StatelessWidget {
+  const _BookingTile({required this.item});
+
+  final Booking item;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      title: Text(item.hospitalName,
+          maxLines: 1, overflow: TextOverflow.ellipsis,),
+      subtitle: Text(item.bookDate ?? item.createdAt ?? ''),
+      trailing: Chip(
+        label: Text(item.label),
+        backgroundColor: const Color(0xFFEAF5F0),
+        labelStyle: const TextStyle(color: Color(0xFF0F6E56), fontSize: 12),
+        visualDensity: VisualDensity.compact,
+      ),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => HospitalDetailScreen(hospitalId: item.hospitalId),
+        ),
       ),
     );
   }

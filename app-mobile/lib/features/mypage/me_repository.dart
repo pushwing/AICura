@@ -1,4 +1,5 @@
 import '../../core/network/api_client.dart';
+import '../booking/models/booking.dart';
 import 'models/call_request_item.dart';
 import 'models/like_item.dart';
 import 'models/user_profile.dart';
@@ -29,6 +30,14 @@ class MeRepository {
         await _api.get('/me/call-requests', query: {'per_page': perPage});
     return res.dataAsList
         .map((e) => CallRequestItem.fromJson((e as Map).cast<String, dynamic>()))
+        .toList();
+  }
+
+  /// 내 예약 내역
+  Future<List<Booking>> bookings({int perPage = 20}) async {
+    final res = await _api.get('/me/bookings', query: {'per_page': perPage});
+    return res.dataAsList
+        .map((e) => Booking.fromJson((e as Map).cast<String, dynamic>()))
         .toList();
   }
 }

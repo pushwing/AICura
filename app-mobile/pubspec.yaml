@@ -19,6 +19,8 @@ dependencies:
   intl: ^0.19.0
   # 이벤트 상세 HTML 리치 렌더링
   flutter_html: ^3.0.0
+  # 약관·개인정보 외부 링크 열기
+  url_launcher: ^6.3.0
 
 dev_dependencies:
   flutter_test:
