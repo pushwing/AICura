@@ -45,7 +45,8 @@ class _BoardDetailScreenState extends State<BoardDetailScreen> {
       _error = null;
     });
     try {
-      final detail = await context.read<BoardRepository>().detail(widget.boardId);
+      final detail =
+          await context.read<BoardRepository>().detail(widget.boardId);
       if (!mounted) return;
       setState(() {
         _board = detail.board;
@@ -70,9 +71,8 @@ class _BoardDetailScreenState extends State<BoardDetailScreen> {
       final liked = await context.read<BoardRepository>().toggleLike(b.id);
       if (mounted) {
         setState(() {
-          final delta = liked && !b.isLiked
-              ? 1
-              : (!liked && b.isLiked ? -1 : 0);
+          final delta =
+              liked && !b.isLiked ? 1 : (!liked && b.isLiked ? -1 : 0);
           _board = b.copyWith(isLiked: liked, likeCount: b.likeCount + delta);
         });
       }
@@ -88,8 +88,9 @@ class _BoardDetailScreenState extends State<BoardDetailScreen> {
     if (!await requireLogin(context) || !mounted) return;
     setState(() => _sending = true);
     try {
-      final created =
-          await context.read<BoardRepository>().addComment(widget.boardId, text);
+      final created = await context
+          .read<BoardRepository>()
+          .addComment(widget.boardId, text);
       if (!mounted) return;
       setState(() {
         _comments = [..._comments, created];
@@ -147,7 +148,9 @@ class _BoardDetailScreenState extends State<BoardDetailScreen> {
               child: Text(
                 b.userName.isNotEmpty ? b.userName.characters.first : '?',
                 style: const TextStyle(
-                    fontWeight: FontWeight.w700, color: AppColors.accent,),
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.accent,
+                ),
               ),
             ),
             const SizedBox(width: 10),
@@ -155,13 +158,21 @@ class _BoardDetailScreenState extends State<BoardDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(b.userName,
-                      style: const TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w700,),),
+                  Text(
+                    b.userName,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                   if (b.createdAt != null)
-                    Text(b.createdAt!,
-                        style: const TextStyle(
-                            fontSize: 12, color: AppColors.muted,),),
+                    Text(
+                      b.createdAt!,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.muted,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -170,9 +181,13 @@ class _BoardDetailScreenState extends State<BoardDetailScreen> {
                 children: [
                   const Icon(Icons.star, size: 18, color: AppColors.star),
                   const SizedBox(width: 3),
-                  Text(b.rating.toStringAsFixed(1),
-                      style: const TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w700,),),
+                  Text(
+                    b.rating.toStringAsFixed(1),
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ],
               ),
           ],
@@ -192,19 +207,25 @@ class _BoardDetailScreenState extends State<BoardDetailScreen> {
                 const SizedBox(width: 10),
               ],
               Expanded(
-                child: Text(b.subject,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w600,),),
+                child: Text(
+                  b.subject,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ],
           ),
         ),
         const SizedBox(height: 18),
         // 본문 풀텍스트
-        Text(b.contents ?? '',
-            style: const TextStyle(fontSize: 15, height: 1.8),),
+        Text(
+          b.contents ?? '',
+          style: const TextStyle(fontSize: 15, height: 1.8),
+        ),
         const SizedBox(height: 22),
         // 도움돼요 버튼 (= 좋아요 토글)
         OutlinedButton.icon(
@@ -213,7 +234,8 @@ class _BoardDetailScreenState extends State<BoardDetailScreen> {
             minimumSize: const Size.fromHeight(48),
             foregroundColor: b.isLiked ? AppColors.accent : AppColors.ink2,
             side: BorderSide(
-                color: b.isLiked ? AppColors.accent : AppColors.lineStrong,),
+              color: b.isLiked ? AppColors.accent : AppColors.lineStrong,
+            ),
           ),
           icon: Icon(
             b.isLiked ? Icons.favorite : Icons.favorite_border,
@@ -223,14 +245,18 @@ class _BoardDetailScreenState extends State<BoardDetailScreen> {
           label: Text('이 후기가 도움돼요 · ${b.likeCount}'),
         ),
         const Divider(height: 36),
-        Text('댓글 ${_comments.length}',
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),),
+        Text(
+          '댓글 ${_comments.length}',
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+        ),
         const SizedBox(height: 8),
         if (_comments.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
-            child: Text('첫 댓글을 남겨보세요',
-                style: TextStyle(color: AppColors.muted),),
+            child: Text(
+              '첫 댓글을 남겨보세요',
+              style: TextStyle(color: AppColors.muted),
+            ),
           )
         else
           ..._comments.map((c) => _CommentTile(comment: c)),
@@ -291,11 +317,14 @@ class _Tag extends StatelessWidget {
         color: AppColors.accentTint,
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Text(text,
-          style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: AppColors.accent,),),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: AppColors.accent,
+        ),
+      ),
     );
   }
 }
@@ -314,11 +343,15 @@ class _CommentTile extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(comment.userName,
-                  style: const TextStyle(fontWeight: FontWeight.w600),),
+              Text(
+                comment.userName,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
               const Spacer(),
-              Text(comment.createdAt ?? '',
-                  style: const TextStyle(color: Colors.black38, fontSize: 12),),
+              Text(
+                comment.createdAt ?? '',
+                style: const TextStyle(color: Colors.black38, fontSize: 12),
+              ),
             ],
           ),
           const SizedBox(height: 2),

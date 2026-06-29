@@ -6,7 +6,8 @@ import 'models/hospital_review.dart';
 
 /// 병원 목록 + 페이지네이션.
 class HospitalPage {
-  HospitalPage({required this.items, required this.page, required this.lastPage});
+  HospitalPage(
+      {required this.items, required this.page, required this.lastPage});
 
   final List<Hospital> items;
   final int page;
@@ -26,11 +27,14 @@ class HospitalRepository {
     int page = 1,
     int perPage = AppConfig.defaultPerPage,
   }) async {
-    final res = await _api.get('/hospitals', query: {
-      'page': page,
-      'per_page': perPage,
-      if (keyword != null && keyword.isNotEmpty) 'keyword': keyword,
-    },);
+    final res = await _api.get(
+      '/hospitals',
+      query: {
+        'page': page,
+        'per_page': perPage,
+        if (keyword != null && keyword.isNotEmpty) 'keyword': keyword,
+      },
+    );
     final meta = res.meta ?? const {};
     return HospitalPage(
       items: res.dataAsList

@@ -29,7 +29,8 @@ class MeRepository {
     final res =
         await _api.get('/me/call-requests', query: {'per_page': perPage});
     return res.dataAsList
-        .map((e) => CallRequestItem.fromJson((e as Map).cast<String, dynamic>()))
+        .map(
+            (e) => CallRequestItem.fromJson((e as Map).cast<String, dynamic>()))
         .toList();
   }
 

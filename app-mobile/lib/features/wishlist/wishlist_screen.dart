@@ -81,8 +81,10 @@ class _WishlistScreenState extends State<WishlistScreen> {
         title: Row(
           children: [
             const Text('찜 '),
-            Text('${_items.length}',
-                style: const TextStyle(color: AppColors.accent),),
+            Text(
+              '${_items.length}',
+              style: const TextStyle(color: AppColors.accent),
+            ),
           ],
         ),
       ),
@@ -152,9 +154,13 @@ class _WishTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(item.hospitalName,
-                      style: const TextStyle(
-                          fontSize: 12.5, color: AppColors.muted,),),
+                  Text(
+                    item.hospitalName,
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      color: AppColors.muted,
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     item.title,
@@ -188,14 +194,19 @@ class _EmptyWish extends StatelessWidget {
         children: [
           Icon(Icons.favorite_border, size: 64, color: AppColors.faint),
           SizedBox(height: 14),
-          Text('아직 찜한 이벤트가 없어요',
-              style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.ink2,),),
+          Text(
+            '아직 찜한 이벤트가 없어요',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: AppColors.ink2,
+            ),
+          ),
           SizedBox(height: 6),
-          Text('마음에 드는 시술을 담아보세요',
-              style: TextStyle(color: AppColors.muted),),
+          Text(
+            '마음에 드는 시술을 담아보세요',
+            style: TextStyle(color: AppColors.muted),
+          ),
         ],
       ),
     );
@@ -215,8 +226,10 @@ class _LoginPrompt extends StatelessWidget {
           children: [
             const Icon(Icons.favorite_border, size: 64, color: AppColors.faint),
             const SizedBox(height: 12),
-            const Text('로그인하고 찜 목록을 확인하세요',
-                style: TextStyle(color: AppColors.muted),),
+            const Text(
+              '로그인하고 찜 목록을 확인하세요',
+              style: TextStyle(color: AppColors.muted),
+            ),
             const SizedBox(height: 16),
             FilledButton(
               onPressed: () => requireLogin(context),

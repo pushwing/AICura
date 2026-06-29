@@ -32,10 +32,13 @@ class BoardRepository {
     int page = 1,
     int perPage = AppConfig.defaultPerPage,
   }) async {
-    final res = await _api.get('/boards', query: {
-      'page': page,
-      'per_page': perPage,
-    },);
+    final res = await _api.get(
+      '/boards',
+      query: {
+        'page': page,
+        'per_page': perPage,
+      },
+    );
     final meta = res.meta ?? const {};
     return BoardPage(
       items: res.dataAsList
@@ -50,7 +53,8 @@ class BoardRepository {
     final res = await _api.get('/boards/$id');
     final data = res.dataAsMap;
     final comments = (data['comments'] as List?)
-            ?.map((e) => BoardComment.fromJson((e as Map).cast<String, dynamic>()))
+            ?.map((e) =>
+                BoardComment.fromJson((e as Map).cast<String, dynamic>()))
             .toList() ??
         <BoardComment>[];
     return BoardDetail(board: Board.fromJson(data), comments: comments);
@@ -77,13 +81,16 @@ class BoardRepository {
     required String contents,
     double? rating,
   }) async {
-    final res = await _api.post('/boards', body: {
-      'type': type,
-      'target_id': targetId,
-      'subject': subject,
-      'contents': contents,
-      if (rating != null) 'rating': rating,
-    },);
+    final res = await _api.post(
+      '/boards',
+      body: {
+        'type': type,
+        'target_id': targetId,
+        'subject': subject,
+        'contents': contents,
+        if (rating != null) 'rating': rating,
+      },
+    );
     return Board.fromJson(res.dataAsMap);
   }
 }

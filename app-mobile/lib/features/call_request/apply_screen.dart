@@ -126,22 +126,31 @@ class _ApplyScreenState extends State<ApplyScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('${e.hospitalName} · ${e.region}',
-                          style: const TextStyle(
-                              fontSize: 12, color: AppColors.muted,),),
+                      Text(
+                        '${e.hospitalName} · ${e.region}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.muted,
+                        ),
+                      ),
                       const SizedBox(height: 2),
-                      Text(e.adTitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.w700,),),
+                      Text(
+                        e.adTitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                       const SizedBox(height: 2),
                       Text(
                         '${rate != null ? '$rate% ' : ''}${_won.format(e.discountCost)}원',
                         style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.accent,),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.accent,
+                        ),
                       ),
                     ],
                   ),
@@ -208,7 +217,9 @@ class _ApplyScreenState extends State<ApplyScreen> {
                     height: 22,
                     width: 22,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white,),
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
                   )
                 : const Text('신청 완료하기'),
           ),
@@ -225,7 +236,10 @@ class _Label extends StatelessWidget {
   Widget build(BuildContext context) => Text(
         text,
         style: const TextStyle(
-            fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.ink,),
+          fontSize: 15,
+          fontWeight: FontWeight.w700,
+          color: AppColors.ink,
+        ),
       );
 }
 

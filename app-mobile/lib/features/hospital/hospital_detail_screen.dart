@@ -75,8 +75,7 @@ class _HospitalDetailScreenState extends State<HospitalDetailScreen> {
     if (h == null) return;
     if (!await requireLogin(context) || !mounted) return;
     try {
-      final liked =
-          await context.read<HospitalRepository>().toggleLike(h.id);
+      final liked = await context.read<HospitalRepository>().toggleLike(h.id);
       if (mounted) setState(() => _hospital = h.copyWith(isLiked: liked));
     } on ApiException catch (e) {
       _snack(e.message);
@@ -92,7 +91,9 @@ class _HospitalDetailScreenState extends State<HospitalDetailScreen> {
     setState(() => _events[idx] = before.copyWith(isLiked: !before.isLiked));
     try {
       final liked = await context.read<EventRepository>().toggleLike(event.id);
-      if (mounted) setState(() => _events[idx] = before.copyWith(isLiked: liked));
+      if (mounted) {
+        setState(() => _events[idx] = before.copyWith(isLiked: liked));
+      }
     } on ApiException {
       if (mounted) setState(() => _events[idx] = before);
     }
@@ -212,15 +213,18 @@ class _Header extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(hospital.name,
-              style:
-                  const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),),
+          Text(
+            hospital.name,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 6),
           Row(
             children: [
               if (hospital.typeLabel != null)
-                Text(hospital.typeLabel!,
-                    style: const TextStyle(color: Colors.black54),),
+                Text(
+                  hospital.typeLabel!,
+                  style: const TextStyle(color: Colors.black54),
+                ),
               if (hospital.rating > 0) ...[
                 const SizedBox(width: 8),
                 const Icon(Icons.star, size: 16, color: Colors.amber),
@@ -236,8 +240,11 @@ class _Header extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                const Icon(Icons.place_outlined,
-                    size: 18, color: Colors.black45,),
+                const Icon(
+                  Icons.place_outlined,
+                  size: 18,
+                  color: Colors.black45,
+                ),
                 const SizedBox(width: 6),
                 Expanded(child: Text(hospital.address!)),
               ],
@@ -247,7 +254,8 @@ class _Header extends StatelessWidget {
             const SizedBox(height: 6),
             Row(
               children: [
-                const Icon(Icons.call_outlined, size: 18, color: Colors.black45),
+                const Icon(Icons.call_outlined,
+                    size: 18, color: Colors.black45),
                 const SizedBox(width: 6),
                 Text(hospital.phone!),
               ],
@@ -268,8 +276,10 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      child: Text(text,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),),
+      child: Text(
+        text,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+      ),
     );
   }
 }
@@ -302,24 +312,33 @@ class _ReviewTile extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(review.userName,
-                  style: const TextStyle(fontWeight: FontWeight.w600),),
+              Text(
+                review.userName,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
               const Spacer(),
               const Icon(Icons.star, size: 14, color: Colors.amber),
               const SizedBox(width: 2),
-              Text(review.rating.toStringAsFixed(1),
-                  style: const TextStyle(fontSize: 12),),
+              Text(
+                review.rating.toStringAsFixed(1),
+                style: const TextStyle(fontSize: 12),
+              ),
             ],
           ),
           if (review.subject.isNotEmpty) ...[
             const SizedBox(height: 4),
-            Text(review.subject,
-                style: const TextStyle(fontWeight: FontWeight.w500),),
+            Text(
+              review.subject,
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
           ],
           if (review.contents.isNotEmpty) ...[
             const SizedBox(height: 2),
-            Text(review.contents,
-                maxLines: 3, overflow: TextOverflow.ellipsis,),
+            Text(
+              review.contents,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
           ],
         ],
       ),
@@ -406,7 +425,8 @@ class _BookingSheetState extends State<_BookingSheet> {
             const SizedBox(height: 8),
             Text(
               '예약 접수 후 병원에서 일정 확정을 위해 연락드립니다.',
-              style: TextStyle(color: Colors.black.withValues(alpha: 0.5), fontSize: 12),
+              style: TextStyle(
+                  color: Colors.black.withValues(alpha: 0.5), fontSize: 12),
             ),
             const SizedBox(height: 16),
             FilledButton(

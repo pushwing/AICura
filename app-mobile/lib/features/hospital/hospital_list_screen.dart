@@ -96,20 +96,30 @@ class _HospitalTile extends StatelessWidget {
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       leading: const CircleAvatar(
         backgroundColor: Color(0xFFFEE6EE),
-        child: Icon(Icons.local_hospital_outlined,
-            color: Color(0xFFFB2D6F),),
+        child: Icon(
+          Icons.local_hospital_outlined,
+          color: Color(0xFFFB2D6F),
+        ),
       ),
-      title: Text(hospital.name,
-          maxLines: 1, overflow: TextOverflow.ellipsis,),
+      title: Text(
+        hospital.name,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (hospital.typeLabel != null)
-            Text(hospital.typeLabel!,
-                style: const TextStyle(fontSize: 12, color: Colors.black54),),
+            Text(
+              hospital.typeLabel!,
+              style: const TextStyle(fontSize: 12, color: Colors.black54),
+            ),
           if (hospital.address != null && hospital.address!.isNotEmpty)
-            Text(hospital.address!,
-                maxLines: 1, overflow: TextOverflow.ellipsis,),
+            Text(
+              hospital.address!,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
         ],
       ),
       trailing: hospital.rating > 0

@@ -13,11 +13,14 @@ class BookingRepository {
     String? name,
     String? phone,
   }) async {
-    final res = await _api.post('/bookings', body: {
-      'hospital_id': hospitalId,
-      if (name != null && name.isNotEmpty) 'name': name,
-      if (phone != null && phone.isNotEmpty) 'phone': phone,
-    },);
+    final res = await _api.post(
+      '/bookings',
+      body: {
+        'hospital_id': hospitalId,
+        if (name != null && name.isNotEmpty) 'name': name,
+        if (phone != null && phone.isNotEmpty) 'phone': phone,
+      },
+    );
     return Booking.fromJson(res.dataAsMap);
   }
 }

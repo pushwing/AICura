@@ -42,8 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onScroll() {
     // 하단 300px 근처에서 다음 페이지 적재
-    if (_scroll.position.pixels >=
-        _scroll.position.maxScrollExtent - 300) {
+    if (_scroll.position.pixels >= _scroll.position.maxScrollExtent - 300) {
       context.read<EventProvider>().loadMore();
     }
   }
@@ -122,8 +121,8 @@ class _HomeScreenState extends State<HomeScreen> {
           else
             SliverList.separated(
               itemCount: provider.items.length + (provider.hasMore ? 1 : 0),
-              separatorBuilder: (_, __) =>
-                  const SizedBox(height: 7, child: ColoredBox(color: AppColors.band)),
+              separatorBuilder: (_, __) => const SizedBox(
+                  height: 7, child: ColoredBox(color: AppColors.band)),
               itemBuilder: (context, index) {
                 if (index >= provider.items.length) {
                   return const Padding(
@@ -186,7 +185,8 @@ class _SearchField extends StatelessWidget {
           fillColor: AppColors.field,
           hintText: '시술, 병원, 이벤트를 검색해 보세요',
           hintStyle: const TextStyle(color: AppColors.muted, fontSize: 14),
-          prefixIcon: const Icon(Icons.search, color: AppColors.muted, size: 22),
+          prefixIcon:
+              const Icon(Icons.search, color: AppColors.muted, size: 22),
           contentPadding: const EdgeInsets.symmetric(vertical: 12),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(13),
