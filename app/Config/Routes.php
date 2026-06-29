@@ -196,16 +196,32 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
     $routes->post('logs',     'SystemController::logs');
     $routes->get('health',    'SystemController::health');
 
-    // 이하 jwt_auth 필터 적용
-    $routes->group('', ['filter' => 'jwt_auth'], static function (RouteCollection $routes): void {
-
-        // 이벤트(캠페인) — 소비자 조회 전용 + 찜 토글 (이슈 #98)
-        // 주의: 정적 경로(categories/main/recommend)를 (:num) 보다 먼저 선언
+    // 이벤트(캠페인) 조회 — 비로그인 열람 허용 (선택적 인증)
+    // 로그인 시 is_liked 등 부가 정보 제공. 주의: 정적 경로를 (:num) 보다 먼저 선언
+    $routes->group('', ['filter' => 'jwt_optional'], static function (RouteCollection $routes): void {
         $routes->get('campaigns/categories', 'CampaignController::categories');
         $routes->get('campaigns/main',       'CampaignController::main');
         $routes->get('campaigns/recommend',  'CampaignController::recommend');
         $routes->get('campaigns',            'CampaignController::index');
         $routes->get('campaigns/(:num)',     'CampaignController::show/$1');
+
+        // 병원 조회 — 비로그인 열람 허용 (이슈 #99)
+        $routes->get('hospitals',                  'HospitalController::index');
+        $routes->get('hospitals/(:num)',           'HospitalController::show/$1');
+        $routes->get('hospitals/(:num)/campaigns', 'HospitalController::campaigns/$1');
+        $routes->get('hospitals/(:num)/reviews',   'HospitalController::reviews/$1');
+
+        // 후기 커뮤니티 조회 — 비로그인 열람 허용 (이슈 #102)
+        // 주의: (:num)/comments 를 bare (:num) 보다 먼저 선언
+        $routes->get('boards',                 'BoardController::index');
+        $routes->get('boards/(:num)/comments', 'BoardController::comments/$1');
+        $routes->get('boards/(:num)',          'BoardController::show/$1');
+    });
+
+    // 이하 jwt_auth 필터 적용 (로그인 필수)
+    $routes->group('', ['filter' => 'jwt_auth'], static function (RouteCollection $routes): void {
+
+        // 이벤트 찜 토글 — 로그인 필요 (이슈 #98)
         $routes->post('campaigns/(:num)/like', 'CampaignController::like/$1');
 
         // 상담 신청 (이슈 #100)
@@ -213,27 +229,19 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
         $routes->get('call-requests/(:num)',   'CallRequestController::show/$1');
         $routes->delete('call-requests/(:num)', 'CallRequestController::delete/$1');
 
-        // 병원 (이슈 #99)
-        $routes->get('hospitals',                    'HospitalController::index');
-        $routes->get('hospitals/(:num)',             'HospitalController::show/$1');
-        $routes->get('hospitals/(:num)/campaigns',   'HospitalController::campaigns/$1');
-        $routes->get('hospitals/(:num)/reviews',     'HospitalController::reviews/$1');
+        // 병원 찜 토글 — 로그인 필요 (이슈 #99)
         $routes->post('hospitals/(:num)/like',       'HospitalController::like/$1');
 
         // 리포트
         $routes->get('reports/summary',  'ReportController::summary');
         $routes->get('reports/campaigns/(:num)', 'ReportController::campaign/$1');
 
-        // 후기 커뮤니티 (이슈 #102)
-        // 주의: (:num)/comments·like·report 를 bare (:num) 보다 먼저 선언
-        $routes->get('boards',                          'BoardController::index');
+        // 후기 커뮤니티 쓰기·상호작용 — 로그인 필요 (이슈 #102)
         $routes->post('boards',                         'BoardController::create');
-        $routes->get('boards/(:num)/comments',          'BoardController::comments/$1');
         $routes->post('boards/(:num)/comments',         'BoardController::commentCreate/$1');
         $routes->delete('boards/(:num)/comments/(:num)', 'BoardController::commentDelete/$1/$2');
         $routes->post('boards/(:num)/like',             'BoardController::like/$1');
         $routes->post('boards/(:num)/report',           'BoardController::report/$1');
-        $routes->get('boards/(:num)',                   'BoardController::show/$1');
         $routes->patch('boards/(:num)',                 'BoardController::update/$1');
         $routes->delete('boards/(:num)',                'BoardController::delete/$1');
 
