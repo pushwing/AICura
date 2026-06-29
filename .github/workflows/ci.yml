@@ -67,6 +67,12 @@ jobs:
             echo "database.default.DBDriver = MySQLi"
           } >> .env
 
+      - name: writable 디렉토리 준비 (git 미추적 — CI4 WRITEPATH 보장)
+        run: |
+          mkdir -p writable/cache writable/logs writable/logs/raw \
+                   writable/session writable/uploads writable/debugbar
+          chmod -R 777 writable
+
       - name: 정적 분석 (PHPStan)
         run: composer analyse
 
