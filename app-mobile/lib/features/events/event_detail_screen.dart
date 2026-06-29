@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../core/network/api_exception.dart';
 import '../auth/login_screen.dart';
 import '../call_request/call_request_repository.dart';
+import '../hospital/hospital_detail_screen.dart';
 import 'event_repository.dart';
 import 'models/event.dart';
 
@@ -206,9 +207,23 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                   ),
                 ),
               const Divider(height: 32),
-              const Text('병원 정보',
-                  style: TextStyle(fontWeight: FontWeight.bold),),
-              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Text('병원 정보',
+                      style: TextStyle(fontWeight: FontWeight.bold),),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) =>
+                            HospitalDetailScreen(hospitalId: e.hospitalId),
+                      ),
+                    ),
+                    child: const Text('병원 보기'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
               Text(e.hospitalName),
               if (e.hospitalAddress != null && e.hospitalAddress!.isNotEmpty)
                 Padding(
