@@ -77,7 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Text(
-                    'AICura',
+                    '뷰니',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 32,

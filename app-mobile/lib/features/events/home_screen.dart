@@ -53,7 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'AICura',
+          '뷰니',
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w800,
