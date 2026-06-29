@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_html/flutter_html.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -82,19 +83,6 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   void _snack(String msg) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-  }
-
-  /// 상세 설명의 간단한 HTML 태그를 제거해 평문으로 보여준다.
-  /// (리치 렌더링은 후속 증분에서 HTML 위젯으로 대체 예정)
-  String _plainDetail(String? html) {
-    if (html == null) return '';
-    return html
-        .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
-        .replaceAll(RegExp(r'</p>', caseSensitive: false), '\n')
-        .replaceAll(RegExp(r'<[^>]+>'), '')
-        .replaceAll('&nbsp;', ' ')
-        .replaceAll('&amp;', '&')
-        .trim();
   }
 
   @override
@@ -192,11 +180,21 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                 ],
               ),
               const Divider(height: 32),
-              if (_plainDetail(e.adDetailInfo).isNotEmpty) ...[
+              if (e.adDetailInfo != null && e.adDetailInfo!.trim().isNotEmpty) ...[
                 const Text('이벤트 정보',
                     style: TextStyle(fontWeight: FontWeight.bold),),
-                const SizedBox(height: 8),
-                Text(_plainDetail(e.adDetailInfo)),
+                const SizedBox(height: 4),
+                // 저장된 HTML 을 리치 렌더링 (본문 여백 제거로 섹션 정렬)
+                Html(
+                  data: e.adDetailInfo!,
+                  style: {
+                    'body': Style(
+                      margin: Margins.zero,
+                      padding: HtmlPaddings.zero,
+                      fontSize: FontSize(15),
+                    ),
+                  },
+                ),
                 const SizedBox(height: 16),
               ],
               for (final url in e.detailImages)
