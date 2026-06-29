@@ -210,6 +210,12 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
         $routes->get('hospitals/(:num)',           'HospitalController::show/$1');
         $routes->get('hospitals/(:num)/campaigns', 'HospitalController::campaigns/$1');
         $routes->get('hospitals/(:num)/reviews',   'HospitalController::reviews/$1');
+
+        // 후기 커뮤니티 조회 — 비로그인 열람 허용 (이슈 #102)
+        // 주의: (:num)/comments 를 bare (:num) 보다 먼저 선언
+        $routes->get('boards',                 'BoardController::index');
+        $routes->get('boards/(:num)/comments', 'BoardController::comments/$1');
+        $routes->get('boards/(:num)',          'BoardController::show/$1');
     });
 
     // 이하 jwt_auth 필터 적용 (로그인 필수)
@@ -230,16 +236,12 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
         $routes->get('reports/summary',  'ReportController::summary');
         $routes->get('reports/campaigns/(:num)', 'ReportController::campaign/$1');
 
-        // 후기 커뮤니티 (이슈 #102)
-        // 주의: (:num)/comments·like·report 를 bare (:num) 보다 먼저 선언
-        $routes->get('boards',                          'BoardController::index');
+        // 후기 커뮤니티 쓰기·상호작용 — 로그인 필요 (이슈 #102)
         $routes->post('boards',                         'BoardController::create');
-        $routes->get('boards/(:num)/comments',          'BoardController::comments/$1');
         $routes->post('boards/(:num)/comments',         'BoardController::commentCreate/$1');
         $routes->delete('boards/(:num)/comments/(:num)', 'BoardController::commentDelete/$1/$2');
         $routes->post('boards/(:num)/like',             'BoardController::like/$1');
         $routes->post('boards/(:num)/report',           'BoardController::report/$1');
-        $routes->get('boards/(:num)',                   'BoardController::show/$1');
         $routes->patch('boards/(:num)',                 'BoardController::update/$1');
         $routes->delete('boards/(:num)',                'BoardController::delete/$1');
 
