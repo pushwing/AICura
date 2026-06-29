@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../core/network/api_exception.dart';
+import '../booking/models/booking.dart';
 import 'me_repository.dart';
 import 'models/call_request_item.dart';
 import 'models/like_item.dart';
@@ -15,6 +16,7 @@ class MyPageProvider extends ChangeNotifier {
   UserProfile? profile;
   List<LikeItem> likes = [];
   List<CallRequestItem> callRequests = [];
+  List<Booking> bookings = [];
 
   bool _loading = false;
   bool get loading => _loading;
@@ -33,10 +35,12 @@ class MyPageProvider extends ChangeNotifier {
         _repo.profile(),
         _repo.likes(),
         _repo.callRequests(),
+        _repo.bookings(),
       ).wait;
       profile = results.$1;
       likes = results.$2;
       callRequests = results.$3;
+      bookings = results.$4;
       _loaded = true;
     } on ApiException catch (e) {
       _error = e.message;

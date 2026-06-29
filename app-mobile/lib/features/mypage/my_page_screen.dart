@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 
 import '../auth/auth_provider.dart';
 import '../auth/login_screen.dart';
+import '../booking/models/booking.dart';
 import '../events/event_detail_screen.dart';
+import '../hospital/hospital_detail_screen.dart';
 import 'models/call_request_item.dart';
 import 'models/like_item.dart';
 import 'my_page_provider.dart';
@@ -90,6 +92,12 @@ class _MyPageScreenState extends State<MyPageScreen> {
             const _EmptyHint('상담 신청 내역이 없습니다')
           else
             ...provider.callRequests.map((e) => _CallRequestTile(item: e)),
+          const Divider(height: 24),
+          _SectionTitle('내 예약 ${provider.bookings.length}'),
+          if (provider.bookings.isEmpty)
+            const _EmptyHint('예약 내역이 없습니다')
+          else
+            ...provider.bookings.map((e) => _BookingTile(item: e)),
           const SizedBox(height: 24),
         ],
       ),
@@ -253,6 +261,32 @@ class _LikeTile extends StatelessWidget {
         height: size,
         color: const Color(0xFFEDEFEF),
         child: const Icon(Icons.broken_image_outlined, color: Colors.black26),
+      ),
+    );
+  }
+}
+
+class _BookingTile extends StatelessWidget {
+  const _BookingTile({required this.item});
+
+  final Booking item;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      title: Text(item.hospitalName,
+          maxLines: 1, overflow: TextOverflow.ellipsis,),
+      subtitle: Text(item.bookDate ?? item.createdAt ?? ''),
+      trailing: Chip(
+        label: Text(item.label),
+        backgroundColor: const Color(0xFFEAF5F0),
+        labelStyle: const TextStyle(color: Color(0xFF0F6E56), fontSize: 12),
+        visualDensity: VisualDensity.compact,
+      ),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => HospitalDetailScreen(hospitalId: item.hospitalId),
+        ),
       ),
     );
   }
