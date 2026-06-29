@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../core/network/api_exception.dart';
 import '../auth/login_screen.dart';
 import '../call_request/call_request_repository.dart';
+import '../community/board_repository.dart';
 import '../hospital/hospital_detail_screen.dart';
 import 'event_repository.dart';
 import 'models/event.dart';
@@ -78,6 +79,18 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       context: context,
       isScrollControlled: true,
       builder: (_) => _ApplySheet(event: event),
+    );
+  }
+
+  /// 후기 작성 — 로그인 필요. 이 이벤트(type=1) 대상 후기 작성.
+  Future<void> _writeReview() async {
+    final event = _event;
+    if (event == null) return;
+    if (!await requireLogin(context) || !mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _ReviewWriteSheet(event: event),
     );
   }
 
@@ -237,6 +250,12 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                   child: Text(e.hospitalPhone!,
                       style: const TextStyle(color: Colors.black54),),
                 ),
+              const Divider(height: 32),
+              OutlinedButton.icon(
+                onPressed: _writeReview,
+                icon: const Icon(Icons.rate_review_outlined),
+                label: const Text('이 이벤트 후기 작성'),
+              ),
               const SizedBox(height: 80),
             ],
           ),
@@ -401,6 +420,123 @@ class _ApplySheetState extends State<_ApplySheet> {
                       ),
                     )
                   : const Text('신청 접수'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 이벤트 후기 작성 시트 (type=1, target_id=event.id).
+class _ReviewWriteSheet extends StatefulWidget {
+  const _ReviewWriteSheet({required this.event});
+
+  final Event event;
+
+  @override
+  State<_ReviewWriteSheet> createState() => _ReviewWriteSheetState();
+}
+
+class _ReviewWriteSheetState extends State<_ReviewWriteSheet> {
+  final _formKey = GlobalKey<FormState>();
+  final _subject = TextEditingController();
+  final _contents = TextEditingController();
+  int _rating = 5;
+  bool _busy = false;
+
+  @override
+  void dispose() {
+    _subject.dispose();
+    _contents.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _busy = true);
+    try {
+      await context.read<BoardRepository>().create(
+            type: 1,
+            targetId: widget.event.id,
+            subject: _subject.text.trim(),
+            contents: _contents.text.trim(),
+            rating: _rating.toDouble(),
+          );
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('후기가 등록되었습니다')),
+      );
+    } on ApiException catch (e) {
+      if (mounted) {
+        setState(() => _busy = false);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16, 16, 16, bottomInset + 16),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              '${widget.event.adTitle} 후기 작성',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            // 별점 선택
+            Row(
+              children: [
+                for (var i = 1; i <= 5; i++)
+                  IconButton(
+                    onPressed: () => setState(() => _rating = i),
+                    visualDensity: VisualDensity.compact,
+                    icon: Icon(
+                      i <= _rating ? Icons.star : Icons.star_border,
+                      color: Colors.amber,
+                    ),
+                  ),
+                const SizedBox(width: 4),
+                Text('$_rating.0'),
+              ],
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _subject,
+              decoration: const InputDecoration(labelText: '제목 *'),
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? '제목을 입력해주세요' : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _contents,
+              maxLines: 4,
+              decoration: const InputDecoration(labelText: '내용 *'),
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? '내용을 입력해주세요' : null,
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: _busy ? null : _submit,
+              child: _busy
+                  ? const SizedBox(
+                      height: 22,
+                      width: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('후기 등록'),
             ),
           ],
         ),
