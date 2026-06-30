@@ -30,6 +30,8 @@ final class SystemApiFeatureTest extends CIUnitTestCase
     {
         parent::setUp();
         cache()->clean();
+        // Throttler 를 갓 비운 캐시에 재바인딩 — 다른 테스트의 Rate Limit 버킷 누수 방지
+        \CodeIgniter\Config\Services::injectMock('throttler', new \CodeIgniter\Throttle\Throttler(cache()));
 
         $db = db_connect();
         $db->table('settings')->insert(['setting_key' => 'site_name', 'setting_value' => 'AI Cura', 'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s')]);
@@ -66,9 +68,12 @@ final class SystemApiFeatureTest extends CIUnitTestCase
         $this->assertSame('M', $sex[0]['code']);
     }
 
-    /** [S3] logs — 202 + 파일 append */
+    /** [S3] logs — 202 + 파일 append (Redis 미연결 폴백 경로) */
     public function testLogsAccepted(): void
     {
+        // 로컬에 Redis 가 떠 있어도 결과가 흔들리지 않도록 미연결 큐를 주입한다.
+        \CodeIgniter\Config\Services::injectMock('redisQueue', new \Tests\Support\Libraries\FakeRedisQueue(false));
+
         $res = $this->withBodyFormat('json')->post('api/v1/logs', ['level' => 'info', 'event' => 'screen_view', 'message' => '진입']);
         $res->assertStatus(202);
 

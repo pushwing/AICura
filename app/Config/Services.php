@@ -2,6 +2,7 @@
 
 namespace Config;
 
+use App\Libraries\RedisQueue;
 use App\Services\AppAuthService;
 use App\Services\BoardService;
 use App\Services\BookingService;
@@ -162,5 +163,19 @@ class Services extends BaseService
         }
 
         return new HealthPointService();
+    }
+
+    /**
+     * Redis 리스트 기반 경량 큐 (이슈 #115)
+     *
+     * 로그 수집 파이프라인의 큐 계층. 테스트에서는 injectMock 으로 대체한다.
+     */
+    public static function redisQueue(bool $getShared = true): RedisQueue
+    {
+        if ($getShared) {
+            return static::getSharedInstance('redisQueue');
+        }
+
+        return new RedisQueue();
     }
 }
