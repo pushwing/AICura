@@ -233,4 +233,24 @@ class HospitalModel extends Model
             ->where('status', 'active')
             ->countAllResults() > 0;
     }
+
+    /**
+     * sitemap.xml 용 노출 병원 목록 — 활성·미삭제 병원의 id·갱신시각. (이슈 #144)
+     *
+     * @return array<int, array{id: int, updated_at: string|null}>
+     */
+    public function getSitemapHospitals(int $limit = 50000): array
+    {
+        /** @var array<int, array{id: int, updated_at: string|null}> $rows */
+        $rows = $this->db->table('hospitals')
+            ->select('id, updated_at')
+            ->where('is_deleted', 0)
+            ->where('status', 'active')
+            ->orderBy('updated_at', 'DESC')
+            ->limit($limit)
+            ->get()
+            ->getResultArray();
+
+        return $rows;
+    }
 }

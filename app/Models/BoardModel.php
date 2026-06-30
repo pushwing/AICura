@@ -419,6 +419,67 @@ class BoardModel extends Model
     }
 
     /**
+     * SEO 색인 적합 여부 (이슈 #144, §4.3)
+     *
+     * 신고(complain_count>0)되었거나 AI 분석상 의심(분석완료 && 저신뢰 또는 플래그)인 후기는
+     * 검색·AI 인용 대상에서 제외하기 위해 false 를 반환한다(상세 페이지 noindex 판단용).
+     */
+    public function isReviewIndexable(int $id): bool
+    {
+        /** @var array{complain_count: int|string, ai_status: int|string, ai_trust_score: int|string|null, ai_flags: string|null}|null $row */
+        $row = $this->db->table('boards')
+            ->select('complain_count, ai_status, ai_trust_score, ai_flags')
+            ->where('id', $id)
+            ->get()
+            ->getRowArray();
+
+        if ($row === null) {
+            return false;
+        }
+        if ((int) $row['complain_count'] > 0) {
+            return false;
+        }
+        if ((int) $row['ai_status'] === self::AI_STATUS_DONE) {
+            $lowTrust = (int) $row['ai_trust_score'] < self::SUSPICIOUS_SCORE;
+            $hasFlags = $this->decodeFlags($row['ai_flags'] ?? null) !== [];
+            if ($lowTrust || $hasFlags) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * sitemap.xml 용 색인 가능 후기 목록 — 노출·미신고·비의심 건의 id·작성시각. (이슈 #144)
+     *
+     * 이식성을 위해 플래그(JSON) 판정은 제외하고 신고·저신뢰만 SQL 로 거른다(플래그 단독 의심은
+     * 상세 noindex 에서 최종 차단). sitemaps.org 단일 파일 상한(50,000)을 기본 한도로 둔다.
+     *
+     * @return array<int, array{id: int, created_at: string|null}>
+     */
+    public function getSitemapReviews(int $limit = 50000): array
+    {
+        /** @var array<int, array{id: int, created_at: string|null}> $rows */
+        $rows = $this->db->table('boards')
+            ->select('id, created_at')
+            ->where('is_delete', self::DELETE_NONE)
+            ->where('is_secret', 0)
+            ->where('is_list', 1)
+            ->where('complain_count', 0)
+            ->groupStart()
+                ->where('ai_status !=', self::AI_STATUS_DONE)
+                ->orWhere('ai_trust_score >=', self::SUSPICIOUS_SCORE)
+            ->groupEnd()
+            ->orderBy('id', 'DESC')
+            ->limit($limit)
+            ->get()
+            ->getResultArray();
+
+        return $rows;
+    }
+
+    /**
      * 후기 작성 — 생성된 id 반환. ai_status 는 DEFAULT(대기)로 자동 큐 적재.
      *
      * @param array<string, mixed> $data

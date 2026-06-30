@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\BoardModel;
 use App\Models\CampaignModel;
+use App\Models\HospitalModel;
 
 /**
  * sitemap.xml 생성 서비스 (이슈 #143)
@@ -20,10 +22,14 @@ final class SitemapService
     private const CACHE_TTL = 3600;
 
     private CampaignModel $campaigns;
+    private HospitalModel $hospitals;
+    private BoardModel $boards;
 
     public function __construct()
     {
         $this->campaigns = model(CampaignModel::class);
+        $this->hospitals = model(HospitalModel::class);
+        $this->boards    = model(BoardModel::class);
     }
 
     /**
@@ -52,15 +58,37 @@ final class SitemapService
 
         // 정적 진입 페이지
         $urls[] = $this->url(base_url('events'), null, 'daily', '0.8');
+        $urls[] = $this->url(base_url('hospitals'), null, 'weekly', '0.6');
+        $urls[] = $this->url(base_url('reviews'), null, 'daily', '0.6');
 
         // 노출 이벤트 상세
-        // TODO(#144·#146): 병원·후기·가이드 공개 페이지 추가 시 여기에 포함
         foreach ($this->campaigns->getSitemapEvents() as $event) {
             $urls[] = $this->url(
                 base_url('events/' . (int) $event['id']),
                 $event['updated_at'] ?? null,
                 'weekly',
                 '0.6',
+            );
+        }
+
+        // 노출 병원 상세
+        foreach ($this->hospitals->getSitemapHospitals() as $hospital) {
+            $urls[] = $this->url(
+                base_url('hospitals/' . (int) $hospital['id']),
+                $hospital['updated_at'] ?? null,
+                'weekly',
+                '0.5',
+            );
+        }
+
+        // 색인 가능 후기 상세 (신고·의심 건 제외)
+        // TODO(#146): 가이드 콘텐츠 페이지 추가 시 여기에 포함
+        foreach ($this->boards->getSitemapReviews() as $review) {
+            $urls[] = $this->url(
+                base_url('reviews/' . (int) $review['id']),
+                $review['created_at'] ?? null,
+                'monthly',
+                '0.4',
             );
         }
 
