@@ -4,6 +4,7 @@ namespace Config;
 
 use App\Libraries\RedisQueue;
 use App\Services\AppAuthService;
+use App\Services\AppLogStatService;
 use App\Services\BoardService;
 use App\Services\BookingService;
 use App\Services\CallRequestService;
@@ -177,5 +178,19 @@ class Services extends BaseService
         }
 
         return new RedisQueue();
+    }
+
+    /**
+     * 소비자 앱 액션 로그 시간별 집계 서비스 (이슈 #120)
+     *
+     * app_logs 를 hourly_event_stats 로 롤업한다. logs:aggregate 배치가 사용한다.
+     */
+    public static function appLogStatService(bool $getShared = true): AppLogStatService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('appLogStatService');
+        }
+
+        return new AppLogStatService();
     }
 }

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../auth/auth_provider.dart';
 import '../auth/login_screen.dart';
+import '../system/telemetry.dart';
 import 'event_detail_screen.dart';
 import 'event_provider.dart';
 import 'models/event.dart';
@@ -28,6 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // 첫 프레임 후 데이터 로드
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<EventProvider>().bootstrap();
+      context.read<Telemetry>().eventListView(); // 목록 조회 로그
     });
     _scroll.addListener(_onScroll);
   }
@@ -96,7 +98,12 @@ class _HomeScreenState extends State<HomeScreen> {
         controller: _scroll,
         slivers: [
           SliverToBoxAdapter(
-            child: _SearchField(onSubmit: provider.search),
+            child: _SearchField(onSubmit: (kw) {
+              provider.search(kw);
+              if (kw.trim().isNotEmpty) {
+                context.read<Telemetry>().eventSearch(kw.trim()); // 검색 로그
+              }
+            }),
           ),
           SliverToBoxAdapter(
             child: _CategoryBar(

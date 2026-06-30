@@ -139,6 +139,111 @@ class ReportController extends BaseAdminController
         ]);
     }
 
+    // ──────────────────────────────────────────────
+    // 앱 액션 로그 통계 (이슈 #120) — 시간별/일별 추이
+    // ──────────────────────────────────────────────
+
+    private const APP_LOG_DAILY_RANGE = 14; // 일별 모드에서 보여줄 최근 일수
+
+    /**
+     * 앱 액션 로그 통계 화면.
+     *   ?mode=hourly&date=YYYY-MM-DD  — 해당 날짜의 0~23시 추이 (기본, 1시간 전까지 반영)
+     *   ?mode=daily&date=YYYY-MM-DD   — date 기준 최근 14일 일별 추이
+     */
+    public function appLogs(): string
+    {
+        $mode = $this->request->getGet('mode') === 'daily' ? 'daily' : 'hourly';
+        $date = $this->request->getGet('date');
+        $date = is_string($date) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) === 1 ? $date : date('Y-m-d');
+
+        $stats = model(\App\Models\HourlyEventStatModel::class);
+
+        if ($mode === 'hourly') {
+            $rows   = $stats->hourlyByDate($date);
+            $labels = array_map(static fn (int $h): string => $h . '시', range(0, 23));
+            $chart  = $this->pivotSeries($rows, 'stat_hour', range(0, 23));
+        } else {
+            $from   = date('Y-m-d', strtotime($date . ' -' . (self::APP_LOG_DAILY_RANGE - 1) . ' days'));
+            $rows   = $stats->dailyBetween($from, $date);
+            $days   = $this->dateRange($from, $date);
+            $labels = $days;
+            $chart  = $this->pivotSeries($rows, 'stat_date', $days);
+        }
+
+        return $this->render('admin/reports/app_logs', [
+            'mode'     => $mode,
+            'date'     => $date,
+            'labels'   => $labels,
+            'datasets' => $chart['datasets'],
+            'totals'   => $chart['totals'],
+        ]);
+    }
+
+    /**
+     * 집계 행을 Chart.js 데이터셋으로 피벗.
+     * 행: {<bucketKey>, event, total} → 이벤트별 series + 이벤트별 합계.
+     *
+     * @param list<array<string, mixed>> $rows
+     * @param 'stat_hour'|'stat_date'    $bucketKey
+     * @param list<int|string>           $buckets    라벨 순서를 고정하는 버킷 목록
+     * @return array{datasets: list<array{label: string, event: string, data: list<int>}>, totals: array<string, int>}
+     */
+    private function pivotSeries(array $rows, string $bucketKey, array $buckets): array
+    {
+        // bucket 인덱스 맵 — 라벨 순서대로 0 채움
+        $index  = array_flip(array_map('strval', $buckets));
+        $series = []; // event => list<int> (버킷별 합계)
+        $totals = []; // event => int
+
+        foreach ($rows as $row) {
+            $event  = (string) ($row['event'] ?? 'unknown');
+            $bucket = (string) ($row[$bucketKey] ?? '');
+            $total  = (int) ($row['total'] ?? 0);
+
+            if (! isset($index[$bucket])) {
+                continue;
+            }
+            if (! isset($series[$event])) {
+                $series[$event] = array_fill(0, count($buckets), 0);
+                $totals[$event] = 0;
+            }
+
+            $series[$event][$index[$bucket]] += $total;
+            $totals[$event] += $total;
+        }
+
+        // 합계 내림차순으로 정렬해 주요 이벤트가 위로 오게 한다
+        arsort($totals);
+
+        $datasets = [];
+        foreach (array_keys($totals) as $event) {
+            $datasets[] = [
+                'label' => \App\Enums\AppLogEvent::labelFor($event),
+                'event' => $event,
+                'data'  => $series[$event],
+            ];
+        }
+
+        return ['datasets' => $datasets, 'totals' => $totals];
+    }
+
+    /**
+     * from~to(포함) 날짜 문자열 목록.
+     *
+     * @return list<string>
+     */
+    private function dateRange(string $from, string $to): array
+    {
+        $days  = [];
+        $start = strtotime($from);
+        $end   = strtotime($to);
+        for ($t = $start; $t <= $end; $t += 86400) {
+            $days[] = date('Y-m-d', $t);
+        }
+
+        return $days;
+    }
+
     /**
      * 연도 셀렉트 옵션 (최근 5년)
      *
