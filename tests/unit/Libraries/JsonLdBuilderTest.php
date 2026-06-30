@@ -112,4 +112,49 @@ final class JsonLdBuilderTest extends CIUnitTestCase
     {
         $this->assertSame('', JsonLdBuilder::render([]));
     }
+
+    /** 가이드 → MedicalWebPage + about MedicalProcedure (#146) */
+    public function testGuideSchema(): void
+    {
+        $schema = JsonLdBuilder::guide([
+            'title' => '쌍꺼풀 가이드', 'summary' => '요약', 'content' => '<p>본문</p>',
+            'procedure_name' => '쌍꺼풀 수술', 'published_at' => '2026-06-01 10:00:00',
+            'updated_at' => '2026-06-02 10:00:00',
+        ], 'https://aicura.test/guides/x');
+
+        $this->assertSame('MedicalWebPage', $schema['@type']);
+        $this->assertSame('쌍꺼풀 가이드', $schema['name']);
+        $this->assertSame('본문', $schema['articleBody']);
+        $this->assertSame('2026-06-01 10:00:00', $schema['datePublished']);
+        $this->assertSame('MedicalProcedure', $schema['about']['@type']);
+        $this->assertSame('쌍꺼풀 수술', $schema['about']['name']);
+    }
+
+    /** 시술명 없으면 about 생략 */
+    public function testGuideWithoutProcedureOmitsAbout(): void
+    {
+        $schema = JsonLdBuilder::guide(['title' => 't'], 'https://aicura.test/guides/y');
+        $this->assertArrayNotHasKey('about', $schema);
+    }
+
+    /** FAQ → FAQPage */
+    public function testFaqPageSchema(): void
+    {
+        $schema = JsonLdBuilder::faqPage([
+            ['q' => '비용은?', 'a' => '병원마다 다릅니다'],
+            ['q' => '회복은?', 'a' => '2주'],
+        ], 'https://aicura.test/guides/x');
+
+        $this->assertSame('FAQPage', $schema['@type']);
+        $this->assertCount(2, $schema['mainEntity']);
+        $this->assertSame('Question', $schema['mainEntity'][0]['@type']);
+        $this->assertSame('비용은?', $schema['mainEntity'][0]['name']);
+        $this->assertSame('병원마다 다릅니다', $schema['mainEntity'][0]['acceptedAnswer']['text']);
+    }
+
+    /** FAQ 비면 빈 배열(render 에서 무시) */
+    public function testFaqPageEmpty(): void
+    {
+        $this->assertSame([], JsonLdBuilder::faqPage([], 'https://aicura.test/guides/z'));
+    }
 }
