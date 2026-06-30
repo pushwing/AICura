@@ -32,8 +32,15 @@ final class LogQueueFeatureTest extends CIUnitTestCase
     {
         parent::setUp();
         cache()->clean();
-        // Throttler 를 갓 비운 캐시에 재바인딩 — 테스트 간 버킷 상태 누수 방지
-        Services::injectMock('throttler', new \CodeIgniter\Throttle\Throttler(cache()));
+        // Throttler 를 갓 비운 캐시에 재바인딩 — 테스트 간 버킷 상태 누수 방지.
+        // 추가로 setTestTime() 으로 시계를 고정한다. CI4 Throttler 는 정수 초 단위
+        // 타임스탬프로 토큰을 재충전(rate = capacity/seconds)하므로, 60회 요청이
+        // 벽시계 1초 경계를 넘으면 토큰이 1개 보충돼 61회째가 통과(202)해 버린다.
+        // 느린 환경(PHP 8.4 + 전체 스위트)에서만 재현되던 간헐 실패의 원인 →
+        // 시계를 고정해 재충전을 차단, 실행 속도와 무관하게 결정적으로 동작시킨다.
+        $throttler = new \CodeIgniter\Throttle\Throttler(cache());
+        $throttler->setTestTime(\CodeIgniter\I18n\Time::now()->getTimestamp());
+        Services::injectMock('throttler', $throttler);
 
         // 날짜별 원시/dead-letter 파일을 깨끗한 상태로 시작
         $this->rawFile = rtrim(WRITEPATH, '/\\') . '/logs/raw/' . date('Y-m-d') . '.log';
