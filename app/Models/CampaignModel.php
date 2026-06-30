@@ -64,6 +64,12 @@ class CampaignModel extends Model
         'status'      => 'in_list[pending,active,rejected,ended]',
     ];
 
+    // 이슈 #116: 캠페인 쓰기(생성·수정·상태변경·검수승인·삭제) 시 외부 앱 이벤트 캐시(events_*) 일괄 무효화.
+    // 모든 어드민 쓰기 경로가 update()/insert()/delete() 를 거치므로 콜백 한 곳으로 커버된다.
+    protected $afterInsert = ['clearConsumerCache'];
+    protected $afterUpdate = ['clearConsumerCache'];
+    protected $afterDelete = ['clearConsumerCache'];
+
     // 상태 전이 허용 맵: 현재 상태 → 가능한 다음 상태
     public const STATUS_TRANSITIONS = [
         'pending'  => ['active', 'rejected'],
@@ -451,6 +457,59 @@ class CampaignModel extends Model
         $this->applyConsumerFilters($builder);
 
         return $builder->get()->getRowArray();
+    }
+
+    // ──────────────────────────────────────────────
+    // 외부(소비자) 앱 — 이벤트 캐시 무효화 (이슈 #116)
+    // ──────────────────────────────────────────────
+
+    /** 소비자 캐시(목록·상세·메인·추천) 무효화용 버전 토큰 캐시 키 */
+    public const CONSUMER_CACHE_VERSION_KEY = 'events_consumer_cache_ver';
+
+    /** 버전 토큰 TTL (초) — 1일. 쓰기 발생 시 즉시 삭제되어 무효화된다. */
+    private const CONSUMER_CACHE_VERSION_TTL = 86400;
+
+    /**
+     * 소비자 캐시 키에 끼워 넣는 버전 토큰.
+     *
+     * 캠페인 쓰기 시 토큰이 삭제되며, 다음 조회에서 새 토큰이 발급되어 이전 버전으로
+     * 저장된 목록·상세·메인·추천 캐시는 모두 자연스럽게 무시된다(TTL 만료로 정리).
+     */
+    public function consumerCacheVersion(): string
+    {
+        /** @var string|null $ver */
+        $ver = cache(self::CONSUMER_CACHE_VERSION_KEY);
+        if (!is_string($ver)) {
+            $ver = bin2hex(random_bytes(4));
+            cache()->save(self::CONSUMER_CACHE_VERSION_KEY, $ver, self::CONSUMER_CACHE_VERSION_TTL);
+        }
+
+        return $ver;
+    }
+
+    /**
+     * 소비자 캐시(목록·상세·메인·추천) 일괄 무효화.
+     *
+     * 캠페인 쓰기는 모델 콜백(clearConsumerCache)이 자동 처리하지만, ad_main_maps·
+     * ad_recommend_maps 매핑 변경처럼 campaigns 테이블을 직접 건드리지 않는 변경은
+     * 이 메서드로 명시적으로 무효화한다.
+     */
+    public function invalidateConsumerCache(): void
+    {
+        cache()->delete(self::CONSUMER_CACHE_VERSION_KEY);
+    }
+
+    /**
+     * 모델 쓰기 콜백 — 버전 토큰을 삭제해 소비자 캐시를 일괄 무효화한다.
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    protected function clearConsumerCache(array $data): array
+    {
+        cache()->delete(self::CONSUMER_CACHE_VERSION_KEY);
+
+        return $data;
     }
 
     /**
