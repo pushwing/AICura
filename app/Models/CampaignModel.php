@@ -586,6 +586,27 @@ class CampaignModel extends Model
     }
 
     /**
+     * sitemap.xml 용 노출 이벤트 목록 — 노출 조건 충족 건의 id·갱신시각만. (이슈 #143)
+     *
+     * sitemaps.org 단일 파일 상한(50,000)을 기본 한도로 둔다.
+     *
+     * @return array<int, array{id: int, updated_at: string|null}>
+     */
+    public function getSitemapEvents(int $limit = 50000): array
+    {
+        $builder = $this->db->table('campaigns c')->select('c.id, c.updated_at');
+        $this->applyConsumerFilters($builder);
+
+        /** @var array<int, array{id: int, updated_at: string|null}> $rows */
+        $rows = $builder->orderBy('c.updated_at', 'DESC')
+            ->limit($limit)
+            ->get()
+            ->getResultArray();
+
+        return $rows;
+    }
+
+    /**
      * 상담 신청 대상 캠페인 정보 — 노출 조건 충족 건만 (병원·CPA 단가). (이슈 #100)
      *
      * @return array{id: int, hospital_id: int, db_cost: int}|null
