@@ -344,7 +344,7 @@ AI가 생성한 마크다운 본문은 **서버에서** `league/commonmark`(GFM,
 
 - `logs:consume`는 상시 데몬(`--daemon`, systemd/supervisor)으로도 운용 가능하다.
 - 특정 시각 재집계: `php spark logs:aggregate --date=2026-06-30 --hour=14`
-- 하루 전체 백필: `php spark logs:aggregate --date=2026-06-30 --backfill`
+- 하루 전체 백필: `php spark logs:aggregate --date=2026-06-30` (`--hour` 생략 시 0~23시 전체, `--backfill` 명시도 동일)
 
 > Redis 미연결(로컬·CI) 시 수집은 원시 파일로 폴백되며, 집계는 `app_logs` 기준으로 동작한다.
 

@@ -11,7 +11,8 @@ use Throwable;
  *
  *   php spark logs:aggregate                       # 직전 1시간 집계 (기본 — 매시 크론)
  *   php spark logs:aggregate --date=2026-06-30 --hour=14   # 특정 시각 재집계
- *   php spark logs:aggregate --date=2026-06-30 --backfill  # 해당 날짜 0~23시 전체 재집계
+ *   php spark logs:aggregate --date=2026-06-30             # 해당 날짜 0~23시 전체 재집계 (--hour 없으면 하루 전체)
+ *   php spark logs:aggregate --date=2026-06-30 --backfill  # 해당 날짜 0~23시 전체 재집계 (명시)
  *
  * app_logs 를 (event, campaign_id) 기준 1시간 버킷으로 롤업해 hourly_event_stats 에 멱등 적재한다.
  * 멱등하므로 같은 시각을 여러 번 돌려도 결과가 누적되지 않고 갱신된다.
@@ -28,7 +29,7 @@ class AppLogAggregate extends BaseCommand
 
     /** @var array<string, string> */
     protected $options = [
-        '--date'     => '집계 날짜 (YYYY-MM-DD, 기본: 직전 1시간의 날짜)',
+        '--date'     => '집계 날짜 (YYYY-MM-DD, 기본: 직전 1시간의 날짜). --hour 없으면 하루 전체 재집계',
         '--hour'     => '집계 시각 (0~23, 기본: 직전 1시간)',
         '--backfill' => '--date 의 0~23시 전체를 재집계',
     ];
@@ -36,11 +37,18 @@ class AppLogAggregate extends BaseCommand
     /** @param array<int|string, string|null> $params */
     public function run(array $params): void
     {
-        $backfill = array_key_exists('backfill', $params) || CLI::getOption('backfill');
+        $dateOpt = $params['date'] ?? CLI::getOption('date');
+        $hourOpt = $params['hour'] ?? CLI::getOption('hour');
 
         // 기본 대상은 "직전 1시간" — 매시 크론이 막 끝난 직전 시간대를 집계한다.
         $prev = strtotime('-1 hour');
-        $date = (string) ($params['date'] ?? CLI::getOption('date') ?? date('Y-m-d', $prev));
+        $date = (string) ($dateOpt ?? date('Y-m-d', $prev));
+
+        // --date 만 주고 --hour 가 없으면 그 날짜 하루 전체를 집계한다.
+        // (시각을 "직전 1시간"으로 채우면 과거 날짜에서 무관한 한 시간만 집계되는 함정을 막는다)
+        $backfill = array_key_exists('backfill', $params)
+            || CLI::getOption('backfill')
+            || ($dateOpt !== null && $hourOpt === null);
 
         $service = service('appLogStatService');
 
@@ -58,8 +66,7 @@ class AppLogAggregate extends BaseCommand
                 return;
             }
 
-            $hourOpt = $params['hour'] ?? CLI::getOption('hour');
-            $hour    = $hourOpt !== null ? max(0, min(23, (int) $hourOpt)) : (int) date('G', $prev);
+            $hour = $hourOpt !== null ? max(0, min(23, (int) $hourOpt)) : (int) date('G', $prev);
 
             $result = $service->aggregateHour($date, $hour);
             CLI::write(
