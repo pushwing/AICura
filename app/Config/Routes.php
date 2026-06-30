@@ -282,3 +282,11 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
         $routes->post('me/health-point/redeem', 'UserController::redeemHealthPoint'); // 차감 (이슈 #114)
     });
 });
+
+// ── 공개 웹 (SSR · SEO/GEO) ───────────────────────────────
+// 인증 없이 크롤링 가능한 HTML 을 제공한다 (이슈 #137 Phase 1 골격).
+// 현재는 이벤트 목록·상세만. 병원/후기/가이드는 후속 이슈(③·⑤)에서 추가.
+$routes->group('', ['namespace' => 'App\Controllers\Web'], static function (RouteCollection $routes): void {
+    $routes->get('events',        'EventPageController::index');
+    $routes->get('events/(:num)', 'EventPageController::show/$1');
+});
