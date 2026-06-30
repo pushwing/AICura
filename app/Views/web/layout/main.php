@@ -23,7 +23,8 @@ $meta['canonical'] = (string) ($meta['canonical'] ?? current_url());
     <link rel="icon" href="<?= base_url('favicon.ico') ?>">
     <link rel="stylesheet" href="<?= base_url('assets/css/aicura.css') ?>">
 
-    <!-- JSON-LD 구조화 데이터는 Phase 2(이슈 ④)에서 web/partials/json_ld 로 주입 -->
+    <!-- JSON-LD 구조화 데이터 (이슈 #145) — 상세 페이지에서 $jsonLd 전달 시 주입 -->
+    <?= $this->include('web/partials/json_ld') ?>
 </head>
 <body>
     <header class="web-header">
