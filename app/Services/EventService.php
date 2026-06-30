@@ -47,7 +47,8 @@ class EventService
      */
     public function list(int $userId, array $params): array
     {
-        $cacheKey = 'events_list_' . md5(serialize($this->normalizeListParams($params)));
+        $cacheKey = 'events_list_' . $this->campaigns->consumerCacheVersion()
+            . '_' . md5(serialize($this->normalizeListParams($params)));
 
         /** @var array{list: array<int, array<string, mixed>>, total: int}|null $base */
         $base = cache($cacheKey);
@@ -70,7 +71,7 @@ class EventService
      */
     public function detail(int $userId, int $id): array
     {
-        $cacheKey = 'events_detail_' . $id;
+        $cacheKey = 'events_detail_' . $this->campaigns->consumerCacheVersion() . '_' . $id;
 
         /** @var array<string, mixed>|null $row */
         $row = cache($cacheKey);
@@ -105,7 +106,9 @@ class EventService
      */
     public function main(int $userId, int $limit = 10): array
     {
-        return $this->feed($userId, 'events_main_' . $limit, fn (): array => $this->campaigns->getMainEvents($limit));
+        $cacheKey = 'events_main_' . $this->campaigns->consumerCacheVersion() . '_' . $limit;
+
+        return $this->feed($userId, $cacheKey, fn (): array => $this->campaigns->getMainEvents($limit));
     }
 
     /**
@@ -115,7 +118,9 @@ class EventService
      */
     public function recommend(int $userId, int $limit = 10): array
     {
-        return $this->feed($userId, 'events_recommend_' . $limit, fn (): array => $this->campaigns->getRecommendEvents($limit));
+        $cacheKey = 'events_recommend_' . $this->campaigns->consumerCacheVersion() . '_' . $limit;
+
+        return $this->feed($userId, $cacheKey, fn (): array => $this->campaigns->getRecommendEvents($limit));
     }
 
     /**

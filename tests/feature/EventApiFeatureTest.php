@@ -1,6 +1,7 @@
 <?php
 
 use App\Libraries\JwtLibrary;
+use App\Models\CampaignModel;
 use App\Models\UserModel;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
@@ -285,5 +286,43 @@ final class EventApiFeatureTest extends CIUnitTestCase
         $this->get('api/v1/campaigns')->assertStatus(200);
         $this->get('api/v1/campaigns/' . $this->c1)->assertStatus(200);
         $this->post('api/v1/campaigns/' . $this->c1 . '/like')->assertStatus(401);
+    }
+
+    /** [E12] 이슈 #116 — 캠페인 수정 시 목록·상세 캐시가 즉시 무효화된다 */
+    public function testCampaignWriteInvalidatesEventCache(): void
+    {
+        // 1) 최초 조회로 캐시 적재 (구 데이터)
+        $this->assertSame('강남 리프팅', $this->authGet('api/v1/campaigns/' . $this->c1)['data']['ad_title']);
+
+        // 2) CampaignModel 경유 수정 → 모델 콜백이 버전 토큰을 삭제해 캐시 무효화
+        model(CampaignModel::class)->update($this->c1, ['ad_title' => '강남 리프팅 (수정)']);
+
+        // 3) 재조회 시 갱신된 데이터가 반영되어야 함
+        $body = $this->authGet('api/v1/campaigns/' . $this->c1);
+        $this->assertSame('강남 리프팅 (수정)', $body['data']['ad_title']);
+
+        $list = $this->authGet('api/v1/campaigns');
+        $titles = array_column($list['data'], 'ad_title');
+        $this->assertContains('강남 리프팅 (수정)', $titles);
+    }
+
+    /** [E13] 이슈 #116 — invalidateConsumerCache()로 메인·추천 피드 캐시 일괄 무효화 */
+    public function testManualInvalidationRefreshesFeeds(): void
+    {
+        // 1) 최초 메인 피드 조회로 캐시 적재 — 현재 c1 만 노출
+        $this->assertSame([$this->c1], array_column($this->authGet('api/v1/campaigns/main')['data'], 'id'));
+
+        // 2) ad_main_maps 직접 변경(어드민 메인 관리 시나리오) — campaigns 테이블을 건드리지 않으므로
+        //    모델 콜백이 발동하지 않아 수동 무효화가 필요하다.
+        $now = date('Y-m-d H:i:s');
+        db_connect()->table('ad_main_maps')->insert([
+            'ad_main_id' => 2, 'campaign_id' => $this->c2, 'is_main' => 1, 'is_inspect' => 1,
+            'created_at' => $now, 'updated_at' => $now,
+        ]);
+        model(CampaignModel::class)->invalidateConsumerCache();
+
+        // 3) 재조회 시 새 매핑(c2)이 반영되어야 함
+        $ids = array_column($this->authGet('api/v1/campaigns/main')['data'], 'id');
+        $this->assertContains($this->c2, $ids);
     }
 }
