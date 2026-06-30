@@ -107,13 +107,15 @@ $routes->get('sitemap.xml', 'Web\SitemapController::index');
 
 공개 페이지는 크롤러 트래픽이 몰릴 수 있으므로 캐시를 1순위로 설계한다.
 
+> CI4 캐시 키는 `:` 등 예약문자를 금지하므로 실제 키는 언더스코어를 쓴다(예: `web_sitemap`).
+
 | 페이지 | 캐시 키 | TTL |
 |--------|---------|-----|
-| 이벤트 목록 | `web:events:list:{파라미터해시}` | 5–15분 |
-| 이벤트 상세 | `web:events:{id}` | 5–10분 |
-| 병원 상세 | `web:hospitals:{id}` | 30–60분 |
-| 후기 상세 | `web:reviews:{id}` | 10–30분 |
-| sitemap.xml | `web:sitemap` | 1시간 |
+| 이벤트 목록 | `web_events_list_{파라미터해시}` | 5–15분 |
+| 이벤트 상세 | `web_events_{id}` | 5–10분 |
+| 병원 상세 | `web_hospitals_{id}` | 30–60분 |
+| 후기 상세 | `web_reviews_{id}` | 10–30분 |
+| sitemap.xml | `web_sitemap` (구현됨, #143) | 1시간 |
 
 - 캐시 미스 시에만 DB 조회, 쓰기(승인·종료·삭제) 발생 시 해당 키 즉시 무효화
   (기존 `HospitalModel::clearActiveListCache` 패턴 재사용).
@@ -268,7 +270,7 @@ Sitemap: https://{운영도메인}/sitemap.xml
 | 순서 | 이슈(제안) | 범위 | 의존 | 상태 |
 |------|-----------|------|------|------|
 | 1 | 공개 SSR 웹 레이어 골격 | `Controllers/Web/*` + `Views/web/layout` + 라우트 + 이벤트 목록/상세 | — | ✅ 완료 (커밋 `7c82f0f`, AI 크롤러 robots 반영) |
-| 2 | SEO 메타 + sitemap + robots | `MetaTagBuilder`, `SitemapController`, robots 보강, baseURL 환경변수 명문화 | 1 | 서브이슈 |
+| 2 | SEO 메타 + sitemap + robots | `MetaTagBuilder`, `SitemapController`, robots 보강, baseURL 환경변수 명문화 | 1 | ✅ 완료 (#143) — 동적 sitemap.xml·robots.txt(절대 URL), MetaTagBuilder 라이브러리화 |
 | 3 | 병원·후기 공개 페이지 | 병원/후기 SSR + 후기 신뢰도 필터(noindex) | 1 | 서브이슈 |
 | 4 | JSON-LD 구조화 데이터 | `JsonLdBuilder` — Offer/MedicalClinic/Review/Article | 2,3 | 서브이슈 |
 | 5 | GEO 콘텐츠 자산 — 가이드 | `guides` 테이블·CRUD(Admin)·공개 페이지·Article/FAQ 스키마 | 4 | 서브이슈 |

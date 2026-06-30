@@ -13,6 +13,7 @@ use App\Services\HealthPointService;
 use App\Services\HospitalService;
 use App\Services\LogIngestService;
 use App\Services\MeService;
+use App\Services\SitemapService;
 use App\Services\UploadService;
 use CodeIgniter\Config\BaseService;
 
@@ -59,6 +60,18 @@ class Services extends BaseService
         }
 
         return new EventService();
+    }
+
+    /**
+     * sitemap.xml 생성 서비스 (이슈 #143)
+     */
+    public static function sitemapService(bool $getShared = true): SitemapService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('sitemapService');
+        }
+
+        return new SitemapService();
     }
 
     /**

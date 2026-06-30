@@ -289,4 +289,8 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
 $routes->group('', ['namespace' => 'App\Controllers\Web'], static function (RouteCollection $routes): void {
     $routes->get('events',        'EventPageController::index');
     $routes->get('events/(:num)', 'EventPageController::show/$1');
+
+    // 크롤러 진입점 — 동적 생성(이슈 #143). 정적 public/robots.txt 는 제거됨
+    $routes->get('sitemap.xml', 'SitemapController::index');
+    $routes->get('robots.txt',  'RobotsController::index');
 });

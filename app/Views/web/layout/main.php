@@ -1,4 +1,7 @@
 <?php
+
+use App\Libraries\Seo\MetaTagBuilder;
+
 /**
  * 공개 SSR 레이아웃 (이슈 #137 — SEO/GEO)
  *
@@ -6,12 +9,8 @@
  * @var string               $content 본문 슬롯
  */
 $meta = $meta ?? [];
-$title       = (string) ($meta['title'] ?? 'AICura');
-$description = (string) ($meta['description'] ?? '');
-$canonical   = (string) ($meta['canonical'] ?? current_url());
-$robots      = (string) ($meta['robots'] ?? 'index, follow');
-$ogType      = (string) ($meta['og_type'] ?? 'website');
-$ogImage     = $meta['og_image'] ?? null;
+// canonical 미지정 시 현재 URL 보정 (이슈 #143 — MetaTagBuilder 로 메타 렌더 일원화)
+$meta['canonical'] = (string) ($meta['canonical'] ?? current_url());
 ?>
 <!DOCTYPE html>
 <html lang="ko">
@@ -19,29 +18,7 @@ $ogImage     = $meta['og_image'] ?? null;
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title><?= esc($title) ?></title>
-    <meta name="description" content="<?= esc($description) ?>">
-    <meta name="robots" content="<?= esc($robots) ?>">
-    <link rel="canonical" href="<?= esc($canonical, 'attr') ?>">
-
-    <!-- Open Graph -->
-    <meta property="og:site_name" content="AICura">
-    <meta property="og:locale" content="ko_KR">
-    <meta property="og:type" content="<?= esc($ogType, 'attr') ?>">
-    <meta property="og:title" content="<?= esc($title, 'attr') ?>">
-    <meta property="og:description" content="<?= esc($description, 'attr') ?>">
-    <meta property="og:url" content="<?= esc($canonical, 'attr') ?>">
-    <?php if ($ogImage !== null): ?>
-    <meta property="og:image" content="<?= esc((string) $ogImage, 'attr') ?>">
-    <?php endif; ?>
-
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="<?= $ogImage !== null ? 'summary_large_image' : 'summary' ?>">
-    <meta name="twitter:title" content="<?= esc($title, 'attr') ?>">
-    <meta name="twitter:description" content="<?= esc($description, 'attr') ?>">
-    <?php if ($ogImage !== null): ?>
-    <meta name="twitter:image" content="<?= esc((string) $ogImage, 'attr') ?>">
-    <?php endif; ?>
+    <?= MetaTagBuilder::fromArray($meta)->render() ?>
 
     <link rel="icon" href="<?= base_url('favicon.ico') ?>">
     <link rel="stylesheet" href="<?= base_url('assets/css/aicura.css') ?>">
