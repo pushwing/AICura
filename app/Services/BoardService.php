@@ -99,6 +99,14 @@ class BoardService
     }
 
     /**
+     * SEO 색인 적합 여부 — 신고·의심 후기는 공개 상세 페이지를 noindex 처리하기 위한 판단. (이슈 #144)
+     */
+    public function isIndexable(int $id): bool
+    {
+        return $this->boards->isReviewIndexable($id);
+    }
+
+    /**
      * 후기 작성
      *
      * @param array<string, mixed> $input type·target_id·subject·contents·rating·images[]

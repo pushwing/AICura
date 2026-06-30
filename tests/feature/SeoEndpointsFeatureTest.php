@@ -81,8 +81,9 @@ final class SeoEndpointsFeatureTest extends CIUnitTestCase
     {
         $body = $this->get('sitemap.xml')->getBody();
 
-        // 노출 이벤트 1건만 상세 URL 로 포함 (events 인덱스 1 + 상세 1 = loc 2개)
-        $this->assertSame(2, substr_count($body, '<loc>'));
+        // 노출 이벤트 1건만 상세 URL 로 포함, 검수 미완료 이벤트는 제외
+        $this->assertStringContainsString('/events/' . $this->visibleId . '</loc>', $body);
+        $this->assertSame(1, substr_count($body, '/events/')); // 이벤트 상세는 1건뿐
     }
 
     /** [S3] sitemap 결과는 캐시된다 */

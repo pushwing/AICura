@@ -290,6 +290,12 @@ $routes->group('', ['namespace' => 'App\Controllers\Web'], static function (Rout
     $routes->get('events',        'EventPageController::index');
     $routes->get('events/(:num)', 'EventPageController::show/$1');
 
+    // 병원·후기 공개 페이지 (이슈 #144)
+    $routes->get('hospitals',        'HospitalPageController::index');
+    $routes->get('hospitals/(:num)', 'HospitalPageController::show/$1');
+    $routes->get('reviews',          'ReviewPageController::index');
+    $routes->get('reviews/(:num)',   'ReviewPageController::show/$1');
+
     // 크롤러 진입점 — 동적 생성(이슈 #143). 정적 public/robots.txt 는 제거됨
     $routes->get('sitemap.xml', 'SitemapController::index');
     $routes->get('robots.txt',  'RobotsController::index');
