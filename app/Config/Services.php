@@ -7,6 +7,7 @@ use App\Services\BoardService;
 use App\Services\BookingService;
 use App\Services\CallRequestService;
 use App\Services\EventService;
+use App\Services\HealthPointService;
 use App\Services\HospitalService;
 use App\Services\LogIngestService;
 use App\Services\MeService;
@@ -149,5 +150,17 @@ class Services extends BaseService
         }
 
         return new BookingService();
+    }
+
+    /**
+     * 헬스포인트 적립/차감 서비스 (이슈 #114)
+     */
+    public static function healthPointService(bool $getShared = true): HealthPointService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('healthPointService');
+        }
+
+        return new HealthPointService();
     }
 }

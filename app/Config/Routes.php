@@ -278,5 +278,6 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
         $routes->get('me/bookings',         'UserController::bookings');
         $routes->get('me/likes',            'UserController::likes');
         $routes->get('me/health-point',     'UserController::healthPoint');
+        $routes->post('me/health-point/redeem', 'UserController::redeemHealthPoint'); // 차감 (이슈 #114)
     });
 });

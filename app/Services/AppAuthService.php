@@ -26,11 +26,16 @@ class AppAuthService
 
     private UserModel $users;
     private JwtLibrary $jwt;
+    private HealthPointService $points;
 
-    public function __construct(?UserModel $users = null, ?JwtLibrary $jwt = null)
-    {
-        $this->users = $users ?? model(UserModel::class);
-        $this->jwt   = $jwt   ?? new JwtLibrary();
+    public function __construct(
+        ?UserModel $users = null,
+        ?JwtLibrary $jwt = null,
+        ?HealthPointService $points = null,
+    ) {
+        $this->users  = $users  ?? model(UserModel::class);
+        $this->jwt    = $jwt    ?? new JwtLibrary();
+        $this->points = $points ?? service('healthPointService');
     }
 
     /**
@@ -140,12 +145,24 @@ class AppAuthService
     private function createUser(array $data): int
     {
         try {
-            return $this->users->createAppUser($data);
+            $userId = $this->users->createAppUser($data);
         } catch (\RuntimeException $e) {
             log_message('error', '[AppAuthService] 앱 계정 생성 실패: {message}', ['message' => $e->getMessage()]);
 
             throw AuthException::registrationFailed();
         }
+
+        // 가입 적립 — 포인트 적립 실패가 가입 자체를 막지 않도록 로깅만 하고 진행한다.
+        try {
+            $this->points->awardSignup($userId);
+        } catch (\Throwable $e) {
+            log_message('error', '[AppAuthService] 가입 적립 실패 (user {id}): {message}', [
+                'id'      => $userId,
+                'message' => $e->getMessage(),
+            ]);
+        }
+
+        return $userId;
     }
 
     /**

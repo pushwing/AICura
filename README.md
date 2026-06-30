@@ -339,6 +339,54 @@ gh pr create --base main --head dev --title "release: YYYY-MM-DD"
 
 ---
 
+## CI (GitHub Actions)
+
+`dev` · `main` 브랜치로의 **push** 와 **PR** 마다 자동 검증이 실행된다.
+정의 파일은 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) 단일 파일이며, 백엔드·앱 두 잡으로 병렬 실행된다.
+
+| 항목 | 내용 |
+|------|------|
+| **트리거** | `dev` · `main` 으로의 push / pull_request |
+| **동시성 제어** | 같은 ref 에 새 푸시가 오면 진행 중 실행 자동 취소 (`cancel-in-progress`) |
+
+### Backend 잡 (PHP 8.4 · PHPStan · PHPUnit)
+
+`mysql:8.0` 서비스 컨테이너를 띄운 뒤 아래 순서로 검증한다.
+
+1. **PHP 8.4** 설치 (`mbstring · intl · mysqli · curl · dom · xml · tokenizer`, 커버리지 드라이버 `pcov`)
+2. Composer 캐시 복원 후 `composer install`
+3. `env` → `.env` 복사 + CI용 DB·JWT 값 주입
+4. `writable/` 하위 디렉토리 생성 (git 미추적 — CI4 `WRITEPATH` 보장)
+5. **정적 분석**: `composer analyse` (PHPStan level 6)
+6. MySQL 헬스 체크 대기 → 테스트 호스트 `localhost` → `127.0.0.1` 보정 (MySQLi TCP 강제)
+7. **테스트**: `composer test` (PHPUnit 단위·DB 통합)
+
+> CI DB 계정은 워크플로우 내부 전용(`aicura / Aicura@2026!Dev`)이며 운영 시크릿과 무관하다.
+
+### App 잡 (Flutter · analyze · test)
+
+`app-mobile/` 디렉토리에서 실행된다.
+
+1. Flutter **stable** 채널 설치 (pub 캐시 사용)
+2. `flutter pub get`
+3. **포맷 검사**: `dart format --set-exit-if-changed lib test`
+4. **정적 분석**: `flutter analyze`
+5. **테스트**: `flutter test`
+
+### 로컬에서 동일하게 검증
+
+푸시 전에 CI와 같은 검증을 로컬에서 미리 돌릴 수 있다.
+
+```bash
+composer check                 # PHPStan + PHPUnit (백엔드)
+
+cd app-mobile
+dart format --output=none --set-exit-if-changed lib test
+flutter analyze && flutter test
+```
+
+---
+
 ## 서버 요구사항
 
 | 항목 | 버전 | 용도 |

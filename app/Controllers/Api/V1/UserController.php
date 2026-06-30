@@ -227,6 +227,46 @@ class UserController extends BaseApiController
         );
     }
 
+    #[OA\Post(
+        path: '/me/health-point/redeem',
+        summary: '헬스포인트 차감(사용)',
+        security: [['bearerAuth' => []]],
+        tags: ['Me'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['amount'],
+                properties: [
+                    new OA\Property(property: 'amount', type: 'integer', description: '차감할 포인트(1 이상)', example: 100),
+                    new OA\Property(property: 'memo', type: 'string', description: '사용 메모(선택)', example: '쿠폰 교환'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: '차감 후 잔액'),
+            new OA\Response(response: 422, description: '금액 오류 또는 잔액 부족'),
+        ]
+    )]
+    public function redeemHealthPoint(): ResponseInterface
+    {
+        if (!$this->validate(['amount' => 'required|is_natural_no_zero'])) {
+            return $this->error('VALIDATION_ERROR', implode(' ', $this->validator->getErrors()), 422);
+        }
+
+        $input = $this->json();
+        $memo  = isset($input['memo']) && is_string($input['memo']) && trim($input['memo']) !== ''
+            ? trim($input['memo'])
+            : null;
+
+        try {
+            $r = $this->me->redeemHealthPoint($this->authUserId(), (int) $input['amount'], $memo);
+        } catch (DomainException $e) {
+            return $this->error($e->errorCode(), $e->getMessage(), $e->httpStatusCode());
+        }
+
+        return $this->success($r);
+    }
+
     /**
      * @return array{page: int, limit: int}
      */
