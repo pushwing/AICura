@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\BoardModel;
 use App\Models\CampaignModel;
+use App\Models\GuideModel;
 use App\Models\HospitalModel;
 
 /**
@@ -24,12 +25,14 @@ final class SitemapService
     private CampaignModel $campaigns;
     private HospitalModel $hospitals;
     private BoardModel $boards;
+    private GuideModel $guides;
 
     public function __construct()
     {
         $this->campaigns = model(CampaignModel::class);
         $this->hospitals = model(HospitalModel::class);
         $this->boards    = model(BoardModel::class);
+        $this->guides    = model(GuideModel::class);
     }
 
     /**
@@ -60,6 +63,7 @@ final class SitemapService
         $urls[] = $this->url(base_url('events'), null, 'daily', '0.8');
         $urls[] = $this->url(base_url('hospitals'), null, 'weekly', '0.6');
         $urls[] = $this->url(base_url('reviews'), null, 'daily', '0.6');
+        $urls[] = $this->url(base_url('guides'), null, 'weekly', '0.7');
 
         // 노출 이벤트 상세
         foreach ($this->campaigns->getSitemapEvents() as $event) {
@@ -82,13 +86,22 @@ final class SitemapService
         }
 
         // 색인 가능 후기 상세 (신고·의심 건 제외)
-        // TODO(#146): 가이드 콘텐츠 페이지 추가 시 여기에 포함
         foreach ($this->boards->getSitemapReviews() as $review) {
             $urls[] = $this->url(
                 base_url('reviews/' . (int) $review['id']),
                 $review['created_at'] ?? null,
                 'monthly',
                 '0.4',
+            );
+        }
+
+        // 발행 가이드 상세 (슬러그 URL)
+        foreach ($this->guides->getSitemapGuides() as $guide) {
+            $urls[] = $this->url(
+                base_url('guides/' . rawurlencode((string) $guide['slug'])),
+                $guide['updated_at'] ?? null,
+                'monthly',
+                '0.7',
             );
         }
 

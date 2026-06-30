@@ -124,6 +124,14 @@ $routes->group('admin', static function (RouteCollection $routes): void {
         $routes->post('hospitals/(:num)',        'Admin\HospitalController::update/$1');
         $routes->post('hospitals/(:num)/delete', 'Admin\HospitalController::delete/$1');
 
+        // 시술 가이드 관리 (이슈 #146)
+        $routes->get('guides',                 'Admin\GuideController::index');
+        $routes->get('guides/new',             'Admin\GuideController::newForm');
+        $routes->post('guides',                'Admin\GuideController::create');
+        $routes->get('guides/(:num)/edit',     'Admin\GuideController::edit/$1');
+        $routes->post('guides/(:num)/update',  'Admin\GuideController::update/$1');
+        $routes->post('guides/(:num)/delete',  'Admin\GuideController::delete/$1');
+
         // 진료과 마스터 관리 (이슈 #113)
         $routes->get('departments',                'Admin\DepartmentController::index');
         $routes->post('departments',               'Admin\DepartmentController::create');
@@ -295,6 +303,10 @@ $routes->group('', ['namespace' => 'App\Controllers\Web'], static function (Rout
     $routes->get('hospitals/(:num)', 'HospitalPageController::show/$1');
     $routes->get('reviews',          'ReviewPageController::index');
     $routes->get('reviews/(:num)',   'ReviewPageController::show/$1');
+
+    // 시술 가이드 공개 페이지 (이슈 #146) — 슬러그 URL
+    $routes->get('guides',           'GuidePageController::index');
+    $routes->get('guides/(:segment)', 'GuidePageController::show/$1');
 
     // 크롤러 진입점 — 동적 생성(이슈 #143). 정적 public/robots.txt 는 제거됨
     $routes->get('sitemap.xml', 'SitemapController::index');

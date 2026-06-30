@@ -279,7 +279,7 @@ Sitemap: https://{운영도메인}/sitemap.xml
 | 2 | SEO 메타 + sitemap + robots | `MetaTagBuilder`, `SitemapController`, robots 보강, baseURL 환경변수 명문화 | 1 | ✅ 완료 (#143) — 동적 sitemap.xml·robots.txt(절대 URL), MetaTagBuilder 라이브러리화 |
 | 3 | 병원·후기 공개 페이지 | 병원/후기 SSR + 후기 신뢰도 필터(noindex) | 1 | ✅ 완료 (#144) — 병원/후기 SSR, 작성자 마스킹, 신고·저신뢰 noindex, sitemap 확장 |
 | 4 | JSON-LD 구조화 데이터 | `JsonLdBuilder` — Offer/MedicalClinic/Review/Article | 2,3 | ✅ 완료 (#145) — 이벤트 Offer·병원 MedicalClinic·후기 Review, web/partials/json_ld 주입 (가이드 Article 은 #146) |
-| 5 | GEO 콘텐츠 자산 — 가이드 | `guides` 테이블·CRUD(Admin)·공개 페이지·Article/FAQ 스키마 | 4 | 서브이슈 |
+| 5 | GEO 콘텐츠 자산 — 가이드 | `guides` 테이블·CRUD(Admin)·공개 페이지·Article/FAQ 스키마 | 4 | ✅ 완료 (#146) — guides 마이그레이션·Admin CRUD(Tiptap·FAQ)·공개 슬러그 페이지·MedicalWebPage+FAQPage JSON-LD·sitemap |
 | 6 | llms.txt + AI 크롤러 정책 | `public/llms.txt`, robots AI 크롤러 섹션 점검 | 2 | 서브이슈 |
 | 7 | 측정·검증 | GSC/Naver 등록, Rich Results 검증, 크롤러 로그 분석 | 전체 | 서브이슈 |
 

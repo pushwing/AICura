@@ -9,6 +9,7 @@ use App\Services\BoardService;
 use App\Services\BookingService;
 use App\Services\CallRequestService;
 use App\Services\EventService;
+use App\Services\GuideService;
 use App\Services\HealthPointService;
 use App\Services\HospitalService;
 use App\Services\LogIngestService;
@@ -60,6 +61,18 @@ class Services extends BaseService
         }
 
         return new EventService();
+    }
+
+    /**
+     * 시술 가이드 서비스 (이슈 #146)
+     */
+    public static function guideService(bool $getShared = true): GuideService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('guideService');
+        }
+
+        return new GuideService();
     }
 
     /**

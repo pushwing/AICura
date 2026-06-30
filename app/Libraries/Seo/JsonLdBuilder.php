@@ -175,6 +175,85 @@ final class JsonLdBuilder
     }
 
     /**
+     * 가이드 → MedicalWebPage(Article) + about MedicalProcedure (§4.4)
+     *
+     * @param array<string, mixed> $guide GuideService::findPublishedBySlug 결과
+     * @return array<string, mixed>
+     */
+    public static function guide(array $guide, string $url): array
+    {
+        $schema = [
+            '@context'         => self::CONTEXT,
+            '@type'            => 'MedicalWebPage',
+            'name'             => (string) ($guide['title'] ?? ''),
+            'url'              => $url,
+            'mainEntityOfPage' => $url,
+            'publisher'        => ['@type' => 'Organization', 'name' => 'AICura'],
+        ];
+
+        $summary = trim((string) ($guide['summary'] ?? ''));
+        if ($summary !== '') {
+            $schema['description'] = $summary;
+        }
+        $body = trim(strip_tags((string) ($guide['content'] ?? '')));
+        if ($body !== '') {
+            $schema['articleBody'] = mb_substr($body, 0, 5000);
+        }
+        if (!empty($guide['published_at'])) {
+            $schema['datePublished'] = (string) $guide['published_at'];
+        }
+        if (!empty($guide['updated_at'])) {
+            $schema['dateModified'] = (string) $guide['updated_at'];
+        }
+        if (!empty($guide['procedure_name'])) {
+            $schema['about'] = [
+                '@type' => 'MedicalProcedure',
+                'name'  => (string) $guide['procedure_name'],
+            ];
+        }
+
+        return $schema;
+    }
+
+    /**
+     * FAQ → FAQPage (§4.4)
+     *
+     * @param array<int, array{q: string, a: string}> $faq
+     * @return array<string, mixed> FAQ 가 없으면 빈 배열(render 에서 무시)
+     */
+    public static function faqPage(array $faq, string $url): array
+    {
+        if ($faq === []) {
+            return [];
+        }
+
+        $entities = [];
+        foreach ($faq as $item) {
+            $q = trim((string) $item['q']);
+            $a = trim((string) $item['a']);
+            if ($q === '' || $a === '') {
+                continue;
+            }
+            $entities[] = [
+                '@type'          => 'Question',
+                'name'           => $q,
+                'acceptedAnswer' => ['@type' => 'Answer', 'text' => $a],
+            ];
+        }
+
+        if ($entities === []) {
+            return [];
+        }
+
+        return [
+            '@context'   => self::CONTEXT,
+            '@type'      => 'FAQPage',
+            'url'        => $url,
+            'mainEntity' => $entities,
+        ];
+    }
+
+    /**
      * schema 배열(들)을 `<script type="application/ld+json">` 블록으로 직렬화.
      *
      * @param array<int, array<string, mixed>> $schemas
