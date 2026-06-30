@@ -7,6 +7,18 @@
 
 ---
 
+## 0. 확정된 선행 결정사항 (2026-06-30)
+
+| # | 항목 | 결정 | 반영 |
+|---|------|------|------|
+| 1 | 운영 도메인·HTTPS | **환경변수로 추상화** — 도메인 미확정. `app.baseURL`(.env) 기준으로 구축하고, 확정 시 값만 주입. canonical·OG·sitemap 모두 `base_url()` 경유 | §3.1, §5 |
+| 2 | 공개 페이지 색인 정책 | **색인 허용 전제** — 공개 페이지 기본 `robots: index, follow`. 단, 미심의·저신뢰 콘텐츠는 개별 `noindex`(§4.3, §8) | §5, §8 |
+| 3 | AI 크롤러 정책 | **전체 허용** — 검색 인용·학습 크롤러(GPTBot·OAI-SearchBot·PerplexityBot·Google-Extended·ClaudeBot 등) 모두 허용. AI 검색 노출 극대화가 이슈 목표 | §6 |
+
+> 의료광고법(§8)은 기술 외 **사업·법무 결정**으로, 색인 허용 전제이되 미심의 콘텐츠는 `noindex` 처리하는 것을 기본 방어선으로 한다.
+
+---
+
 ## 1. 배경 — 현재 AICura의 공개 크롤링 표면은 0
 
 AICura는 성형·토탈 광고 솔루션으로, 코드베이스는 세 가지 표면으로 구성된다.
@@ -172,7 +184,7 @@ GEO의 핵심은 **구조화 데이터로 사실을 기계 판독 가능하게**
    - Open Graph(`og:title/description/image/type/url`), Twitter Card
 3. **sitemap.xml 동적 생성** — 활성 이벤트/병원/후기/가이드 URL, `lastmod` 포함
 4. **robots.txt 갱신** — `Sitemap: https://{도메인}/sitemap.xml` 추가
-5. **운영 도메인·HTTPS 확정** → `app.baseURL` 환경변수화 (현재 localhost)
+5. **운영 도메인·HTTPS** → `app.baseURL` 환경변수화 (현재 localhost) — ✅ **환경변수 추상화로 확정**(§0). 도메인 값만 추후 주입
 6. **성능(Core Web Vitals)** — 이미지 최적화/지연로딩, 서버 응답 캐시(§3.3), 모바일 우선
 7. **한국 시장 대응** — Naver(웹마스터도구·사이트맵 제출), Google Search Console 등록
 
@@ -214,8 +226,9 @@ Allow: /
 Sitemap: https://{운영도메인}/sitemap.xml
 ```
 
-> ⚠️ 정책 결정 필요: **콘텐츠가 LLM 학습에 사용되는 것**과 **검색 답변에 인용되는 것**은 크롤러별로 구분된다.
-> "노출은 원하지만 학습은 원치 않음"이면 크롤러를 선별 허용한다. (별도 결정사항)
+> ✅ **결정(§0): 전체 허용.** 검색 인용 크롤러와 LLM 학습 크롤러를 모두 허용한다.
+> (선별 차단이 필요해지면 학습 크롤러(GPTBot 등)만 `Disallow`로 전환할 수 있으나, 현재는 노출 극대화 우선.)
+> 실제 적용본은 `public/robots.txt` 참조 — 이슈 #137 골격에서 이미 반영됨.
 
 ---
 
@@ -239,9 +252,9 @@ Sitemap: https://{운영도메인}/sitemap.xml
 - **심의번호 표기:** `deliberation_code`(캠페인)·`ComplianceCheckModel`(이슈 #71 사전검사) 활용 → 공개 페이지에 심의번호 노출
 - **가격 표시 규제:** 할인가·이벤트가 직접 노출은 의료법상 제한될 수 있음 → 표기 방식 법무 검토
 - **후기 노출:** 환자 후기의 공개는 별도 규제·개인정보 이슈 → 작성자 마스킹, 동의 범위 확인
-- **미심의 콘텐츠 색인 차단:** 심의 미통과/대기 콘텐츠는 `noindex` 처리
+- **미심의 콘텐츠 색인 차단:** 심의 미통과/대기 콘텐츠는 `noindex` 처리 — 색인 허용 전제(§0)의 **기본 방어선**
 
-> 이 리스크는 기술이 아닌 **사업·법무 결정**이며, Phase 1 착수 전 확정되어야 한다.
+> 이 리스크는 기술이 아닌 **사업·법무 결정**이다. 색인은 허용(§0)하되, 미심의 콘텐츠 `noindex`·가격 표기·후기 공개는 법무 검토를 병행한다.
 
 ---
 
@@ -249,20 +262,22 @@ Sitemap: https://{운영도메인}/sitemap.xml
 
 `feature/* → dev → main` 워크플로우(CLAUDE.md)에 맞춰 다음 단위로 분할 제안한다.
 
-| 순서 | 이슈(제안) | 범위 | 의존 |
-|------|-----------|------|------|
-| 1 | 공개 SSR 웹 레이어 골격 | `Controllers/Web/*` + `Views/web/layout` + 라우트 + 이벤트 목록/상세 | — |
-| 2 | SEO 메타 + sitemap + robots | `MetaTagBuilder`, `SitemapController`, robots 갱신, baseURL 환경변수화 | 1 |
-| 3 | 병원·후기 공개 페이지 | 병원/후기 SSR + 후기 신뢰도 필터(noindex) | 1 |
-| 4 | JSON-LD 구조화 데이터 | `JsonLdBuilder` — Offer/MedicalClinic/Review/Article | 2,3 |
-| 5 | GEO 콘텐츠 자산 — 가이드 | `guides` 테이블·CRUD(Admin)·공개 페이지·Article/FAQ 스키마 | 4 |
-| 6 | llms.txt + AI 크롤러 정책 | `public/llms.txt`, robots AI 크롤러 섹션 | 2 |
-| 7 | 측정·검증 | GSC/Naver 등록, Rich Results 검증, 크롤러 로그 분석 | 전체 |
+아래 항목을 #137의 **서브이슈**로 등록한다.
 
-선행 결정사항(비기술):
-1. **운영 도메인·HTTPS** 확정
-2. **의료광고법 검토** (§8) — Phase 1 착수 전 필수
-3. **AI 크롤러 정책** (§6) — 학습 허용 범위
+| 순서 | 이슈(제안) | 범위 | 의존 | 상태 |
+|------|-----------|------|------|------|
+| 1 | 공개 SSR 웹 레이어 골격 | `Controllers/Web/*` + `Views/web/layout` + 라우트 + 이벤트 목록/상세 | — | ✅ 완료 (커밋 `7c82f0f`, AI 크롤러 robots 반영) |
+| 2 | SEO 메타 + sitemap + robots | `MetaTagBuilder`, `SitemapController`, robots 보강, baseURL 환경변수 명문화 | 1 | 서브이슈 |
+| 3 | 병원·후기 공개 페이지 | 병원/후기 SSR + 후기 신뢰도 필터(noindex) | 1 | 서브이슈 |
+| 4 | JSON-LD 구조화 데이터 | `JsonLdBuilder` — Offer/MedicalClinic/Review/Article | 2,3 | 서브이슈 |
+| 5 | GEO 콘텐츠 자산 — 가이드 | `guides` 테이블·CRUD(Admin)·공개 페이지·Article/FAQ 스키마 | 4 | 서브이슈 |
+| 6 | llms.txt + AI 크롤러 정책 | `public/llms.txt`, robots AI 크롤러 섹션 점검 | 2 | 서브이슈 |
+| 7 | 측정·검증 | GSC/Naver 등록, Rich Results 검증, 크롤러 로그 분석 | 전체 | 서브이슈 |
+
+선행 결정사항(비기술) — **모두 확정**(§0):
+1. ✅ **운영 도메인·HTTPS** — 환경변수로 추상화 (도메인 값만 추후 주입)
+2. ✅ **AI 크롤러 정책** — 전체 허용 (검색 인용·학습 모두)
+3. ⚠️ **의료광고법 검토** (§8) — 색인 허용 전제이되 미심의 콘텐츠 `noindex` 기본 방어선. 가격·후기 공개 표기는 법무 병행
 
 ---
 
