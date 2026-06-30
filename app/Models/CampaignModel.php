@@ -353,13 +353,18 @@ class CampaignModel extends Model
     /**
      * 소비자 노출 조건을 빌더에 적용한다.
      *
-     * 노출: status='active' · is_deleted=0 · exposure IN(1 이벤트, 3 둘다) · 노출기간 내(기간 없으면 항상)
+     * 노출: status='active' · review_status='approved'(검수완료) · is_deleted=0
+     *       · exposure IN(1 이벤트, 3 둘다) · 노출기간 내(기간 없으면 항상)
+     *
+     * 검수 미완료(pending·rejected) 이벤트는 의료광고법 저촉 가능성으로 노출을 금지한다(이슈 #137).
+     * status(캠페인 게재)와 review_status(검수)는 독립 축이므로 둘 다 충족해야 노출된다.
      */
     private function applyConsumerFilters(BaseBuilder $builder, string $alias = 'c'): void
     {
         $today = date('Y-m-d');
 
         $builder->where("{$alias}.status", 'active')
+            ->where("{$alias}.review_status", 'approved')
             ->where("{$alias}.is_deleted", 0)
             ->whereIn("{$alias}.exposure", [1, 3])
             ->groupStart()

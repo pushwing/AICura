@@ -83,6 +83,7 @@ final class CallRequestApiFeatureTest extends CIUnitTestCase
         $now = date('Y-m-d H:i:s');
         $db->table('campaigns')->insert(array_merge([
             'ad_title' => '리프팅 이벤트', 'hospital_id' => $this->hospitalId, 'status' => 'active',
+            'review_status' => 'approved', // 검수완료 — 노출 조건 (이슈 #137)
             'exposure' => 1, 'is_deleted' => 0, 'ad_type' => 1, 'cost_type' => 1,
             'created_at' => $now, 'updated_at' => $now,
         ], $overrides));

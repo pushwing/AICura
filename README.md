@@ -445,4 +445,5 @@ flutter analyze && flutter test
 | 디자인 시스템 | `docs/design-system.md` |
 | UI 컴포넌트 가이드 | `docs/ui-guide.md` |
 | 아키텍처 설계 | `docs/architecture.md` |
+| GEO 적용 전략 (SEO→GEO) | `docs/geo-strategy.md` |
 | UI 쇼케이스 | `ui/components.html` |
