@@ -91,6 +91,9 @@ final class EventApiFeatureTest extends CIUnitTestCase
         $this->insertCampaign(['ad_title' => '종료', 'exposure' => 1, 'ad_end_date' => $yesterday]);
         // 비노출: 삭제됨
         $this->insertCampaign(['ad_title' => '삭제됨', 'exposure' => 1, 'is_deleted' => 1]);
+        // 비노출: 검수 미완료 (이슈 #137) — status=active 이나 review_status pending/rejected
+        $this->insertCampaign(['ad_title' => '검수대기노출', 'exposure' => 1, 'review_status' => 'pending']);
+        $this->insertCampaign(['ad_title' => '검수반려노출', 'exposure' => 1, 'review_status' => 'rejected']);
 
         // 인기순: C2 가 상담신청 더 많음
         $this->insertCallRequest($this->c1, 1);
@@ -124,6 +127,7 @@ final class EventApiFeatureTest extends CIUnitTestCase
         $now = date('Y-m-d H:i:s');
         $row = array_merge([
             'ad_title' => '이벤트', 'hospital_id' => $this->hospitalId, 'status' => 'active',
+            'review_status' => 'approved', // 검수완료 기본 — 노출 조건 (이슈 #137)
             'exposure' => 1, 'is_deleted' => 0, 'category' => 0, 'region' => '서울',
             'ad_type' => 1, 'cost_type' => 1, 'general_cost' => 0, 'discount_cost' => 0,
             'created_at' => $now, 'updated_at' => $now,
@@ -278,6 +282,17 @@ final class EventApiFeatureTest extends CIUnitTestCase
         }
         $this->assertTrue($liked[$this->c1]);
         $this->assertFalse($liked[$this->c2]);
+    }
+
+    /** [E14] 이슈 #137 — 검수 미완료(pending·rejected)는 status=active 라도 노출 금지 */
+    public function testUnreviewedEventsAreHidden(): void
+    {
+        $body   = $this->authGet('api/v1/campaigns');
+        $titles = array_column($body['data'], 'ad_title');
+
+        $this->assertNotContains('검수대기노출', $titles);
+        $this->assertNotContains('검수반려노출', $titles);
+        $this->assertSame(2, $body['meta']['total']); // 검수완료 c1·c2 만 노출 유지
     }
 
     /** [E11] 조회는 비로그인 허용(200), 찜은 로그인 필요(401) */

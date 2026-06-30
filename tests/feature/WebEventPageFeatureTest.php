@@ -26,9 +26,10 @@ final class WebEventPageFeatureTest extends CIUnitTestCase
     protected $refresh   = true;
     protected $namespace = null;
 
-    private int $hospitalId = 0;
-    private int $visibleId  = 0;
-    private int $hiddenId   = 0;
+    private int $hospitalId   = 0;
+    private int $visibleId    = 0;
+    private int $hiddenId     = 0;
+    private int $unreviewedId = 0;
 
     protected function setUp(): void
     {
@@ -60,6 +61,10 @@ final class WebEventPageFeatureTest extends CIUnitTestCase
         ]);
         // 비노출: exposure=2 (병원상세 전용)
         $this->hiddenId = $this->insertCampaign(['ad_title' => '비노출이벤트', 'exposure' => 2]);
+        // 비노출: 검수 미완료 (이슈 #137) — status=active 이나 review_status=pending
+        $this->unreviewedId = $this->insertCampaign([
+            'ad_title' => '검수안된이벤트', 'exposure' => 1, 'review_status' => 'pending',
+        ]);
     }
 
     /** @param array<string, mixed> $overrides */
@@ -69,6 +74,7 @@ final class WebEventPageFeatureTest extends CIUnitTestCase
         $now = date('Y-m-d H:i:s');
         $row = array_merge([
             'ad_title' => '이벤트', 'hospital_id' => $this->hospitalId, 'status' => 'active',
+            'review_status' => 'approved', // 검수완료 기본 — 노출 조건 (이슈 #137)
             'exposure' => 1, 'is_deleted' => 0, 'category' => 0, 'region' => '서울',
             'ad_type' => 1, 'cost_type' => 1, 'general_cost' => 0, 'discount_cost' => 0,
             'created_at' => $now, 'updated_at' => $now,
@@ -132,5 +138,20 @@ final class WebEventPageFeatureTest extends CIUnitTestCase
     {
         $this->expectException(PageNotFoundException::class);
         $this->get('events/' . $this->hiddenId);
+    }
+
+    /** [W5] 이슈 #137 — 검수 미완료 이벤트는 목록 미노출 */
+    public function testUnreviewedEventNotListed(): void
+    {
+        $body = $this->decode($this->get('events')->getBody());
+
+        $this->assertStringNotContainsString('검수안된이벤트', $body);
+    }
+
+    /** [W6] 이슈 #137 — 검수 미완료 이벤트 상세는 404 */
+    public function testUnreviewedEventDetailReturns404(): void
+    {
+        $this->expectException(PageNotFoundException::class);
+        $this->get('events/' . $this->unreviewedId);
     }
 }

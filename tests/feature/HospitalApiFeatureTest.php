@@ -117,6 +117,7 @@ final class HospitalApiFeatureTest extends CIUnitTestCase
         $now = date('Y-m-d H:i:s');
         $db->table('campaigns')->insert([
             'ad_title' => $title, 'hospital_id' => $hospitalId, 'status' => 'active',
+            'review_status' => 'approved', // 검수완료 — 노출 조건 (이슈 #137)
             'exposure' => 1, 'is_deleted' => 0, 'ad_type' => 1, 'cost_type' => 1,
             'created_at' => $now, 'updated_at' => $now,
         ]);
