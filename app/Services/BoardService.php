@@ -107,6 +107,32 @@ class BoardService
     }
 
     /**
+     * 후기 대상(이벤트/병원) 이름 — JSON-LD itemReviewed 용. (이슈 #145)
+     *
+     * @param int $type BoardModel::TYPE_* (1 이벤트·2 병원)
+     */
+    public function resolveTargetName(int $type, int $targetId): ?string
+    {
+        if ($targetId <= 0) {
+            return null;
+        }
+
+        $row = match ($type) {
+            BoardModel::TYPE_EVENT    => $this->campaigns->select('ad_title')->find($targetId),
+            BoardModel::TYPE_HOSPITAL => $this->hospitals->select('name')->find($targetId),
+            default                   => null,
+        };
+
+        if (!is_array($row)) {
+            return null;
+        }
+
+        $name = $row['ad_title'] ?? $row['name'] ?? null;
+
+        return is_string($name) && $name !== '' ? $name : null;
+    }
+
+    /**
      * 후기 작성
      *
      * @param array<string, mixed> $input type·target_id·subject·contents·rating·images[]

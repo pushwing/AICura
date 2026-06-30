@@ -3,6 +3,7 @@
 namespace App\Controllers\Web;
 
 use App\Exceptions\NotFoundException;
+use App\Libraries\Seo\JsonLdBuilder;
 use App\Libraries\Seo\NameMasker;
 use App\Services\BoardService;
 use CodeIgniter\Exceptions\PageNotFoundException;
@@ -74,11 +75,13 @@ class ReviewPageController extends BaseWebController
             return $comment;
         }, $review['comments'] ?? []);
 
-        $indexable = $this->boards->isIndexable($reviewId);
-        $summary   = mb_substr(trim(strip_tags((string) ($review['contents'] ?? ''))), 0, 150);
+        $indexable  = $this->boards->isIndexable($reviewId);
+        $targetName = $this->boards->resolveTargetName((int) ($review['type'] ?? 0), (int) ($review['target_id'] ?? 0));
+        $summary    = mb_substr(trim(strip_tags((string) ($review['contents'] ?? ''))), 0, 150);
 
         return $this->render('web/reviews/show', [
             'review' => $review,
+            'jsonLd' => [JsonLdBuilder::review($review, base_url('reviews/' . $reviewId), $targetName)],
         ], [
             'title'       => (string) $review['subject'] . ' | AICura 후기',
             'description' => $summary !== '' ? $summary : '성형·시술 실사용 후기 — AICura',

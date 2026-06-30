@@ -3,6 +3,7 @@
 namespace App\Controllers\Web;
 
 use App\Exceptions\NotFoundException;
+use App\Libraries\Seo\JsonLdBuilder;
 use App\Services\HospitalService;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RequestInterface;
@@ -64,6 +65,7 @@ class HospitalPageController extends BaseWebController
         return $this->render('web/hospitals/show', [
             'hospital' => $hospital,
             'events'   => $events['items'],
+            'jsonLd'   => [JsonLdBuilder::hospital($hospital, base_url('hospitals/' . $hospitalId))],
         ], [
             'title'       => $name . ' | AICura',
             'description' => $name . '의 위치·진료과·진행 중인 성형·시술 이벤트와 후기 평점을 확인하세요.',

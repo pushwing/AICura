@@ -127,6 +127,12 @@ $routes->get('sitemap.xml', 'Web\SitemapController::index');
 
 GEO의 핵심은 **구조화 데이터로 사실을 기계 판독 가능하게** 만드는 것이다. 실제 모델 필드 기준 매핑:
 
+> ⚠️ **구현 주의(#145):** 전역 출력 핸들러가 비ASCII(한글)를 HTML 숫자 엔티티(`&#44053;`)로 변환하는데,
+> `<script type="application/ld+json">` 내부에서는 엔티티가 디코드되지 않아 구조화 데이터가 깨진다.
+> 따라서 `JsonLdBuilder`는 `JSON_UNESCAPED_UNICODE` 를 쓰지 않고 한글을 `\uXXXX`(ASCII)로 인코딩한다.
+> 또한 `Config\View::$saveData=true` 로 공유 렌더러가 직전 요청의 `jsonLd` 를 유지(워커 모드 누출)하므로,
+> `BaseWebController::render` 가 `jsonLd` 기본값을 항상 `[]` 로 명시한다. (가이드 Article #146 도 동일 규칙 준수)
+
 ### 4.1 이벤트/캠페인 — `Offer` + `MedicalProcedure`
 소스: `campaigns` 테이블 / `CampaignModel`, `EventService::detail()`
 
@@ -272,7 +278,7 @@ Sitemap: https://{운영도메인}/sitemap.xml
 | 1 | 공개 SSR 웹 레이어 골격 | `Controllers/Web/*` + `Views/web/layout` + 라우트 + 이벤트 목록/상세 | — | ✅ 완료 (커밋 `7c82f0f`, AI 크롤러 robots 반영) |
 | 2 | SEO 메타 + sitemap + robots | `MetaTagBuilder`, `SitemapController`, robots 보강, baseURL 환경변수 명문화 | 1 | ✅ 완료 (#143) — 동적 sitemap.xml·robots.txt(절대 URL), MetaTagBuilder 라이브러리화 |
 | 3 | 병원·후기 공개 페이지 | 병원/후기 SSR + 후기 신뢰도 필터(noindex) | 1 | ✅ 완료 (#144) — 병원/후기 SSR, 작성자 마스킹, 신고·저신뢰 noindex, sitemap 확장 |
-| 4 | JSON-LD 구조화 데이터 | `JsonLdBuilder` — Offer/MedicalClinic/Review/Article | 2,3 | 서브이슈 |
+| 4 | JSON-LD 구조화 데이터 | `JsonLdBuilder` — Offer/MedicalClinic/Review/Article | 2,3 | ✅ 완료 (#145) — 이벤트 Offer·병원 MedicalClinic·후기 Review, web/partials/json_ld 주입 (가이드 Article 은 #146) |
 | 5 | GEO 콘텐츠 자산 — 가이드 | `guides` 테이블·CRUD(Admin)·공개 페이지·Article/FAQ 스키마 | 4 | 서브이슈 |
 | 6 | llms.txt + AI 크롤러 정책 | `public/llms.txt`, robots AI 크롤러 섹션 점검 | 2 | 서브이슈 |
 | 7 | 측정·검증 | GSC/Naver 등록, Rich Results 검증, 크롤러 로그 분석 | 전체 | 서브이슈 |

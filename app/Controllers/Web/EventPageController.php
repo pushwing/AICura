@@ -3,6 +3,7 @@
 namespace App\Controllers\Web;
 
 use App\Exceptions\NotFoundException;
+use App\Libraries\Seo\JsonLdBuilder;
 use App\Services\EventService;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RequestInterface;
@@ -59,7 +60,8 @@ class EventPageController extends BaseWebController
         $summary = mb_substr(trim(strip_tags((string) ($event['ad_detail_info'] ?? ''))), 0, 150);
 
         return $this->render('web/events/show', [
-            'event' => $event,
+            'event'  => $event,
+            'jsonLd' => [JsonLdBuilder::event($event, base_url('events/' . (int) $event['id']))],
         ], [
             'title'       => (string) $event['ad_title'] . ' | AICura',
             'description' => $summary !== '' ? $summary : '성형·시술 이벤트 상세 — AICura',

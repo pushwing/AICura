@@ -52,7 +52,9 @@ abstract class BaseWebController extends BaseController
      */
     protected function render(string $view, array $data = [], array $meta = []): string
     {
-        $pageData = array_merge($data, ['meta' => array_merge($this->defaultMeta(), $meta)]);
+        // jsonLd 기본값을 항상 명시 — Config\View::$saveData=true 로 공유 렌더러가 이전 요청의
+        // jsonLd 를 유지(FrankenPHP 워커 모드 데이터 누출)하는 것을 방지한다(이슈 #145).
+        $pageData = array_merge(['jsonLd' => []], $data, ['meta' => array_merge($this->defaultMeta(), $meta)]);
 
         // 'content' 키는 레이아웃 슬롯 예약어 — 마지막에 덮어써 충돌 방지 (Admin 레이아웃 패턴 동일)
         return view('web/layout/main', array_merge($pageData, [
