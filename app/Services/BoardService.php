@@ -34,6 +34,7 @@ class BoardService
     private HospitalModel $hospitals;
     private UserModel $users;
     private UploadService $uploads;
+    private HealthPointService $points;
 
     public function __construct(
         ?BoardModel $boards = null,
@@ -45,6 +46,7 @@ class BoardService
         ?HospitalModel $hospitals = null,
         ?UserModel $users = null,
         ?UploadService $uploads = null,
+        ?HealthPointService $points = null,
     ) {
         $this->boards      = $boards      ?? model(BoardModel::class);
         $this->comments    = $comments    ?? model(BoardCommentModel::class);
@@ -55,6 +57,7 @@ class BoardService
         $this->hospitals   = $hospitals   ?? model(HospitalModel::class);
         $this->users       = $users       ?? model(UserModel::class);
         $this->uploads     = $uploads     ?? service('uploadService');
+        $this->points      = $points      ?? service('healthPointService');
     }
 
     /**
@@ -130,6 +133,9 @@ class BoardService
 
         $this->summaries->recalculate($type, $targetId);
 
+        // 후기 작성 적립 — 후기와 동일 트랜잭션에서 처리해 일관성을 보장한다 (이슈 #114)
+        $this->points->awardReview($userId, $id);
+
         $db->transComplete();
 
         return $this->detail($userId, $id);
@@ -199,6 +205,9 @@ class BoardService
 
         $this->boards->softDeleteReview($id);
         $this->summaries->recalculate((int) $review['type'], (int) $review['target_id']);
+
+        // 후기 삭제 시 적립분 회수 — 동일 트랜잭션 (이슈 #114)
+        $this->points->revokeReview($userId, $id);
 
         $db->transComplete();
     }

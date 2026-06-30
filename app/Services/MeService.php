@@ -29,6 +29,7 @@ class MeService
     private BookingModel $bookings;
     private FavoriteModel $favorites;
     private HealthPointLogModel $pointLogs;
+    private HealthPointService $points;
 
     public function __construct(
         ?UserModel $users = null,
@@ -38,6 +39,7 @@ class MeService
         ?BookingModel $bookings = null,
         ?FavoriteModel $favorites = null,
         ?HealthPointLogModel $pointLogs = null,
+        ?HealthPointService $points = null,
     ) {
         $this->users        = $users        ?? model(UserModel::class);
         $this->devices      = $devices      ?? model(UserDeviceModel::class);
@@ -46,6 +48,7 @@ class MeService
         $this->bookings     = $bookings     ?? model(BookingModel::class);
         $this->favorites    = $favorites    ?? model(FavoriteModel::class);
         $this->pointLogs    = $pointLogs    ?? model(HealthPointLogModel::class);
+        $this->points       = $points       ?? service('healthPointService');
     }
 
     /**
@@ -224,6 +227,17 @@ class MeService
             'logs'    => $logs,
             'total'   => $base['total'],
         ];
+    }
+
+    /**
+     * 헬스포인트 차감(사용) — 차감 후 잔액 반환 (이슈 #114)
+     *
+     * @return array{balance: int}
+     * @throws \App\Exceptions\PointException 금액 오류·잔액 부족
+     */
+    public function redeemHealthPoint(int $userId, int $amount, ?string $memo = null): array
+    {
+        return ['balance' => $this->points->redeem($userId, $amount, $memo)];
     }
 
     /**
