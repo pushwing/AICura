@@ -22,6 +22,7 @@ import 'features/push/push_token_provider.dart';
 import 'features/shell/main_shell.dart';
 import 'features/system/settings_provider.dart';
 import 'features/system/system_repository.dart';
+import 'features/system/telemetry.dart';
 
 /// 앱 루트 — 의존성 조립(DI) 및 라우팅(인증 게이트).
 class AicuraApp extends StatefulWidget {
@@ -42,6 +43,7 @@ class _AicuraAppState extends State<AicuraApp> {
   late final BoardRepository _boardRepo;
   late final BookingRepository _bookingRepo;
   late final SystemRepository _systemRepo;
+  late final Telemetry _telemetry;
   late final DeviceRegistrar _deviceRegistrar;
   late final EventProvider _events;
   late final MyPageProvider _myPage;
@@ -67,6 +69,7 @@ class _AicuraAppState extends State<AicuraApp> {
     _boardRepo = BoardRepository(_api);
     _bookingRepo = BookingRepository(_api);
     _systemRepo = SystemRepository(_api);
+    _telemetry = Telemetry(_systemRepo);
     _events = EventProvider(_eventRepo);
     _myPage = MyPageProvider(_meRepo);
     _settings = SettingsProvider(_systemRepo);
@@ -115,6 +118,7 @@ class _AicuraAppState extends State<AicuraApp> {
         Provider<HospitalRepository>.value(value: _hospitalRepo),
         Provider<BoardRepository>.value(value: _boardRepo),
         Provider<BookingRepository>.value(value: _bookingRepo),
+        Provider<Telemetry>.value(value: _telemetry),
       ],
       child: MaterialApp(
         title: '뷰니',

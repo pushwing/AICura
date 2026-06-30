@@ -9,6 +9,7 @@ import '../auth/login_screen.dart';
 import '../call_request/apply_screen.dart';
 import '../community/board_repository.dart';
 import '../hospital/hospital_detail_screen.dart';
+import '../system/telemetry.dart';
 import 'event_repository.dart';
 import 'models/event.dart';
 
@@ -46,6 +47,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       final event =
           await context.read<EventRepository>().detail(widget.eventId);
       if (!mounted) return;
+      context.read<Telemetry>().eventDetailView(widget.eventId); // 상세 조회 로그
       setState(() {
         _event = event;
         _loading = false;
@@ -65,7 +67,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     if (!await requireLogin(context) || !mounted) return;
     try {
       final liked = await context.read<EventRepository>().toggleLike(event.id);
-      if (mounted) setState(() => _event = event.copyWith(isLiked: liked));
+      if (!mounted) return;
+      if (liked) context.read<Telemetry>().eventLike(event.id); // 찜 등록만 로그
+      setState(() => _event = event.copyWith(isLiked: liked));
     } on ApiException catch (e) {
       _snack(e.message);
     }

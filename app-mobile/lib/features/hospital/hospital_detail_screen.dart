@@ -8,6 +8,7 @@ import '../events/event_detail_screen.dart';
 import '../events/event_repository.dart';
 import '../events/models/event.dart';
 import '../events/widgets/event_card.dart';
+import '../system/telemetry.dart';
 import 'hospital_repository.dart';
 import 'models/hospital.dart';
 import 'models/hospital_review.dart';
@@ -48,6 +49,9 @@ class _HospitalDetailScreenState extends State<HospitalDetailScreen> {
         repo.reviews(widget.hospitalId),
       ).wait;
       if (!mounted) return;
+      context
+          .read<Telemetry>()
+          .hospitalDetailView(widget.hospitalId); // 병원 상세 로그
       setState(() {
         _hospital = results.$1;
         _events = results.$2;

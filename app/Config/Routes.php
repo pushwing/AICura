@@ -47,6 +47,7 @@ $routes->group('admin', static function (RouteCollection $routes): void {
         // 리포트
         $routes->get('reports',           'Admin\ReportController::index');
         $routes->get('reports/campaigns', 'Admin\ReportController::campaigns');
+        $routes->get('reports/app-logs',  'Admin\ReportController::appLogs'); // 앱 액션 로그 통계 (이슈 #120)
         // AI 일일 보고서 (이슈 #65)
         $routes->post('reports/ai/generate',       'Admin\ReportController::generateAi');
         $routes->get('reports/ai/(:num)',          'Admin\ReportController::aiReportShow/$1');

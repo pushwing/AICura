@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/theme/app_colors.dart';
 import '../events/models/event.dart';
+import '../system/telemetry.dart';
 import 'call_request_repository.dart';
 
 /// 예약(상담) 신청 폼 — 희망 날짜·시간 칩 + 신청자 정보 + 동의.
@@ -41,6 +42,7 @@ class _ApplyScreenState extends State<ApplyScreen> {
     super.initState();
     final today = DateTime.now();
     _dates = List.generate(6, (i) => today.add(Duration(days: i)));
+    context.read<Telemetry>().applyFormView(widget.event.id); // 신청폼 진입 로그
   }
 
   @override
@@ -80,6 +82,7 @@ class _ApplyScreenState extends State<ApplyScreen> {
             callTime: callTime,
           );
       if (!mounted) return;
+      context.read<Telemetry>().applySubmit(widget.event.id); // 신청 제출 로그
       Navigator.of(context).pop();
       _toast('예약 신청이 접수되었어요');
     } on ApiException catch (e) {
