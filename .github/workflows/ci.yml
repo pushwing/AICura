@@ -14,7 +14,7 @@ concurrency:
 jobs:
   # ───────────────────────────── 백엔드 (CodeIgniter 4) ─────────────────────────────
   backend:
-    name: Backend (PHP 8.4 · PHPStan · PHPUnit)
+    name: Backend (PHP 8.5 · PHPStan · PHPUnit)
     runs-on: ubuntu-latest
 
     services:
@@ -39,7 +39,7 @@ jobs:
       - name: PHP 설정
         uses: shivammathur/setup-php@v2
         with:
-          php-version: "8.4"
+          php-version: "8.5"
           extensions: mbstring, intl, mysqli, curl, dom, xml, tokenizer
           # phpunit.dist.xml 이 failOnWarning + <coverage> 를 켜 두어
           # 커버리지 드라이버가 없으면 경고→실패. pcov 로 드라이버 제공.

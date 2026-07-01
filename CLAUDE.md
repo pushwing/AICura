@@ -21,7 +21,8 @@ AI 기반 성형·토탈 광고 솔루션. CodeIgniter 4 기반 Admin + REST API
 > **PHP 버전 구분**  
 > - 웹 요청 처리: FrankenPHP 내장 PHP 8.5.7  
 > - CLI (composer/spark/PHPStan/PHPUnit): 시스템 PHP 8.4.22  
-> - `composer.json` 요구사항은 시스템 PHP 기준 (`^8.4`)
+> - CI (GitHub Actions `backend` 잡): PHP 8.5 (setup-php)  
+> - `composer.json` 요구사항은 `^8.4` (8.5 포함)
 
 ## 로컬 환경 설정
 
@@ -499,11 +500,11 @@ composer check            # PHPStan + PHPUnit 순차 실행
 
 - **동시성**: 같은 ref 새 푸시 시 진행 중 실행 취소 (`concurrency.cancel-in-progress`)
 
-### `backend` 잡 — PHP 8.4 · PHPStan · PHPUnit
+### `backend` 잡 — PHP 8.5 · PHPStan · PHPUnit
 
 `mysql:8.0` 서비스 컨테이너를 띄우고 다음 순서로 검증한다.
 
-1. setup-php `8.4` (확장: `mbstring intl mysqli curl dom xml tokenizer`, 커버리지 `pcov`)
+1. setup-php `8.5` (확장: `mbstring intl mysqli curl dom xml tokenizer`, 커버리지 `pcov`)
    - `phpunit.dist.xml` 이 `failOnWarning` + `<coverage>` 를 켜 두어 커버리지 드라이버 없으면 경고→실패 → `pcov` 필수
 2. Composer 캐시 → `composer install`
 3. `env` → `.env` 복사 후 CI용 DB·`JWT_SECRET` 주입
