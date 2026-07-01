@@ -27,6 +27,8 @@ class CampaignModel extends Model
         'discount_cost',
         'text_cost',
         'db_cost',
+        'cpm_price',
+        'cpc_price',
         'category',
         'exposure',
         'contract_id',
@@ -84,6 +86,20 @@ class CampaignModel extends Model
         3 => '프로모션',
         4 => 'CPC',
         5 => '옵션',
+    ];
+
+    /**
+     * 광고 타입별 과금 단가 컬럼 매핑 (이슈 #157).
+     *
+     * CPA는 db_cost(DB 단가), CPM은 cpm_price(1000회 노출당), CPC는 cpc_price(클릭당)를 사용한다.
+     * 프로모션·옵션은 별도 과금 단가가 없다(가격 정보 카드의 text_cost로만 표시).
+     *
+     * @var array<int, string>
+     */
+    public const AD_TYPE_COST_FIELD = [
+        1 => 'db_cost',
+        2 => 'cpm_price',
+        4 => 'cpc_price',
     ];
 
     public const CHANNELS = [
