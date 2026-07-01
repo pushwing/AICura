@@ -311,4 +311,5 @@ $routes->group('', ['namespace' => 'App\Controllers\Web'], static function (Rout
     // 크롤러 진입점 — 동적 생성(이슈 #143). 정적 public/robots.txt 는 제거됨
     $routes->get('sitemap.xml', 'SitemapController::index');
     $routes->get('robots.txt',  'RobotsController::index');
+    $routes->get('llms.txt',    'LlmsController::index'); // AI 크롤러용 사이트 요약 (이슈 #147)
 });

@@ -127,9 +127,11 @@ $routes->get('sitemap.xml', 'Web\SitemapController::index');
 
 GEO의 핵심은 **구조화 데이터로 사실을 기계 판독 가능하게** 만드는 것이다. 실제 모델 필드 기준 매핑:
 
-> ⚠️ **구현 주의(#145):** 전역 출력 핸들러가 비ASCII(한글)를 HTML 숫자 엔티티(`&#44053;`)로 변환하는데,
-> `<script type="application/ld+json">` 내부에서는 엔티티가 디코드되지 않아 구조화 데이터가 깨진다.
-> 따라서 `JsonLdBuilder`는 `JSON_UNESCAPED_UNICODE` 를 쓰지 않고 한글을 `\uXXXX`(ASCII)로 인코딩한다.
+> ⚠️ **구현 주의(#145):** `JsonLdBuilder` 는 `JSON_UNESCAPED_UNICODE` 를 쓰지 않고 한글을 `\uXXXX`(ASCII)로
+> 인코딩한다. 이는 인라인 JSON-LD 의 이식성 베스트프랙티스이며(운영 출력은 raw UTF-8 로도 유효),
+> 동시에 **PHPUnit 테스트 하네스가 `DOMParser::getBody()`(mb_encode_numericentity)로 응답 본문의 비ASCII를
+> HTML 엔티티(`&#44053;`)로 변환**하는 아티팩트를 우회한다(운영에는 이런 전역 변환이 없음 — 테스트에서
+> 원문 검증은 `response()->getBody()` 사용). `</script>` 탈출 방지는 `JSON_HEX_TAG`.
 > 또한 `Config\View::$saveData=true` 로 공유 렌더러가 직전 요청의 `jsonLd` 를 유지(워커 모드 누출)하므로,
 > `BaseWebController::render` 가 `jsonLd` 기본값을 항상 `[]` 로 명시한다. (가이드 Article #146 도 동일 규칙 준수)
 
@@ -280,7 +282,7 @@ Sitemap: https://{운영도메인}/sitemap.xml
 | 3 | 병원·후기 공개 페이지 | 병원/후기 SSR + 후기 신뢰도 필터(noindex) | 1 | ✅ 완료 (#144) — 병원/후기 SSR, 작성자 마스킹, 신고·저신뢰 noindex, sitemap 확장 |
 | 4 | JSON-LD 구조화 데이터 | `JsonLdBuilder` — Offer/MedicalClinic/Review/Article | 2,3 | ✅ 완료 (#145) — 이벤트 Offer·병원 MedicalClinic·후기 Review, web/partials/json_ld 주입 (가이드 Article 은 #146) |
 | 5 | GEO 콘텐츠 자산 — 가이드 | `guides` 테이블·CRUD(Admin)·공개 페이지·Article/FAQ 스키마 | 4 | ✅ 완료 (#146) — guides 마이그레이션·Admin CRUD(Tiptap·FAQ)·공개 슬러그 페이지·MedicalWebPage+FAQPage JSON-LD·sitemap |
-| 6 | llms.txt + AI 크롤러 정책 | `public/llms.txt`, robots AI 크롤러 섹션 점검 | 2 | 서브이슈 |
+| 6 | llms.txt + AI 크롤러 정책 | `public/llms.txt`, robots AI 크롤러 섹션 점검 | 2 | ✅ 완료 (#147) — 동적 llms.txt(사이트 요약·주요 페이지·발행 가이드·카테고리, 절대 URL), robots AI 크롤러 확인 |
 | 7 | 측정·검증 | GSC/Naver 등록, Rich Results 검증, 크롤러 로그 분석 | 전체 | 서브이슈 |
 
 선행 결정사항(비기술) — **모두 확정**(§0):
