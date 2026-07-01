@@ -33,7 +33,7 @@ class LeadAnalyzeQueue extends BaseCommand
         '--limit' => '한 번에 처리할 최대 건수 (기본값: 50)',
     ];
 
-    private const DEFAULT_LIMIT = 50;
+    private const int DEFAULT_LIMIT = 50;
 
     /** @param array<int|string, string|null> $params */
     public function run(array $params): void

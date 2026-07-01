@@ -2,6 +2,7 @@
 
 namespace App\Controllers\Api\V1;
 
+use Override;
 use App\Exceptions\DomainException;
 use App\Services\EventService;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -18,7 +19,7 @@ use OpenApi\Attributes as OA;
 #[OA\Tag(name: 'Campaigns', description: '이벤트(캠페인) 조회 — 소비자 앱')]
 class CampaignController extends BaseApiController
 {
-    private EventService $events;
+    private readonly EventService $events;
 
     public function __construct()
     {
@@ -34,7 +35,7 @@ class CampaignController extends BaseApiController
             new OA\Parameter(name: 'filter[category]', in: 'query', schema: new OA\Schema(type: 'integer')),
             new OA\Parameter(name: 'filter[region]', in: 'query', schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'keyword', in: 'query', schema: new OA\Schema(type: 'string')),
-            new OA\Parameter(name: 'sort', in: 'query', schema: new OA\Schema(type: 'string', enum: ['latest', 'price_asc', 'price_desc', 'popular'], default: 'latest')),
+            new OA\Parameter(name: 'sort', in: 'query', schema: new OA\Schema(type: 'string', default: 'latest', enum: ['latest', 'price_asc', 'price_desc', 'popular'])),
             new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer', default: 1)),
             new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'integer', default: 20)),
         ],
@@ -43,6 +44,7 @@ class CampaignController extends BaseApiController
             new OA\Response(response: 401, description: '인증 필요'),
         ]
     )]
+    #[Override]
     public function index(): ResponseInterface
     {
         $params = $this->listParams();
@@ -105,6 +107,7 @@ class CampaignController extends BaseApiController
             new OA\Response(response: 404, description: '존재하지 않는 이벤트'),
         ]
     )]
+    #[Override]
     public function show($id = null): ResponseInterface
     {
         try {

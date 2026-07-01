@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Filters;
 
 use App\Exceptions\TokenException;
@@ -29,7 +31,7 @@ class OptionalJwtAuthFilter implements FilterInterface
         $token = substr($authHeader, 7);
 
         try {
-            $payload = (new JwtLibrary())->validateAccessToken($token);
+            $payload = new JwtLibrary()->validateAccessToken($token);
             Auth::setUserId((int) $payload['sub']);
         } catch (TokenException) {
             // 만료·무효 토큰은 익명으로 처리 (열람은 허용)

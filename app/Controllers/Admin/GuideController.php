@@ -2,6 +2,9 @@
 
 namespace App\Controllers\Admin;
 
+use Override;
+use CodeIgniter\HTTP\RequestInterface;
+use Psr\Log\LoggerInterface;
 use App\Models\GuideModel;
 use App\Services\GuideService;
 use CodeIgniter\Exceptions\PageNotFoundException;
@@ -17,12 +20,13 @@ class GuideController extends BaseAdminController
 {
     private GuideService $guideService;
 
-    private const PER_PAGE = 20;
+    private const int PER_PAGE = 20;
 
+    #[Override]
     public function initController(
-        \CodeIgniter\HTTP\RequestInterface $request,
-        \CodeIgniter\HTTP\ResponseInterface $response,
-        \Psr\Log\LoggerInterface $logger
+        RequestInterface $request,
+        ResponseInterface $response,
+        LoggerInterface $logger
     ): void {
         parent::initController($request, $response, $logger);
         $this->guideService = Services::guideService();

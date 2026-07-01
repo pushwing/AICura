@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use RuntimeException;
 use CodeIgniter\Model;
 
 class CampaignReviewRequestModel extends Model
@@ -83,18 +84,17 @@ class CampaignReviewRequestModel extends Model
     }
 
     // ── 검수 처리 ─────────────────────────────────────
-
     /**
      * 검수 승인 — 콘텐츠 필드 배열을 반환 (campaigns 테이블 복사용)
      *
-     * @throws \RuntimeException
+     * @throws RuntimeException
      * @return array<string, mixed>
      */
     public function approve(int $id, int $reviewedBy, ?string $memo = null): array
     {
         $request = $this->find($id);
         if ($request === null) {
-            throw new \RuntimeException('검수 요청을 찾을 수 없습니다.');
+            throw new RuntimeException('검수 요청을 찾을 수 없습니다.');
         }
 
         $this->assertTransition($request['review_status'], 'approved');
@@ -112,13 +112,13 @@ class CampaignReviewRequestModel extends Model
     /**
      * 검수 반려
      *
-     * @throws \RuntimeException
+     * @throws RuntimeException
      */
     public function reject(int $id, int $reviewedBy, ?string $memo = null): void
     {
         $request = $this->find($id);
         if ($request === null) {
-            throw new \RuntimeException('검수 요청을 찾을 수 없습니다.');
+            throw new RuntimeException('검수 요청을 찾을 수 없습니다.');
         }
 
         $this->assertTransition($request['review_status'], 'rejected');
@@ -244,15 +244,14 @@ class CampaignReviewRequestModel extends Model
     }
 
     // ── private ───────────────────────────────────────
-
     /**
-     * @throws \RuntimeException
+     * @throws RuntimeException
      */
     private function assertTransition(string $from, string $to): void
     {
         $allowed = self::REVIEW_TRANSITIONS[$from] ?? [];
         if (!in_array($to, $allowed, true)) {
-            throw new \RuntimeException(
+            throw new RuntimeException(
                 sprintf('"%s" 상태에서 "%s"로 변경할 수 없습니다.', $from, $to)
             );
         }

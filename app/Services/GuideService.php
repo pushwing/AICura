@@ -12,9 +12,9 @@ use App\Models\GuideModel;
 class GuideService
 {
     /** 공개 조회 캐시 TTL (초) — 10분 */
-    private const PUBLIC_TTL = 600;
+    private const int PUBLIC_TTL = 600;
 
-    private GuideModel $guides;
+    private readonly GuideModel $guides;
 
     public function __construct(?GuideModel $guides = null)
     {
@@ -55,7 +55,7 @@ class GuideService
         $id = $this->guides->insert($data, true);
 
         if ($data['status'] === GuideModel::STATUS_PUBLISHED) {
-            $this->submitIndexNow((string) $data['slug']);
+            $this->submitIndexNow($data['slug']);
         }
 
         return (int) $id;
@@ -74,11 +74,11 @@ class GuideService
             $id,
         );
 
-        $result = $this->guides->update($id, $data) !== false;
+        $result = $this->guides->update($id, $data);
         $this->invalidate();
 
         if ($result && $data['status'] === GuideModel::STATUS_PUBLISHED) {
-            $this->submitIndexNow((string) $data['slug']);
+            $this->submitIndexNow($data['slug']);
         }
 
         return $result;

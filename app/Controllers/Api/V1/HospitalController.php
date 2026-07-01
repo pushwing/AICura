@@ -2,6 +2,7 @@
 
 namespace App\Controllers\Api\V1;
 
+use Override;
 use App\Exceptions\DomainException;
 use App\Services\HospitalService;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -17,7 +18,7 @@ use OpenApi\Attributes as OA;
 #[OA\Tag(name: 'Hospitals', description: '병원 조회 — 소비자 앱')]
 class HospitalController extends BaseApiController
 {
-    private HospitalService $hospitals;
+    private readonly HospitalService $hospitals;
 
     public function __construct()
     {
@@ -31,9 +32,9 @@ class HospitalController extends BaseApiController
         tags: ['Hospitals'],
         parameters: [
             new OA\Parameter(name: 'keyword', in: 'query', schema: new OA\Schema(type: 'string')),
-            new OA\Parameter(name: 'filter[region]', in: 'query', description: '주소 부분일치', schema: new OA\Schema(type: 'string')),
-            new OA\Parameter(name: 'filter[department]', in: 'query', description: '진료과 코드 일치 (예: plastic_surgery)', schema: new OA\Schema(type: 'string')),
-            new OA\Parameter(name: 'filter[type]', in: 'query', description: '1 일반·2 네트워크모·3 네트워크자', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'filter[region]', description: '주소 부분일치', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'filter[department]', description: '진료과 코드 일치 (예: plastic_surgery)', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'filter[type]', description: '1 일반·2 네트워크모·3 네트워크자', in: 'query', schema: new OA\Schema(type: 'integer')),
             new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer', default: 1)),
             new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'integer', default: 20)),
         ],
@@ -42,6 +43,7 @@ class HospitalController extends BaseApiController
             new OA\Response(response: 401, description: '인증 필요'),
         ]
     )]
+    #[Override]
     public function index(): ResponseInterface
     {
         $params = $this->listParams();
@@ -61,6 +63,7 @@ class HospitalController extends BaseApiController
             new OA\Response(response: 404, description: '존재하지 않는 병원'),
         ]
     )]
+    #[Override]
     public function show($id = null): ResponseInterface
     {
         try {

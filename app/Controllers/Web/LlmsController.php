@@ -17,13 +17,11 @@ use Config\Services;
 class LlmsController extends BaseController
 {
     /** 나열할 발행 가이드 최대 수 */
-    private const GUIDE_LIMIT = 100;
+    private const int GUIDE_LIMIT = 100;
 
     public function index(): ResponseInterface
     {
-        /** @var GuideService $guideService */
         $guideService = Services::guideService();
-        /** @var EventService $eventService */
         $eventService = Services::eventService();
 
         $lines = [
@@ -78,7 +76,7 @@ class LlmsController extends BaseController
         foreach ($result['items'] as $guide) {
             $url     = base_url('guides/' . rawurlencode((string) $guide['slug']));
             $summary = trim((string) ($guide['summary'] ?? ''));
-            $line    = '- [' . (string) $guide['title'] . '](' . $url . ')';
+            $line    = '- [' . $guide['title'] . '](' . $url . ')';
             if ($summary !== '') {
                 $line .= ': ' . $summary;
             }

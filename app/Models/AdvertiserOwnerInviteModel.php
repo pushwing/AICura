@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Throwable;
 use CodeIgniter\Model;
 
 /**
@@ -130,7 +131,7 @@ class AdvertiserOwnerInviteModel extends Model
             // ① owner_user_id 가 비어 있을 때만 선점 — 동시 수락 중 한 건만 성공
             $db->table('advertisers')
                 ->where('id', $advertiserId)
-                ->where('owner_user_id', null)
+                ->where('owner_user_id')
                 ->update([
                     'owner_user_id' => $inviteeUserId,
                     'updated_at'    => $now,
@@ -176,7 +177,7 @@ class AdvertiserOwnerInviteModel extends Model
                 'advertiser_id' => $advertiserId,
                 'hospital_id'   => (int) ($advertiser['hospital_id'] ?? 0),
             ];
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $db->transRollback();
 
             // 동시 수락 경합: 위 빠른 경로를 통과한 두 요청이 같은 계정을 서로 다른 광고주에

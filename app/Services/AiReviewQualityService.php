@@ -20,17 +20,17 @@ use RuntimeException;
 class AiReviewQualityService
 {
     /** 신뢰점수 허용 범위 */
-    private const SCORE_MIN = 0;
-    private const SCORE_MAX = 100;
+    private const int SCORE_MIN = 0;
+    private const int SCORE_MAX = 100;
 
     /** 근거 저장 컬럼 길이(VARCHAR 255)에 맞춘 절단 길이 */
-    private const REASON_MAX = 255;
+    private const int REASON_MAX = 255;
 
     /** 본문이 과도하게 길 때 프롬프트에 넣는 최대 길이 (토큰·비용 보호) */
-    private const CONTENT_MAX = 4000;
+    private const int CONTENT_MAX = 4000;
 
-    private AiClientInterface $ai;
-    private BoardModel $boards;
+    private readonly AiClientInterface $ai;
+    private readonly BoardModel $boards;
 
     public function __construct(
         ?AiClientInterface $ai = null,
@@ -117,7 +117,7 @@ class AiReviewQualityService
     /** 한 줄 텍스트로 정리 — 개행 제거 후 255자 절단 */
     private function clip(mixed $value): string
     {
-        $text = trim(preg_replace('/\s+/u', ' ', (string) (is_string($value) ? $value : '')) ?? '');
+        $text = trim(preg_replace('/\s+/u', ' ', is_string($value) ? $value : '') ?? '');
 
         return mb_substr($text, 0, self::REASON_MAX);
     }

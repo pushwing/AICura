@@ -2,6 +2,11 @@
 
 namespace App\Controllers\Admin;
 
+use Override;
+use CodeIgniter\HTTP\RequestInterface;
+use Psr\Log\LoggerInterface;
+use CodeIgniter\Exceptions\PageNotFoundException;
+use RuntimeException;
 use App\Models\CallMemoModel;
 use App\Models\CallRequestModel;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -17,10 +22,11 @@ class CallRequestController extends BaseAdminController
     private CallRequestModel $callRequestModel;
     private CallMemoModel $callMemoModel;
 
+    #[Override]
     public function initController(
-        \CodeIgniter\HTTP\RequestInterface $request,
-        \CodeIgniter\HTTP\ResponseInterface $response,
-        \Psr\Log\LoggerInterface $logger
+        RequestInterface $request,
+        ResponseInterface $response,
+        LoggerInterface $logger
     ): void {
         parent::initController($request, $response, $logger);
         $this->callRequestModel = model(CallRequestModel::class);
@@ -61,7 +67,7 @@ class CallRequestController extends BaseAdminController
     {
         $request = $this->callRequestModel->getDetail($id);
         if ($request === null) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         return $this->render('admin/call-requests/show', [
@@ -87,7 +93,7 @@ class CallRequestController extends BaseAdminController
 
         try {
             $this->callRequestModel->changeStatus($id, $status, $reservedAt, $adminId);
-        } catch (\RuntimeException $e) {
+        } catch (RuntimeException $e) {
             return $this->response->setStatusCode(422)
                 ->setJSON(['success' => false, 'message' => $e->getMessage()]);
         }
@@ -108,7 +114,7 @@ class CallRequestController extends BaseAdminController
     {
         $request = $this->callRequestModel->find($id);
         if ($request === null) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         if (!$this->validate(['memo' => 'required|max_length[500]'])) {
@@ -139,7 +145,7 @@ class CallRequestController extends BaseAdminController
     {
         $memo = $this->callMemoModel->find($memoId);
         if ($memo === null || (int) $memo['call_request_id'] !== $id) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         $this->callMemoModel->delete($memoId);

@@ -2,6 +2,7 @@
 
 namespace App\Controllers\Api\V1;
 
+use Override;
 use App\Exceptions\DomainException;
 use App\Services\CallRequestService;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -17,44 +18,38 @@ use OpenApi\Attributes as OA;
 #[OA\Tag(name: 'CallRequests', description: '상담 신청 — 소비자 앱')]
 class CallRequestController extends BaseApiController
 {
-    private CallRequestService $callRequests;
+    private readonly CallRequestService $callRequests;
 
     public function __construct()
     {
         $this->callRequests = Services::callRequestService();
     }
 
-    #[OA\Post(
-        path: '/call-requests',
-        summary: '상담/전화 신청',
-        security: [['bearerAuth' => []]],
-        tags: ['CallRequests'],
-        requestBody: new OA\RequestBody(
-            required: true,
-            content: new OA\JsonContent(
-                required: ['campaign_id', 'name', 'phone', 'privacy_agree'],
-                properties: [
-                    new OA\Property(property: 'campaign_id', type: 'integer', example: 12),
-                    new OA\Property(property: 'name', type: 'string', example: '홍길동'),
-                    new OA\Property(property: 'phone', type: 'string', example: '01012345678'),
-                    new OA\Property(property: 'privacy_agree', type: 'boolean', description: '개인정보 수집·이용 동의 (필수)', example: true),
-                    new OA\Property(property: 'supply_third_party_agree', type: 'boolean', description: '제3자(병원) 제공 동의', example: true),
-                    new OA\Property(property: 'content', type: 'string', example: '리프팅 상담 원해요'),
-                    new OA\Property(property: 'call_time', type: 'string', example: '오후 2시 이후'),
-                    new OA\Property(property: 'age', type: 'integer', example: 29),
-                    new OA\Property(property: 'sex', type: 'integer', description: '1 남 · 2 여', example: 2),
-                    new OA\Property(property: 'funnel', type: 'string', example: 'event_detail'),
-                    new OA\Property(property: 'region', type: 'string', example: '서울'),
-                    new OA\Property(property: 'device', type: 'integer', description: '1 Android · 2 iOS', example: 2),
-                ]
-            )
-        ),
-        responses: [
-            new OA\Response(response: 201, description: '신청 성공'),
-            new OA\Response(response: 404, description: '신청할 수 없는 이벤트'),
-            new OA\Response(response: 422, description: '유효성 검사 실패'),
-        ]
-    )]
+    #[OA\Post(path: '/call-requests', summary: '상담/전화 신청', security: [['bearerAuth' => []]], requestBody: new OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(
+            required: ['campaign_id', 'name', 'phone', 'privacy_agree'],
+            properties: [
+                new OA\Property(property: 'campaign_id', type: 'integer', example: 12),
+                new OA\Property(property: 'name', type: 'string', example: '홍길동'),
+                new OA\Property(property: 'phone', type: 'string', example: '01012345678'),
+                new OA\Property(property: 'privacy_agree', description: '개인정보 수집·이용 동의 (필수)', type: 'boolean', example: true),
+                new OA\Property(property: 'supply_third_party_agree', description: '제3자(병원) 제공 동의', type: 'boolean', example: true),
+                new OA\Property(property: 'content', type: 'string', example: '리프팅 상담 원해요'),
+                new OA\Property(property: 'call_time', type: 'string', example: '오후 2시 이후'),
+                new OA\Property(property: 'age', type: 'integer', example: 29),
+                new OA\Property(property: 'sex', description: '1 남 · 2 여', type: 'integer', example: 2),
+                new OA\Property(property: 'funnel', type: 'string', example: 'event_detail'),
+                new OA\Property(property: 'region', type: 'string', example: '서울'),
+                new OA\Property(property: 'device', description: '1 Android · 2 iOS', type: 'integer', example: 2),
+            ]
+        )
+    ), tags: ['CallRequests'], responses: [
+        new OA\Response(response: 201, description: '신청 성공'),
+        new OA\Response(response: 404, description: '신청할 수 없는 이벤트'),
+        new OA\Response(response: 422, description: '유효성 검사 실패'),
+    ])]
+    #[Override]
     public function create(): ResponseInterface
     {
         $rules = [
@@ -103,6 +98,7 @@ class CallRequestController extends BaseApiController
             new OA\Response(response: 404, description: '존재하지 않거나 권한 없는 신청'),
         ]
     )]
+    #[Override]
     public function show($id = null): ResponseInterface
     {
         try {
@@ -128,6 +124,7 @@ class CallRequestController extends BaseApiController
             new OA\Response(response: 409, description: '이미 처리되어 취소 불가'),
         ]
     )]
+    #[Override]
     public function delete($id = null): ResponseInterface
     {
         try {

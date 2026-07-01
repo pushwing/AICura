@@ -13,11 +13,11 @@ namespace App\Libraries\Seo;
  */
 final class JsonLdBuilder
 {
-    public const CONTEXT = 'https://schema.org';
+    public const string CONTEXT = 'https://schema.org';
 
     /** 평점 척도 */
-    private const BEST_RATING  = 5;
-    private const WORST_RATING = 1;
+    private const int BEST_RATING  = 5;
+    private const int WORST_RATING = 1;
 
     /**
      * 이벤트(캠페인) → Offer + MedicalProcedure (§4.1)
@@ -104,7 +104,7 @@ final class JsonLdBuilder
         /** @var array<int, mixed> $departments */
         $departments = (array) ($hospital['departments'] ?? []);
         if ($departments !== []) {
-            $schema['medicalSpecialty'] = array_values(array_map('strval', $departments));
+            $schema['medicalSpecialty'] = array_values(array_map(strval(...), $departments));
         }
 
         /** @var array<string, mixed> $summary */

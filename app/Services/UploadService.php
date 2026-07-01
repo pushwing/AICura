@@ -14,10 +14,10 @@ use CodeIgniter\HTTP\Files\UploadedFile;
 class UploadService
 {
     /** 저장 하위 디렉터리 (writable/uploads/ 기준) */
-    private const SUBDIR = 'boards';
+    private const string SUBDIR = 'boards';
 
     /** 허용 확장자 → 정규화 */
-    private const EXT_MAP = [
+    private const array EXT_MAP = [
         'jpg'  => 'jpg',
         'jpeg' => 'jpg',
         'png'  => 'png',

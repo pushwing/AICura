@@ -18,23 +18,23 @@ use App\Models\HospitalModel;
 class HospitalService
 {
     /** 병원 망 구분 라벨 (hospitals.type) */
-    private const TYPE_LABELS = [
+    private const array TYPE_LABELS = [
         1 => '일반',
         2 => '네트워크 모점',
         3 => '네트워크 자점',
     ];
 
     /** 목록 캐시 TTL (초) */
-    private const LIST_TTL = 300;
+    private const int LIST_TTL = 300;
 
     /** 단건 상세 캐시 TTL (초) */
-    private const DETAIL_TTL = 300;
+    private const int DETAIL_TTL = 300;
 
-    private HospitalModel $hospitals;
-    private BoardModel $boards;
-    private FavoriteModel $favorites;
-    private DepartmentModel $departments;
-    private EventService $events;
+    private readonly HospitalModel $hospitals;
+    private readonly BoardModel $boards;
+    private readonly FavoriteModel $favorites;
+    private readonly DepartmentModel $departments;
+    private readonly EventService $events;
 
     public function __construct(
         ?HospitalModel $hospitals = null,
@@ -68,7 +68,7 @@ class HospitalService
             cache()->save($cacheKey, $base, self::LIST_TTL);
         }
 
-        $items = array_map([$this, 'transformListItem'], $base['list']);
+        $items = array_map($this->transformListItem(...), $base['list']);
         $items = $this->overlayLikes($userId, $items);
         $items = $this->overlayDepartments($items);
 
@@ -152,7 +152,7 @@ class HospitalService
         $limit = max(1, (int) ($params['limit'] ?? 20));
 
         $base  = $this->boards->getReviewsByTarget(BoardModel::TYPE_HOSPITAL, $id, $page, $limit);
-        $items = array_map([$this, 'transformReview'], $base['list']);
+        $items = array_map($this->transformReview(...), $base['list']);
 
         return ['items' => $items, 'total' => $base['total']];
     }

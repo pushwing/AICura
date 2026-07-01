@@ -2,6 +2,7 @@
 
 namespace App\Controllers\Admin;
 
+use CodeIgniter\Exceptions\PageNotFoundException;
 use App\Models\CampaignModel;
 use App\Models\CampaignReviewRequestModel;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -46,7 +47,7 @@ class CreativeController extends BaseAdminController
     {
         $campaign = model(CampaignModel::class)->getCampaignDetail($id);
         if ($campaign === null) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         // 검수 대기 중인 이미지 데이터가 있으면 폼에 pre-populate
@@ -69,7 +70,7 @@ class CreativeController extends BaseAdminController
 
         $campaign = $campaignModel->find($id);
         if ($campaign === null) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         // 이미지 필드는 URL 또는 파일명 — 컬럼 길이(VARCHAR 500) 기준 검증
@@ -85,7 +86,7 @@ class CreativeController extends BaseAdminController
         $dImagesRaw = $this->request->getPost('d_images') ?? [];
         $dImages    = array_values(array_filter(
             is_array($dImagesRaw) ? $dImagesRaw : [],
-            fn($v) => is_string($v) && trim($v) !== ''
+            fn($v): bool => is_string($v) && trim($v) !== ''
         ));
 
         // 이미지 변경 데이터 — campaigns 에는 직접 쓰지 않고 review request 로 기록

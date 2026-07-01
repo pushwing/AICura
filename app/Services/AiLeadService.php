@@ -24,18 +24,18 @@ use RuntimeException;
 class AiLeadService
 {
     /** 점수 허용 범위 */
-    private const SCORE_MIN = 0;
-    private const SCORE_MAX = 100;
+    private const int SCORE_MIN = 0;
+    private const int SCORE_MAX = 100;
 
     /** 요약·다음액션 저장 컬럼 길이(VARCHAR 255)에 맞춘 절단 길이 */
-    private const TEXT_MAX = 255;
+    private const int TEXT_MAX = 255;
 
     /** @var array<int, string> 성별 라벨 (0 미지정 / 1 남 / 2 여) */
-    private const SEX_LABELS = [0 => '미지정', 1 => '남성', 2 => '여성'];
+    private const array SEX_LABELS = [0 => '미지정', 1 => '남성', 2 => '여성'];
 
-    private AiClientInterface $ai;
-    private CallRequestModel $callRequests;
-    private CallMemoModel $callMemos;
+    private readonly AiClientInterface $ai;
+    private readonly CallRequestModel $callRequests;
+    private readonly CallMemoModel $callMemos;
 
     public function __construct(
         ?AiClientInterface $ai = null,
@@ -94,7 +94,7 @@ class AiLeadService
     /** 한 줄 텍스트로 정리 — 개행 제거 후 255자 절단 */
     private function clip(mixed $value): string
     {
-        $text = trim(preg_replace('/\s+/u', ' ', (string) (is_string($value) ? $value : '')) ?? '');
+        $text = trim(preg_replace('/\s+/u', ' ', is_string($value) ? $value : '') ?? '');
 
         return mb_substr($text, 0, self::TEXT_MAX);
     }

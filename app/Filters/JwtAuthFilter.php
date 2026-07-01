@@ -25,7 +25,7 @@ class JwtAuthFilter implements FilterInterface
 
         try {
             // 만료(TOKEN_EXPIRED)와 무효(INVALID_TOKEN)를 구분해 응답한다.
-            $payload = (new JwtLibrary())->validateAccessToken($token);
+            $payload = new JwtLibrary()->validateAccessToken($token);
         } catch (TokenException $e) {
             return service('response')
                 ->setStatusCode($e->httpStatusCode())

@@ -16,7 +16,7 @@ use CodeIgniter\HTTP\ResponseInterface;
 class RobotsController extends BaseController
 {
     /** @var array<int, string> 전체 허용할 AI 크롤러 User-agent */
-    private const AI_CRAWLERS = [
+    private const array AI_CRAWLERS = [
         'GPTBot',             // OpenAI
         'OAI-SearchBot',      // ChatGPT Search
         'ChatGPT-User',

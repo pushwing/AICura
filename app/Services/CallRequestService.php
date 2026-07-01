@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Throwable;
 use App\Exceptions\CallRequestException;
 use App\Exceptions\NotFoundException;
 use App\Models\CallRequestModel;
@@ -16,8 +17,8 @@ use App\Models\CampaignModel;
  */
 class CallRequestService
 {
-    private CallRequestModel $callRequests;
-    private CampaignModel $campaigns;
+    private readonly CallRequestModel $callRequests;
+    private readonly CampaignModel $campaigns;
 
     public function __construct(
         ?CallRequestModel $callRequests = null,
@@ -54,7 +55,7 @@ class CallRequestService
             'age'                      => isset($input['age']) ? (int) $input['age'] : null,
             'sex'                      => isset($input['sex']) ? (int) $input['sex'] : 0,
             'privacy_agree'            => 1,
-            'supply_third_party_agree' => !empty($input['supply_third_party_agree']) ? 1 : 0,
+            'supply_third_party_agree' => empty($input['supply_third_party_agree']) ? 0 : 1,
             'funnel'                   => $this->nullableString($input['funnel'] ?? null),
             'region'                   => $this->nullableString($input['region'] ?? null),
         ]);
@@ -66,7 +67,7 @@ class CallRequestService
         // CPA 과금 — 신청 즉시 호출 (계약 미연결·금액 없음 등은 내부적으로 false 반환)
         try {
             $this->callRequests->chargeCpa($id, $userId);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             log_message('error', '[CallRequestService] CPA 과금 실패 (call_request:{id}): {msg}', [
                 'id'  => $id,
                 'msg' => $e->getMessage(),
@@ -76,7 +77,7 @@ class CallRequestService
         // AI 리드 분석 큐 적재 (비동기 — leads:analyze 커맨드가 소비)
         try {
             $this->callRequests->enqueueAnalysis($id);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             log_message('error', '[CallRequestService] AI 분석 큐 적재 실패 (call_request:{id}): {msg}', [
                 'id'  => $id,
                 'msg' => $e->getMessage(),

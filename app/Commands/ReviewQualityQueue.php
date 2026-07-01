@@ -35,13 +35,13 @@ class ReviewQualityQueue extends BaseCommand
         '--limit' => '한 번에 처리할 최대 건수 (기본값: 50)',
     ];
 
-    private const DEFAULT_LIMIT = 50;
+    private const int DEFAULT_LIMIT = 50;
 
     /**
      * 호출 간 최소 간격(초) — 공급자 분당 한도(무료등급 Gemini 10 RPM) 준수용 스로틀.
      * 건당 10초 간격이면 분당 6건으로 한도 아래에서 안전하게 소비한다.
      */
-    private const THROTTLE_SECONDS = 10;
+    private const int THROTTLE_SECONDS = 10;
 
     /** @param array<int|string, string|null> $params */
     public function run(array $params): void

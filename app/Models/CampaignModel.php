@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use RuntimeException;
 use CodeIgniter\Database\BaseBuilder;
 use CodeIgniter\Model;
 
@@ -277,13 +278,13 @@ class CampaignModel extends Model
     /**
      * 상태 변경 (상태 전이 검증 포함)
      *
-     * @throws \RuntimeException 허용되지 않는 상태 전이
+     * @throws RuntimeException 허용되지 않는 상태 전이
      */
     public function updateStatus(int $id, string $action): string
     {
         $campaign = $this->select('id, status')->find($id);
         if ($campaign === null) {
-            throw new \RuntimeException('캠페인을 찾을 수 없습니다.');
+            throw new RuntimeException('캠페인을 찾을 수 없습니다.');
         }
 
         $currentStatus = $campaign['status'];
@@ -292,12 +293,12 @@ class CampaignModel extends Model
             'reject'  => 'rejected',
             'end'     => 'ended',
             'reopen'  => 'pending',
-            default   => throw new \RuntimeException('알 수 없는 액션입니다.'),
+            default   => throw new RuntimeException('알 수 없는 액션입니다.'),
         };
 
         $allowed = self::STATUS_TRANSITIONS[$currentStatus] ?? [];
         if (!in_array($nextStatus, $allowed, true)) {
-            throw new \RuntimeException(
+            throw new RuntimeException(
                 sprintf('"%s" 상태에서 "%s"로 변경할 수 없습니다.', $currentStatus, $nextStatus)
             );
         }
@@ -357,12 +358,12 @@ class CampaignModel extends Model
     // ──────────────────────────────────────────────────────────────
 
     /** 목록 응답용 소비자 노출 컬럼 (내부 과금·계약·심의 필드 제외) */
-    private const LIST_COLUMNS = 'c.id, c.ad_title, c.hospital_id, c.category, c.region, c.ad_type, '
+    private const string LIST_COLUMNS = 'c.id, c.ad_title, c.hospital_id, c.category, c.region, c.ad_type, '
         . 'c.cost_type, c.general_cost, c.discount_cost, c.text_cost, c.t1_image_name, '
         . 'c.ad_start_date, c.ad_end_date, c.created_at';
 
     /** 상세 응답용 소비자 노출 컬럼 */
-    private const DETAIL_COLUMNS = 'c.id, c.ad_title, c.hospital_id, c.category, c.region, c.ad_type, '
+    private const string DETAIL_COLUMNS = 'c.id, c.ad_title, c.hospital_id, c.category, c.region, c.ad_type, '
         . 'c.cost_type, c.general_cost, c.discount_cost, c.text_cost, c.t1_image_name, c.t2_image_name, '
         . 'c.d_image_json, c.ad_detail_info, c.ad_start_date, c.ad_end_date, c.created_at';
 
@@ -488,7 +489,7 @@ class CampaignModel extends Model
     public const CONSUMER_CACHE_VERSION_KEY = 'events_consumer_cache_ver';
 
     /** 버전 토큰 TTL (초) — 1일. 쓰기 발생 시 즉시 삭제되어 무효화된다. */
-    private const CONSUMER_CACHE_VERSION_TTL = 86400;
+    private const int CONSUMER_CACHE_VERSION_TTL = 86400;
 
     /**
      * 소비자 캐시 키에 끼워 넣는 버전 토큰.

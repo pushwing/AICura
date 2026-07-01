@@ -2,6 +2,7 @@
 
 namespace App\Controllers\Api;
 
+use CodeIgniter\HTTP\ResponseInterface;
 use CodeIgniter\Controller;
 use OpenApi\Attributes as OA;
 use OpenApi\Generator;
@@ -13,12 +14,7 @@ use OpenApi\Generator;
     contact: new OA\Contact(email: 'admin@aicura.io')
 )]
 #[OA\Server(url: '/api/v1', description: 'API v1')]
-#[OA\SecurityScheme(
-    securityScheme: 'bearerAuth',
-    type: 'http',
-    scheme: 'bearer',
-    bearerFormat: 'JWT'
-)]
+#[OA\SecurityScheme(securityScheme: 'bearerAuth', type: 'http', bearerFormat: 'JWT', scheme: 'bearer')]
 class DocsController extends Controller
 {
     /**
@@ -32,7 +28,7 @@ class DocsController extends Controller
     /**
      * OpenAPI JSON 스펙 동적 생성 (개발) 또는 정적 파일 서빙 (운영)
      */
-    public function spec(): \CodeIgniter\HTTP\ResponseInterface
+    public function spec(): ResponseInterface
     {
         $response = service('response');
 
@@ -50,7 +46,7 @@ class DocsController extends Controller
         }
 
         // 개발 환경: 매 요청마다 동적 생성
-        $openapi = (new Generator())->generate([APPPATH . 'Controllers/Api']);
+        $openapi = new Generator()->generate([APPPATH . 'Controllers/Api']);
 
         return $response
             ->setHeader('Content-Type', 'application/json')

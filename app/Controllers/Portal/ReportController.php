@@ -2,6 +2,11 @@
 
 namespace App\Controllers\Portal;
 
+use Override;
+use CodeIgniter\HTTP\RequestInterface;
+use CodeIgniter\HTTP\ResponseInterface;
+use Psr\Log\LoggerInterface;
+use App\Libraries\MarkdownRenderer;
 use App\Models\AiReportModel;
 use App\Models\PortalReportModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
@@ -17,15 +22,16 @@ use CodeIgniter\Exceptions\PageNotFoundException;
  */
 class ReportController extends BasePortalController
 {
-    private const AI_LIST_PER_PAGE = 20;
+    private const int AI_LIST_PER_PAGE = 20;
 
     private PortalReportModel $reportModel;
     private AiReportModel $aiReportModel;
 
+    #[Override]
     public function initController(
-        \CodeIgniter\HTTP\RequestInterface $request,
-        \CodeIgniter\HTTP\ResponseInterface $response,
-        \Psr\Log\LoggerInterface $logger
+        RequestInterface $request,
+        ResponseInterface $response,
+        LoggerInterface $logger
     ): void {
         parent::initController($request, $response, $logger);
         $this->reportModel   = model(PortalReportModel::class);
@@ -119,7 +125,7 @@ class ReportController extends BasePortalController
 
         return view('reports/ai_show', [
             'report'      => $report,
-            'contentHtml' => (new \App\Libraries\MarkdownRenderer())->toSafeHtml((string) $report['content']),
+            'contentHtml' => new MarkdownRenderer()->toSafeHtml((string) $report['content']),
         ]);
     }
 

@@ -2,16 +2,21 @@
 
 namespace App\Controllers\Admin;
 
+use Override;
+use CodeIgniter\HTTP\RequestInterface;
+use CodeIgniter\HTTP\ResponseInterface;
+use Psr\Log\LoggerInterface;
 use App\Models\DashboardModel;
 
 class DashboardController extends BaseAdminController
 {
     private DashboardModel $dashboardModel;
 
+    #[Override]
     public function initController(
-        \CodeIgniter\HTTP\RequestInterface $request,
-        \CodeIgniter\HTTP\ResponseInterface $response,
-        \Psr\Log\LoggerInterface $logger
+        RequestInterface $request,
+        ResponseInterface $response,
+        LoggerInterface $logger
     ): void {
         parent::initController($request, $response, $logger);
         $this->dashboardModel = model(DashboardModel::class);
@@ -38,13 +43,13 @@ class DashboardController extends BaseAdminController
 
         $contractMap = [];
         foreach ($trend['contracts'] as $row) {
-            $key = ((string) $row['y']) . '-' . ((string) $row['m']);
+            $key = ($row['y']) . '-' . ($row['m']);
             $contractMap[$key] = $row;
         }
 
         $revenueMap = [];
         foreach ($trend['revenues'] as $row) {
-            $key = ((string) $row['y']) . '-' . ((string) $row['m']);
+            $key = ($row['y']) . '-' . ($row['m']);
             $revenueMap[$key] = (int) $row['total_price'];
         }
 

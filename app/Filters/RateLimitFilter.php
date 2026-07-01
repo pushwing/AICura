@@ -19,10 +19,10 @@ use CodeIgniter\HTTP\ResponseInterface;
 class RateLimitFilter implements FilterInterface
 {
     /** 기본 허용 횟수 */
-    private const DEFAULT_CAPACITY = 60;
+    private const int DEFAULT_CAPACITY = 60;
 
     /** 기본 시간창(초) */
-    private const DEFAULT_SECONDS = 60;
+    private const int DEFAULT_SECONDS = 60;
 
     public function before(RequestInterface $request, $arguments = null): mixed
     {

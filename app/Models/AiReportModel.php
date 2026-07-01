@@ -94,7 +94,7 @@ class AiReportModel extends Model
     private function applyScope(string $scopeType, ?int $scopeId): static
     {
         $this->where('scope_type', $scopeType);
-        $scopeId === null ? $this->where('scope_id', null) : $this->where('scope_id', $scopeId);
+        $scopeId === null ? $this->where('scope_id') : $this->where('scope_id', $scopeId);
 
         return $this;
     }

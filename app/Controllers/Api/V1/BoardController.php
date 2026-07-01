@@ -2,6 +2,7 @@
 
 namespace App\Controllers\Api\V1;
 
+use Override;
 use App\Exceptions\DomainException;
 use App\Services\BoardService;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -17,7 +18,7 @@ use OpenApi\Attributes as OA;
 #[OA\Tag(name: 'Boards', description: '후기 커뮤니티 — 소비자 앱')]
 class BoardController extends BaseApiController
 {
-    private BoardService $boards;
+    private readonly BoardService $boards;
 
     public function __construct()
     {
@@ -30,14 +31,15 @@ class BoardController extends BaseApiController
         security: [['bearerAuth' => []]],
         tags: ['Boards'],
         parameters: [
-            new OA\Parameter(name: 'filter[type]', in: 'query', description: '1 이벤트 · 2 병원', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'filter[type]', description: '1 이벤트 · 2 병원', in: 'query', schema: new OA\Schema(type: 'integer')),
             new OA\Parameter(name: 'filter[target_id]', in: 'query', schema: new OA\Schema(type: 'integer')),
-            new OA\Parameter(name: 'sort', in: 'query', schema: new OA\Schema(type: 'string', enum: ['latest', 'rating', 'likes'], default: 'latest')),
+            new OA\Parameter(name: 'sort', in: 'query', schema: new OA\Schema(type: 'string', default: 'latest', enum: ['latest', 'rating', 'likes'])),
             new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer', default: 1)),
             new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'integer', default: 20)),
         ],
         responses: [new OA\Response(response: 200, description: '후기 목록')]
     )]
+    #[Override]
     public function index(): ResponseInterface
     {
         $p = $this->listParams();
@@ -57,6 +59,7 @@ class BoardController extends BaseApiController
             new OA\Response(response: 404, description: '존재하지 않는 후기'),
         ]
     )]
+    #[Override]
     public function show($id = null): ResponseInterface
     {
         try {
@@ -66,31 +69,25 @@ class BoardController extends BaseApiController
         }
     }
 
-    #[OA\Post(
-        path: '/boards',
-        summary: '후기 작성',
-        security: [['bearerAuth' => []]],
-        tags: ['Boards'],
-        requestBody: new OA\RequestBody(
-            required: true,
-            content: new OA\JsonContent(
-                required: ['type', 'target_id'],
-                properties: [
-                    new OA\Property(property: 'type', type: 'integer', description: '1 이벤트 · 2 병원', example: 2),
-                    new OA\Property(property: 'target_id', type: 'integer', example: 5),
-                    new OA\Property(property: 'subject', type: 'string', example: '만족스러운 시술'),
-                    new OA\Property(property: 'contents', type: 'string', example: '친절하고 좋았어요'),
-                    new OA\Property(property: 'rating', type: 'number', format: 'float', example: 4.5),
-                    new OA\Property(property: 'images', type: 'array', items: new OA\Items(type: 'string'), description: '업로드 파일명 목록'),
-                ]
-            )
-        ),
-        responses: [
-            new OA\Response(response: 201, description: '작성 성공'),
-            new OA\Response(response: 404, description: '대상 없음'),
-            new OA\Response(response: 422, description: '유효성 검사 실패'),
-        ]
-    )]
+    #[OA\Post(path: '/boards', summary: '후기 작성', security: [['bearerAuth' => []]], requestBody: new OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(
+            required: ['type', 'target_id'],
+            properties: [
+                new OA\Property(property: 'type', description: '1 이벤트 · 2 병원', type: 'integer', example: 2),
+                new OA\Property(property: 'target_id', type: 'integer', example: 5),
+                new OA\Property(property: 'subject', type: 'string', example: '만족스러운 시술'),
+                new OA\Property(property: 'contents', type: 'string', example: '친절하고 좋았어요'),
+                new OA\Property(property: 'rating', type: 'number', format: 'float', example: 4.5),
+                new OA\Property(property: 'images', description: '업로드 파일명 목록', type: 'array', items: new OA\Items(type: 'string')),
+            ]
+        )
+    ), tags: ['Boards'], responses: [
+        new OA\Response(response: 201, description: '작성 성공'),
+        new OA\Response(response: 404, description: '대상 없음'),
+        new OA\Response(response: 422, description: '유효성 검사 실패'),
+    ])]
+    #[Override]
     public function create(): ResponseInterface
     {
         $rules = [
@@ -123,6 +120,7 @@ class BoardController extends BaseApiController
             new OA\Response(response: 404, description: '존재하지 않거나 권한 없는 후기'),
         ]
     )]
+    #[Override]
     public function update($id = null): ResponseInterface
     {
         $rules = [
@@ -153,6 +151,7 @@ class BoardController extends BaseApiController
             new OA\Response(response: 404, description: '존재하지 않거나 권한 없는 후기'),
         ]
     )]
+    #[Override]
     public function delete($id = null): ResponseInterface
     {
         try {
@@ -228,24 +227,16 @@ class BoardController extends BaseApiController
         }
     }
 
-    #[OA\Post(
-        path: '/boards/{id}/comments',
-        summary: '댓글 작성',
-        security: [['bearerAuth' => []]],
-        tags: ['Boards'],
-        parameters: [new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))],
-        requestBody: new OA\RequestBody(
-            required: true,
-            content: new OA\JsonContent(required: ['contents'], properties: [
-                new OA\Property(property: 'contents', type: 'string', example: '저도 다녀왔어요!'),
-            ])
-        ),
-        responses: [
-            new OA\Response(response: 201, description: '작성 성공'),
-            new OA\Response(response: 404, description: '존재하지 않는 후기'),
-            new OA\Response(response: 422, description: '유효성 검사 실패'),
-        ]
-    )]
+    #[OA\Post(path: '/boards/{id}/comments', summary: '댓글 작성', security: [['bearerAuth' => []]], requestBody: new OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(required: ['contents'], properties: [
+            new OA\Property(property: 'contents', type: 'string', example: '저도 다녀왔어요!'),
+        ])
+    ), tags: ['Boards'], parameters: [new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))], responses: [
+        new OA\Response(response: 201, description: '작성 성공'),
+        new OA\Response(response: 404, description: '존재하지 않는 후기'),
+        new OA\Response(response: 422, description: '유효성 검사 실패'),
+    ])]
     public function commentCreate(?string $id = null): ResponseInterface
     {
         if (!$this->validate(['contents' => 'required|max_length[1000]'])) {

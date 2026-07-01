@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\PointException;
 use App\Exceptions\NotFoundException;
 use App\Models\BoardModel;
 use App\Models\BookingModel;
@@ -20,16 +21,16 @@ use App\Models\UserModel;
 class MeService
 {
     /** 이미지 서빙 경로 prefix (캠페인 썸네일) */
-    private const IMAGE_PATH = 'uploads/campaigns/';
+    private const string IMAGE_PATH = 'uploads/campaigns/';
 
-    private UserModel $users;
-    private UserDeviceModel $devices;
-    private CallRequestModel $callRequests;
-    private BoardModel $boards;
-    private BookingModel $bookings;
-    private FavoriteModel $favorites;
-    private HealthPointLogModel $pointLogs;
-    private HealthPointService $points;
+    private readonly UserModel $users;
+    private readonly UserDeviceModel $devices;
+    private readonly CallRequestModel $callRequests;
+    private readonly BoardModel $boards;
+    private readonly BookingModel $bookings;
+    private readonly FavoriteModel $favorites;
+    private readonly HealthPointLogModel $pointLogs;
+    private readonly HealthPointService $points;
 
     public function __construct(
         ?UserModel $users = null,
@@ -233,7 +234,7 @@ class MeService
      * 헬스포인트 차감(사용) — 차감 후 잔액 반환 (이슈 #114)
      *
      * @return array{balance: int}
-     * @throws \App\Exceptions\PointException 금액 오류·잔액 부족
+     * @throws PointException 금액 오류·잔액 부족
      */
     public function redeemHealthPoint(int $userId, int $amount, ?string $memo = null): array
     {

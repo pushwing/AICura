@@ -14,13 +14,13 @@ use App\Models\HospitalModel;
  * 절대 URL 은 `base_url()`(= app.baseURL, 환경변수) 기준으로 만들어 운영 도메인에 자동 대응한다.
  * 결과는 Redis 캐시(1시간)에 저장하며, 캠페인 쓰기 시 무효화 대상은 아니다(주기 갱신으로 충분).
  */
-final class SitemapService
+final readonly class SitemapService
 {
     /** 캐시 키 (CI4 캐시 키는 ':' 등 예약문자 금지 — 언더스코어 사용) */
-    public const CACHE_KEY = 'web_sitemap';
+    public const string CACHE_KEY = 'web_sitemap';
 
     /** 캐시 TTL (초) — 1시간 (CLAUDE.md §부하분산: sitemap 1h) */
-    private const CACHE_TTL = 3600;
+    private const int CACHE_TTL = 3600;
 
     private CampaignModel $campaigns;
     private HospitalModel $hospitals;

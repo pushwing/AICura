@@ -2,6 +2,10 @@
 
 namespace App\Controllers\Admin;
 
+use Override;
+use CodeIgniter\HTTP\RequestInterface;
+use Psr\Log\LoggerInterface;
+use CodeIgniter\Exceptions\PageNotFoundException;
 use App\Models\ContractModel;
 use App\Models\ContractOrderModel;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -20,10 +24,11 @@ class ContractController extends BaseAdminController
     private ContractModel $contractModel;
     private ContractOrderModel $orderModel;
 
+    #[Override]
     public function initController(
-        \CodeIgniter\HTTP\RequestInterface $request,
-        \CodeIgniter\HTTP\ResponseInterface $response,
-        \Psr\Log\LoggerInterface $logger
+        RequestInterface $request,
+        ResponseInterface $response,
+        LoggerInterface $logger
     ): void {
         parent::initController($request, $response, $logger);
         $this->contractModel = model(ContractModel::class);
@@ -59,7 +64,7 @@ class ContractController extends BaseAdminController
     {
         $contract = $this->contractModel->getDetail($id);
         if ($contract === null) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         return $this->render('admin/contracts/show', ['contract' => $contract]);
@@ -96,7 +101,7 @@ class ContractController extends BaseAdminController
     {
         $order = $this->orderModel->getDetail($id);
         if ($order === null) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         return $this->render('admin/contracts/order_show', ['order' => $order]);
@@ -167,7 +172,7 @@ class ContractController extends BaseAdminController
     {
         $order = $this->orderModel->getDetail($id);
         if ($order === null) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         return $this->render('admin/contracts/order_form', ['order' => $order]);
@@ -181,7 +186,7 @@ class ContractController extends BaseAdminController
     {
         $order = $this->orderModel->find($id);
         if ($order === null) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         $updateData = array_filter([
@@ -191,7 +196,7 @@ class ContractController extends BaseAdminController
             'agency_company_name'   => $this->request->getPost('agency_company_name'),
             'agency_company_fee_rate' => $this->request->getPost('agency_company_fee_rate'),
             'memo'                  => $this->request->getPost('memo'),
-        ], fn($v) => $v !== null && $v !== '');
+        ], fn(bool|float|int|object|string|array|null $v): bool => $v !== null && $v !== '');
 
         // 입금 전, 세금계산서 미발행인 경우에만 금액 수정 허용
         if (empty($order['deposit_date']) && empty($order['tax_issue_date'])) {
@@ -219,7 +224,7 @@ class ContractController extends BaseAdminController
 
         $order = $this->orderModel->find($id);
         if ($order === null) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         if (!empty($order['deposit_date'])) {

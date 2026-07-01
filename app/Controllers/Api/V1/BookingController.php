@@ -2,6 +2,7 @@
 
 namespace App\Controllers\Api\V1;
 
+use Override;
 use App\Exceptions\DomainException;
 use App\Services\BookingService;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -16,37 +17,31 @@ use OpenApi\Attributes as OA;
 #[OA\Tag(name: 'Bookings', description: '예약 — 소비자 앱')]
 class BookingController extends BaseApiController
 {
-    private BookingService $bookings;
+    private readonly BookingService $bookings;
 
     public function __construct()
     {
         $this->bookings = Services::bookingService();
     }
 
-    #[OA\Post(
-        path: '/bookings',
-        summary: '예약 생성',
-        security: [['bearerAuth' => []]],
-        tags: ['Bookings'],
-        requestBody: new OA\RequestBody(
-            required: true,
-            content: new OA\JsonContent(
-                required: ['hospital_id'],
-                properties: [
-                    new OA\Property(property: 'hospital_id', type: 'integer', example: 5),
-                    new OA\Property(property: 'name', type: 'string', example: '홍길동'),
-                    new OA\Property(property: 'phone', type: 'string', example: '01012345678'),
-                    new OA\Property(property: 'book_date', type: 'string', format: 'date-time', example: '2026-07-01 14:00:00'),
-                    new OA\Property(property: 'call_request_id', type: 'integer', description: '연결할 상담 신청(선택)', example: 12),
-                ]
-            )
-        ),
-        responses: [
-            new OA\Response(response: 201, description: '예약 생성'),
-            new OA\Response(response: 404, description: '병원/상담건 없음'),
-            new OA\Response(response: 422, description: '유효성 검사 실패'),
-        ]
-    )]
+    #[OA\Post(path: '/bookings', summary: '예약 생성', security: [['bearerAuth' => []]], requestBody: new OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(
+            required: ['hospital_id'],
+            properties: [
+                new OA\Property(property: 'hospital_id', type: 'integer', example: 5),
+                new OA\Property(property: 'name', type: 'string', example: '홍길동'),
+                new OA\Property(property: 'phone', type: 'string', example: '01012345678'),
+                new OA\Property(property: 'book_date', type: 'string', format: 'date-time', example: '2026-07-01 14:00:00'),
+                new OA\Property(property: 'call_request_id', description: '연결할 상담 신청(선택)', type: 'integer', example: 12),
+            ]
+        )
+    ), tags: ['Bookings'], responses: [
+        new OA\Response(response: 201, description: '예약 생성'),
+        new OA\Response(response: 404, description: '병원/상담건 없음'),
+        new OA\Response(response: 422, description: '유효성 검사 실패'),
+    ])]
+    #[Override]
     public function create(): ResponseInterface
     {
         $rules = [
@@ -78,6 +73,7 @@ class BookingController extends BaseApiController
             new OA\Response(response: 404, description: '존재하지 않거나 권한 없는 예약'),
         ]
     )]
+    #[Override]
     public function show($id = null): ResponseInterface
     {
         try {
@@ -99,6 +95,7 @@ class BookingController extends BaseApiController
             new OA\Response(response: 409, description: '이미 취소된 예약'),
         ]
     )]
+    #[Override]
     public function update($id = null): ResponseInterface
     {
         $rules = [
@@ -129,6 +126,7 @@ class BookingController extends BaseApiController
             new OA\Response(response: 409, description: '이미 취소된 예약'),
         ]
     )]
+    #[Override]
     public function delete($id = null): ResponseInterface
     {
         try {

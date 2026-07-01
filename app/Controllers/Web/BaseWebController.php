@@ -2,6 +2,7 @@
 
 namespace App\Controllers\Web;
 
+use Override;
 use App\Controllers\BaseController;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -36,6 +37,7 @@ abstract class BaseWebController extends BaseController
         ];
     }
 
+    #[Override]
     public function initController(
         RequestInterface $request,
         ResponseInterface $response,

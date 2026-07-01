@@ -2,6 +2,10 @@
 
 namespace App\Controllers\Admin;
 
+use Override;
+use CodeIgniter\HTTP\RequestInterface;
+use CodeIgniter\HTTP\ResponseInterface;
+use Psr\Log\LoggerInterface;
 use App\Models\SettingModel;
 use App\Models\UserModel;
 use CodeIgniter\HTTP\RedirectResponse;
@@ -19,10 +23,11 @@ class SettingController extends BaseAdminController
     private UserModel $userModel;
     private SettingModel $settingModel;
 
+    #[Override]
     public function initController(
-        \CodeIgniter\HTTP\RequestInterface $request,
-        \CodeIgniter\HTTP\ResponseInterface $response,
-        \Psr\Log\LoggerInterface $logger
+        RequestInterface $request,
+        ResponseInterface $response,
+        LoggerInterface $logger
     ): void {
         parent::initController($request, $response, $logger);
         $this->userModel    = model(UserModel::class);
@@ -138,6 +143,6 @@ class SettingController extends BaseAdminController
     {
         $errors = $this->validator->getErrors();
 
-        return $errors === [] ? '입력값을 확인해주세요.' : (string) reset($errors);
+        return $errors === [] ? '입력값을 확인해주세요.' : reset($errors);
     }
 }

@@ -149,7 +149,7 @@ class ContractModel extends Model
             ->select('c.hospital_id, co.id, co.title, co.ad_type2, co.contract_status, co.ad_price, co.deposit_date, co.created_at')
             ->join('contract_order_connects coc', 'coc.contract_id = c.id')
             ->join('contract_orders co', 'co.id = coc.contract_order_id')
-            ->whereIn('c.hospital_id', array_map('intval', $hospitalIds))
+            ->whereIn('c.hospital_id', array_map(intval(...), $hospitalIds))
             ->orderBy('co.id', 'DESC')
             ->get()
             ->getResultArray();
@@ -176,7 +176,7 @@ class ContractModel extends Model
             return empty($order['deposit_date']) ? '미입금' : '정상';
         }
 
-        return \App\Models\ContractOrderModel::STATUS_LABELS[$status] ?? '-';
+        return ContractOrderModel::STATUS_LABELS[$status] ?? '-';
     }
 
     /**

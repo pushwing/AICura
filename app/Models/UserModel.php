@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use RuntimeException;
 use CodeIgniter\Model;
 
 class UserModel extends Model
@@ -292,7 +293,7 @@ class UserModel extends Model
         $id = $this->insert($row, true);
 
         if ($id === false) {
-            throw new \RuntimeException('앱 계정 생성에 실패했습니다: ' . implode(' ', $this->errors()));
+            throw new RuntimeException('앱 계정 생성에 실패했습니다: ' . implode(' ', $this->errors()));
         }
 
         return (int) $id;
@@ -327,7 +328,7 @@ class UserModel extends Model
             $builder->where('is_agency_account', 0);
 
             if (!empty($params['user_types']) && is_array($params['user_types'])) {
-                $builder->whereIn('user_type', array_map('intval', $params['user_types']));
+                $builder->whereIn('user_type', array_map(intval(...), $params['user_types']));
             } elseif (!empty($params['user_type'])) {
                 $builder->where('user_type', (int) $params['user_type']);
             }
@@ -368,19 +369,19 @@ class UserModel extends Model
      * - is_active : 1 활성 · 0 비활성 (로그인 허용 여부).
      * - null 로 전달된 항목은 변경하지 않는다.
      *
-     * @throws \RuntimeException 사용자 없음·유효하지 않은 값·변경 항목 없음
+     * @throws RuntimeException 사용자 없음·유효하지 않은 값·변경 항목 없음
      */
     public function updateStatus(int $id, ?int $isDormant, ?int $isActive): void
     {
         if ($this->find($id) === null) {
-            throw new \RuntimeException('사용자를 찾을 수 없습니다.');
+            throw new RuntimeException('사용자를 찾을 수 없습니다.');
         }
 
         $update = [];
 
         if ($isDormant !== null) {
             if (!in_array($isDormant, [0, 1], true)) {
-                throw new \RuntimeException('유효하지 않은 휴면 상태입니다.');
+                throw new RuntimeException('유효하지 않은 휴면 상태입니다.');
             }
             $update['is_dormant'] = $isDormant;
             // 0 = 휴면 전환 시점 기록, 1 = 활성 복귀 시 해제
@@ -389,13 +390,13 @@ class UserModel extends Model
 
         if ($isActive !== null) {
             if (!in_array($isActive, [0, 1], true)) {
-                throw new \RuntimeException('유효하지 않은 계정 활성 상태입니다.');
+                throw new RuntimeException('유효하지 않은 계정 활성 상태입니다.');
             }
             $update['is_active'] = $isActive;
         }
 
         if ($update === []) {
-            throw new \RuntimeException('변경할 상태가 없습니다.');
+            throw new RuntimeException('변경할 상태가 없습니다.');
         }
 
         $this->update($id, $update);

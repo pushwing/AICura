@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Database\Migrations;
 
+use CodeIgniter\Database\MySQLi\Connection;
 use CodeIgniter\Database\Migration;
 
 /**
@@ -78,7 +81,7 @@ class CreateAdvertiserOwnerInvitesTable extends Migration
 
     public function down(): void
     {
-        $isMySQLi = $this->db instanceof \CodeIgniter\Database\MySQLi\Connection;
+        $isMySQLi = $this->db instanceof Connection;
         if ($isMySQLi) {
             $this->db->query('SET FOREIGN_KEY_CHECKS=0');
         }

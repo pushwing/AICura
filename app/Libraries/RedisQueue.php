@@ -43,7 +43,7 @@ class RedisQueue
     public function push(string $queue, string $payload): bool
     {
         $client = $this->client();
-        if ($client === null) {
+        if (!$client instanceof Client) {
             return false;
         }
 
@@ -67,7 +67,7 @@ class RedisQueue
     public function pop(string $queue): ?string
     {
         $client = $this->client();
-        if ($client === null) {
+        if (!$client instanceof Client) {
             return null;
         }
 
@@ -87,7 +87,7 @@ class RedisQueue
     public function length(string $queue): int
     {
         $client = $this->client();
-        if ($client === null) {
+        if (!$client instanceof Client) {
             return 0;
         }
 
@@ -101,7 +101,7 @@ class RedisQueue
     /** Redis 연결 가용 여부. */
     public function isAvailable(): bool
     {
-        return $this->client() !== null;
+        return $this->client() instanceof Client;
     }
 
     /**

@@ -17,17 +17,15 @@ use Throwable;
  */
 class IndexNowService
 {
-    private const ENDPOINT = 'https://api.indexnow.org/indexnow';
+    private const string ENDPOINT = 'https://api.indexnow.org/indexnow';
 
-    private string $key;
-    private int $timeout;
-    private ?CURLRequest $client;
+    private readonly string $key;
+    private readonly int $timeout;
 
-    public function __construct(?CURLRequest $client = null)
+    public function __construct(private readonly ?CURLRequest $client = null)
     {
         $this->key     = (string) env('INDEXNOW_KEY', '');
         $this->timeout = max(3, (int) env('INDEXNOW_TIMEOUT', 5));
-        $this->client  = $client;
     }
 
     /** 제출 가능 여부 — 키 설정 + 운영(비로컬) 호스트 */
@@ -53,7 +51,7 @@ class IndexNowService
     public function submit(string ...$urls): bool
     {
         $urls = array_values(array_filter(
-            array_map(static fn (string $u): string => trim($u), $urls),
+            array_map(trim(...), $urls),
             static fn (string $u): bool => $u !== '',
         ));
 
@@ -97,9 +95,7 @@ class IndexNowService
     {
         $host = (string) (parse_url(base_url(), PHP_URL_HOST) ?? '');
 
-        return $host === ''
-            || $host === 'localhost'
-            || $host === '127.0.0.1'
+        return in_array($host, ['', 'localhost', '127.0.0.1'], true)
             || str_ends_with($host, '.local')
             || str_ends_with($host, '.test')
             || str_ends_with($host, '.example.com')

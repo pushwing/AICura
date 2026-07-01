@@ -21,21 +21,21 @@ use RuntimeException;
  */
 class GeminiClient implements AiClientInterface
 {
-    private const ENDPOINT_TEMPLATE = 'https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent';
-    private const DEFAULT_MODEL      = 'gemini-2.0-flash';
+    private const string ENDPOINT_TEMPLATE = 'https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent';
+    private const string DEFAULT_MODEL      = 'gemini-2.0-flash';
 
     /** 응답 토큰 상한 — 위반 플래그 JSON이 잘리지 않을 만큼 충분, 과금 폭주 방지 */
-    private const MAX_TOKENS = 2048;
+    private const int MAX_TOKENS = 2048;
 
     /** 429·5xx 재시도 횟수 (총 시도 = MAX_RETRIES + 1) */
-    private const MAX_RETRIES = 3;
+    private const int MAX_RETRIES = 3;
 
     /** 백오프 상한(초) — 공급자 권장 대기가 비정상적으로 길어도 이 값으로 캡 */
-    private const MAX_BACKOFF = 30;
+    private const int MAX_BACKOFF = 30;
 
-    private string $apiKey;
-    private string $model;
-    private int $timeout;
+    private readonly string $apiKey;
+    private readonly string $model;
+    private readonly int $timeout;
 
     public function __construct()
     {
