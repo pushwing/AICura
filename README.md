@@ -387,11 +387,11 @@ gh pr create --base main --head dev --title "release: YYYY-MM-DD"
 | **트리거** | `dev` · `main` 으로의 push / pull_request |
 | **동시성 제어** | 같은 ref 에 새 푸시가 오면 진행 중 실행 자동 취소 (`cancel-in-progress`) |
 
-### Backend 잡 (PHP 8.4 · PHPStan · PHPUnit)
+### Backend 잡 (PHP 8.5 · PHPStan · PHPUnit)
 
 `mysql:8.0` 서비스 컨테이너를 띄운 뒤 아래 순서로 검증한다.
 
-1. **PHP 8.4** 설치 (`mbstring · intl · mysqli · curl · dom · xml · tokenizer`, 커버리지 드라이버 `pcov`)
+1. **PHP 8.5** 설치 (`mbstring · intl · mysqli · curl · dom · xml · tokenizer`, 커버리지 드라이버 `pcov`)
 2. Composer 캐시 복원 후 `composer install`
 3. `env` → `.env` 복사 + CI용 DB·JWT 값 주입
 4. `writable/` 하위 디렉토리 생성 (git 미추적 — CI4 `WRITEPATH` 보장)
