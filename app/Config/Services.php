@@ -11,6 +11,7 @@ use App\Services\CallRequestService;
 use App\Services\EventService;
 use App\Services\GuideService;
 use App\Services\HealthPointService;
+use App\Services\IndexNowService;
 use App\Services\HospitalService;
 use App\Services\LogIngestService;
 use App\Services\MeService;
@@ -73,6 +74,18 @@ class Services extends BaseService
         }
 
         return new GuideService();
+    }
+
+    /**
+     * IndexNow 즉시 색인 제출 서비스 (이슈 #152)
+     */
+    public static function indexNowService(bool $getShared = true): IndexNowService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('indexNowService');
+        }
+
+        return new IndexNowService();
     }
 
     /**

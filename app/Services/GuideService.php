@@ -54,6 +54,10 @@ class GuideService
 
         $id = $this->guides->insert($data, true);
 
+        if ($data['status'] === GuideModel::STATUS_PUBLISHED) {
+            $this->submitIndexNow((string) $data['slug']);
+        }
+
         return (int) $id;
     }
 
@@ -72,6 +76,10 @@ class GuideService
 
         $result = $this->guides->update($id, $data) !== false;
         $this->invalidate();
+
+        if ($result && $data['status'] === GuideModel::STATUS_PUBLISHED) {
+            $this->submitIndexNow((string) $data['slug']);
+        }
 
         return $result;
     }
@@ -208,6 +216,12 @@ class GuideService
         }
 
         return $items;
+    }
+
+    /** 발행 가이드 공개 URL 을 IndexNow 에 제출 (이슈 #152). */
+    private function submitIndexNow(string $slug): void
+    {
+        service('indexNowService')->submit(base_url('guides/' . rawurlencode($slug)));
     }
 
     private function invalidate(): void

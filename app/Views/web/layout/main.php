@@ -33,6 +33,7 @@ $meta['canonical'] = (string) ($meta['canonical'] ?? current_url());
             <a href="<?= base_url('events') ?>">이벤트</a>
             <a href="<?= base_url('hospitals') ?>">병원</a>
             <a href="<?= base_url('reviews') ?>">후기</a>
+            <a href="<?= base_url('guides') ?>">가이드</a>
         </nav>
     </header>
 

@@ -80,8 +80,9 @@ class ReviewPageController extends BaseWebController
         $summary    = mb_substr(trim(strip_tags((string) ($review['contents'] ?? ''))), 0, 150);
 
         return $this->render('web/reviews/show', [
-            'review' => $review,
-            'jsonLd' => [JsonLdBuilder::review($review, base_url('reviews/' . $reviewId), $targetName)],
+            'review'     => $review,
+            'targetName' => $targetName, // 내부 링크: 리뷰 대상(병원/이벤트)명 (이슈 #152)
+            'jsonLd'     => [JsonLdBuilder::review($review, base_url('reviews/' . $reviewId), $targetName)],
         ], [
             'title'       => (string) $review['subject'] . ' | AICura 후기',
             'description' => $summary !== '' ? $summary : '성형·시술 실사용 후기 — AICura',

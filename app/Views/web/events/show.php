@@ -41,6 +41,10 @@ $detailHtml  = strip_tags((string) ($event['ad_detail_info'] ?? ''), $allowedTag
         <?php endif; ?>
     </dl>
 
+    <p class="web-inline-links">
+        <a href="<?= base_url('reviews?filter[type]=1&filter[target_id]=' . (int) $event['id']) ?>">이 이벤트 후기 보기</a>
+    </p>
+
     <?php if (!empty($event['thumbnail_url'])): ?>
         <img class="web-detail-hero" src="<?= esc((string) $event['thumbnail_url'], 'attr') ?>"
              alt="<?= esc((string) $event['ad_title'], 'attr') ?>">

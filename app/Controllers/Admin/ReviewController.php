@@ -155,6 +155,11 @@ class ReviewController extends BaseAdminController
             return redirect()->back()->with('error', $e->getMessage());
         }
 
+        // 검수 승인으로 공개된 이벤트 URL 을 IndexNow 에 제출 (이슈 #152)
+        if ($action === 'approve' && $this->campaignModel->isVisibleEvent($campaignId)) {
+            service('indexNowService')->submit(base_url('events/' . $campaignId));
+        }
+
         $message = $action === 'approve' ? '검수가 승인되었습니다.' : '검수가 반려되었습니다.';
 
         return redirect()->to('/admin/reviews')
