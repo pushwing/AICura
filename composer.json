@@ -21,7 +21,8 @@
         "fakerphp/faker": "^1.9",
         "mikey179/vfsstream": "^1.6",
         "phpstan/phpstan": "^2.2",
-        "phpunit/phpunit": "^10.5.16"
+        "phpunit/phpunit": "^10.5.16",
+        "rector/rector": "^2.5"
     },
     "autoload": {
         "psr-4": {
@@ -43,8 +44,10 @@
         "sort-packages": true
     },
     "scripts": {
-        "test":    "phpunit",
-        "analyse": "phpstan analyse --memory-limit=512M",
-        "check":   ["@analyse", "@test"]
+        "test":         "phpunit",
+        "analyse":      "phpstan analyse --memory-limit=512M",
+        "check":        ["@analyse", "@test"],
+        "rector":       "rector process --dry-run",
+        "rector:fix":   "rector process"
     }
 }
