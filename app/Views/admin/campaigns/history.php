@@ -56,7 +56,8 @@ $actionLabels = [
                         <?php endif; ?>
                     </td>
                     <td style="padding:12px 0;color:var(--color-text-muted);max-width:200px;">
-                        <?= esc($h['memo'] ?? '—') ?>
+                        <?php // memo는 저장 시 CampaignController::sanitizeDetailHtml()로 화이트리스트 필터링되어 안전한 태그만 남음 — esc() 없이 서식 그대로 출력 ?>
+                        <?= $h['memo'] ?? '—' ?>
                     </td>
                     <td style="padding:12px 0;"><?= esc($h['admin_name'] ?? '—') ?></td>
                     <td style="padding:12px 0;color:var(--color-text-muted);font-size:13px;"><?= esc($h['created_at']) ?></td>
