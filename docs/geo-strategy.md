@@ -282,6 +282,17 @@ Sitemap: https://{운영도메인}/sitemap.xml
 - [ ] 대표 질의(예: "강남 쌍꺼풀 이벤트", "쌍꺼풀 수술 비용")를 ChatGPT Search·Perplexity·Google AI Overviews 에 넣어 **인용·언급 여부** 주기 점검
 - [ ] GSC 색인 페이지 수·노출·클릭·평균순위 추이 기록(월 단위)
 
+### 7.2 IndexNow 즉시 색인 + 내부 링크 강화 (이슈 #152) ✅
+
+**IndexNow** — 콘텐츠 발행·수정 시 변경 URL 을 Bing·Naver·Yandex 등에 즉시 제출한다.
+- `IndexNowService` + `GET /indexnow-key.txt`(키 검증). `.env` 의 `INDEXNOW_KEY` 설정 시 활성, 로컬 도메인은 제출 안 함.
+- 자동 트리거: **가이드 발행/수정**(GuideService) · **병원 등록/수정(활성)**(Admin) · **이벤트 검수 승인**(ReviewController).
+- 외부 호출 실패는 요청 흐름을 막지 않도록 타임아웃(기본 5초)+예외 로깅.
+- 배포 후: `.env` 에 `INDEXNOW_KEY`(32~64자 랜덤 16진) 설정 → `/indexnow-key.txt` 200 확인.
+
+**내부 링크(internal backlink) 강화** — 색인·권위 전달을 위해 공개 페이지 간 상호 링크.
+- 헤더 nav 에 가이드 추가 / 이벤트→후기·병원 / 병원→후기 / 후기→대상(병원·이벤트).
+
 ---
 
 ## 8. 리스크 — 의료광고법 (성형 도메인 특수성) ⚠️

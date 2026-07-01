@@ -127,6 +127,8 @@ class HospitalController extends BaseAdminController
 
         $db->transCommit();
 
+        $this->submitIndexNow((int) $id);
+
         return redirect()->to('/admin/hospitals')->with('success', '병원이 등록되었습니다.');
     }
 
@@ -154,6 +156,8 @@ class HospitalController extends BaseAdminController
         $this->hospitalModel->invalidateConsumerCache();
 
         $db->transCommit();
+
+        $this->submitIndexNow($id);
 
         return redirect()->to('/admin/hospitals')->with('success', '병원이 수정되었습니다.');
     }
@@ -216,5 +220,13 @@ class HospitalController extends BaseAdminController
         $posted = $this->request->getPost('departments');
 
         return is_array($posted) ? array_map('intval', $posted) : [];
+    }
+
+    /** 활성 병원 공개 URL 을 IndexNow 에 제출 (이슈 #152). */
+    private function submitIndexNow(int $id): void
+    {
+        if ((string) $this->request->getPost('status') === 'active') {
+            service('indexNowService')->submit(base_url('hospitals/' . $id));
+        }
     }
 }

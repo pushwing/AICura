@@ -4,6 +4,9 @@ use CodeIgniter\Router\RouteCollection;
 
 /** @var RouteCollection $routes */
 
+// ── 루트 진입 → 관리자 로그인 리다이렉트 ──────────────────
+$routes->get('/', static fn (): \CodeIgniter\HTTP\RedirectResponse => redirect()->to('/admin/login'));
+
 // ── API Docs (Swagger UI) ────────────────────────────────
 $routes->get('api/docs',      'Api\DocsController::index');
 $routes->get('api/docs/spec', 'Api\DocsController::spec');
@@ -312,4 +315,5 @@ $routes->group('', ['namespace' => 'App\Controllers\Web'], static function (Rout
     $routes->get('sitemap.xml', 'SitemapController::index');
     $routes->get('robots.txt',  'RobotsController::index');
     $routes->get('llms.txt',    'LlmsController::index'); // AI 크롤러용 사이트 요약 (이슈 #147)
+    $routes->get('indexnow-key.txt', 'IndexNowController::key'); // IndexNow 키 검증 (이슈 #152)
 });

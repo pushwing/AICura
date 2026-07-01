@@ -34,7 +34,12 @@ $summary = $hospital['review_summary'] ?? [];
         <?php endif; ?>
         <?php if ((float) ($summary['rating'] ?? 0) > 0): ?>
             <dt>평점</dt>
-            <dd><?= esc((string) $summary['rating']) ?> (<?= esc((string) ($summary['count'] ?? 0)) ?>건)</dd>
+            <dd>
+                <?= esc((string) $summary['rating']) ?> (<?= esc((string) ($summary['count'] ?? 0)) ?>건)
+                <?php if ((int) ($summary['count'] ?? 0) > 0): ?>
+                    · <a href="<?= base_url('reviews?filter[type]=2&filter[target_id]=' . (int) $hospital['id']) ?>">후기 전체 보기</a>
+                <?php endif; ?>
+            </dd>
         <?php endif; ?>
     </dl>
 
