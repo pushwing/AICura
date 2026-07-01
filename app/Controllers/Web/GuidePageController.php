@@ -2,6 +2,7 @@
 
 namespace App\Controllers\Web;
 
+use Override;
 use App\Libraries\Seo\JsonLdBuilder;
 use App\Services\GuideService;
 use CodeIgniter\Exceptions\PageNotFoundException;
@@ -20,6 +21,7 @@ class GuidePageController extends BaseWebController
 {
     private GuideService $guides;
 
+    #[Override]
     public function initController(
         RequestInterface $request,
         ResponseInterface $response,
@@ -72,7 +74,7 @@ class GuidePageController extends BaseWebController
                 JsonLdBuilder::faqPage($faq, $url),
             ],
         ], [
-            'title'       => (string) $guide['title'] . ' | AICura',
+            'title'       => $guide['title'] . ' | AICura',
             'description' => $summary !== '' ? $summary : '성형·시술 정보 가이드 — AICura',
             'og_type'     => 'article',
         ]);

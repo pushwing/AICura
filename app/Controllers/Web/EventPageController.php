@@ -2,6 +2,7 @@
 
 namespace App\Controllers\Web;
 
+use Override;
 use App\Exceptions\NotFoundException;
 use App\Libraries\Seo\JsonLdBuilder;
 use App\Services\EventService;
@@ -21,6 +22,7 @@ class EventPageController extends BaseWebController
 {
     private EventService $events;
 
+    #[Override]
     public function initController(
         RequestInterface $request,
         ResponseInterface $response,
@@ -63,7 +65,7 @@ class EventPageController extends BaseWebController
             'event'  => $event,
             'jsonLd' => [JsonLdBuilder::event($event, base_url('events/' . (int) $event['id']))],
         ], [
-            'title'       => (string) $event['ad_title'] . ' | AICura',
+            'title'       => $event['ad_title'] . ' | AICura',
             'description' => $summary !== '' ? $summary : '성형·시술 이벤트 상세 — AICura',
             'og_type'     => 'article',
             'og_image'    => $event['thumbnail_url'] ?? null,

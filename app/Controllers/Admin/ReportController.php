@@ -2,6 +2,14 @@
 
 namespace App\Controllers\Admin;
 
+use Override;
+use CodeIgniter\HTTP\RequestInterface;
+use CodeIgniter\HTTP\ResponseInterface;
+use Psr\Log\LoggerInterface;
+use CodeIgniter\Exceptions\PageNotFoundException;
+use App\Libraries\MarkdownRenderer;
+use App\Models\HourlyEventStatModel;
+use App\Enums\AppLogEvent;
 use App\Models\AiReportModel;
 use App\Models\ReportModel;
 use App\Services\AiReportService;
@@ -19,15 +27,16 @@ use Throwable;
  */
 class ReportController extends BaseAdminController
 {
-    private const AI_LIST_PER_PAGE = 20;
+    private const int AI_LIST_PER_PAGE = 20;
 
     private ReportModel $reportModel;
     private AiReportModel $aiReportModel;
 
+    #[Override]
     public function initController(
-        \CodeIgniter\HTTP\RequestInterface $request,
-        \CodeIgniter\HTTP\ResponseInterface $response,
-        \Psr\Log\LoggerInterface $logger
+        RequestInterface $request,
+        ResponseInterface $response,
+        LoggerInterface $logger
     ): void {
         parent::initController($request, $response, $logger);
         $this->reportModel   = model(ReportModel::class);
@@ -67,12 +76,12 @@ class ReportController extends BaseAdminController
         $report = $this->aiReportModel->find($id);
 
         if ($report === null) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         return view('reports/ai_show', [
             'report'      => $report,
-            'contentHtml' => (new \App\Libraries\MarkdownRenderer())->toSafeHtml((string) $report['content']),
+            'contentHtml' => new MarkdownRenderer()->toSafeHtml((string) $report['content']),
         ]);
     }
 
@@ -82,7 +91,7 @@ class ReportController extends BaseAdminController
     public function aiReportList(string $type): string
     {
         if (! in_array($type, [AiReportModel::TYPE_REVENUE, AiReportModel::TYPE_CONSUMPTION], true)) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         $page    = max(1, (int) ($this->request->getGet('page') ?? 1));
@@ -143,7 +152,7 @@ class ReportController extends BaseAdminController
     // 앱 액션 로그 통계 (이슈 #120) — 시간별/일별 추이
     // ──────────────────────────────────────────────
 
-    private const APP_LOG_DAILY_RANGE = 14; // 일별 모드에서 보여줄 최근 일수
+    private const int APP_LOG_DAILY_RANGE = 14; // 일별 모드에서 보여줄 최근 일수
 
     /**
      * 앱 액션 로그 통계 화면.
@@ -156,7 +165,7 @@ class ReportController extends BaseAdminController
         $date = $this->request->getGet('date');
         $date = is_string($date) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) === 1 ? $date : date('Y-m-d');
 
-        $stats = model(\App\Models\HourlyEventStatModel::class);
+        $stats = model(HourlyEventStatModel::class);
 
         if ($mode === 'hourly') {
             $rows   = $stats->hourlyByDate($date);
@@ -191,7 +200,7 @@ class ReportController extends BaseAdminController
     private function pivotSeries(array $rows, string $bucketKey, array $buckets): array
     {
         // bucket 인덱스 맵 — 라벨 순서대로 0 채움
-        $index  = array_flip(array_map('strval', $buckets));
+        $index  = array_flip(array_map(strval(...), $buckets));
         $series = []; // event => list<int> (버킷별 합계)
         $totals = []; // event => int
 
@@ -218,7 +227,7 @@ class ReportController extends BaseAdminController
         $datasets = [];
         foreach (array_keys($totals) as $event) {
             $datasets[] = [
-                'label' => \App\Enums\AppLogEvent::labelFor($event),
+                'label' => AppLogEvent::labelFor($event),
                 'event' => $event,
                 'data'  => $series[$event],
             ];

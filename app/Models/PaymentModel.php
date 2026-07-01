@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use RuntimeException;
+use Throwable;
 use CodeIgniter\Model;
 
 /**
@@ -47,7 +49,7 @@ class PaymentModel extends Model
     ];
 
     // contract_orders.contract_status → deposits.status 매핑
-    private const REFUND_DEPOSIT_STATUS_MAP = [
+    private const array REFUND_DEPOSIT_STATUS_MAP = [
         2 => 6, // 발행환불 → deposits 발행환불
         5 => 7, // 계약환불 → deposits 계약환불
     ];
@@ -128,20 +130,20 @@ class PaymentModel extends Model
      * 환불 가능액은 (결제액 − 성공한 기존 환불액 누계) 로 산정하며,
      * 잔여액에 도달할 때까지 부분 환불을 여러 번 처리할 수 있다.
      *
-     * @throws \RuntimeException 유효하지 않은 환불 유형·금액
-     * @throws \Throwable DB 트랜잭션 오류
+     * @throws RuntimeException 유효하지 않은 환불 유형·금액
+     * @throws Throwable DB 트랜잭션 오류
      */
     public function processRefund(int $paymentId, int $amount, int $refundType, int $userId): void
     {
         $depositStatus = self::REFUND_DEPOSIT_STATUS_MAP[$refundType] ?? null;
         if ($depositStatus === null) {
-            throw new \RuntimeException('유효하지 않은 환불 유형입니다.');
+            throw new RuntimeException('유효하지 않은 환불 유형입니다.');
         }
 
         /** @var array<string, mixed>|null $payment */
         $payment = $this->select('id, user_id, contract_id, contract_order_id, type, trans_no, amount')->find($paymentId);
         if ($payment === null) {
-            throw new \RuntimeException('결제 정보를 찾을 수 없습니다.');
+            throw new RuntimeException('결제 정보를 찾을 수 없습니다.');
         }
 
         $total           = (int) $payment['amount'];
@@ -149,7 +151,7 @@ class PaymentModel extends Model
         $remaining       = $total - $alreadyRefunded;
 
         if ($amount <= 0 || $amount > $remaining) {
-            throw new \RuntimeException('환불 금액이 유효하지 않습니다.');
+            throw new RuntimeException('환불 금액이 유효하지 않습니다.');
         }
 
         // 이번 환불로 누적 환불액이 결제액에 도달하면 전체 환불
@@ -201,7 +203,7 @@ class PaymentModel extends Model
                 ]);
 
             $db->transCommit();
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $db->transRollback();
             throw $e;
         }

@@ -16,11 +16,11 @@ use App\Models\ReportModel;
 class AiReportService
 {
     /** 소진보고서 잔액 임계 비율 — 충전금의 5% 이하 */
-    private const LOW_BALANCE_RATIO = 0.05;
+    private const float LOW_BALANCE_RATIO = 0.05;
 
-    private ReportModel $reportModel;
-    private AiReportModel $aiReportModel;
-    private AiClientInterface $ai;
+    private readonly ReportModel $reportModel;
+    private readonly AiReportModel $aiReportModel;
+    private readonly AiClientInterface $ai;
 
     public function __construct(
         ?ReportModel $reportModel = null,

@@ -110,13 +110,13 @@ class HospitalModel extends Model
     // ──────────────────────────────────────────────
 
     /** boards.type — 병원 후기 (별점 요약 조인용) */
-    private const REVIEW_TYPE_HOSPITAL = 2;
+    private const int REVIEW_TYPE_HOSPITAL = 2;
 
     /** 소비자 캐시(목록·상세) 무효화용 버전 토큰 캐시 키 */
     public const CONSUMER_CACHE_VERSION_KEY = 'hospitals_consumer_cache_ver';
 
     /** 버전 토큰 TTL (초) — 1일. 쓰기 발생 시 즉시 삭제되어 무효화된다. */
-    private const CONSUMER_CACHE_VERSION_TTL = 86400;
+    private const int CONSUMER_CACHE_VERSION_TTL = 86400;
 
     /**
      * 소비자 캐시 키에 끼워 넣는 버전 토큰.

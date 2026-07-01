@@ -2,6 +2,11 @@
 
 namespace App\Controllers\Admin;
 
+use Override;
+use CodeIgniter\HTTP\RequestInterface;
+use Psr\Log\LoggerInterface;
+use CodeIgniter\Exceptions\PageNotFoundException;
+use RuntimeException;
 use App\Models\BoardModel;
 use App\Models\BoardSummaryModel;
 use App\Models\SettingModel;
@@ -19,10 +24,11 @@ class BoardController extends BaseAdminController
     private BoardModel $boardModel;
     private BoardSummaryModel $summaryModel;
 
+    #[Override]
     public function initController(
-        \CodeIgniter\HTTP\RequestInterface $request,
-        \CodeIgniter\HTTP\ResponseInterface $response,
-        \Psr\Log\LoggerInterface $logger
+        RequestInterface $request,
+        ResponseInterface $response,
+        LoggerInterface $logger
     ): void {
         parent::initController($request, $response, $logger);
         $this->boardModel   = model(BoardModel::class);
@@ -64,7 +70,7 @@ class BoardController extends BaseAdminController
     {
         $board = $this->boardModel->getDetail($id);
         if ($board === null) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         return $this->render('admin/boards/show', [
@@ -85,7 +91,7 @@ class BoardController extends BaseAdminController
 
         try {
             $this->boardModel->markDeleted($id, $state, $memo);
-        } catch (\RuntimeException $e) {
+        } catch (RuntimeException $e) {
             return redirect()->back()->with('error', $e->getMessage());
         }
 
@@ -103,7 +109,7 @@ class BoardController extends BaseAdminController
     {
         try {
             $this->boardModel->restore($id);
-        } catch (\RuntimeException $e) {
+        } catch (RuntimeException $e) {
             return redirect()->back()->with('error', $e->getMessage());
         }
 
@@ -119,7 +125,7 @@ class BoardController extends BaseAdminController
     {
         $board = $this->boardModel->find($id);
         if ($board === null) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         $result = $this->summaryModel->recalculate((int) $board['type'], (int) $board['target_id']);
@@ -140,7 +146,7 @@ class BoardController extends BaseAdminController
 
         try {
             $this->boardModel->enqueueAnalysis($id);
-        } catch (\RuntimeException $e) {
+        } catch (RuntimeException $e) {
             return redirect()->back()->with('error', $e->getMessage());
         }
 

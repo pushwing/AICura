@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use RuntimeException;
+use InvalidArgumentException;
 use CodeIgniter\Model;
 
 /**
@@ -200,15 +202,15 @@ class BoardModel extends Model
     /**
      * 삭제 처리 (임시 1 / 완전 2)
      *
-     * @throws \RuntimeException 유효하지 않은 삭제 유형 또는 후기 없음
+     * @throws RuntimeException 유효하지 않은 삭제 유형 또는 후기 없음
      */
     public function markDeleted(int $id, int $state, string $memo): void
     {
         if (!in_array($state, [self::DELETE_TEMP, self::DELETE_FULL], true)) {
-            throw new \RuntimeException('유효하지 않은 삭제 유형입니다.');
+            throw new RuntimeException('유효하지 않은 삭제 유형입니다.');
         }
         if ($this->find($id) === null) {
-            throw new \RuntimeException('후기를 찾을 수 없습니다.');
+            throw new RuntimeException('후기를 찾을 수 없습니다.');
         }
 
         $this->update($id, [
@@ -221,12 +223,12 @@ class BoardModel extends Model
     /**
      * 삭제 복구 (is_delete → 0)
      *
-     * @throws \RuntimeException 후기 없음
+     * @throws RuntimeException 후기 없음
      */
     public function restore(int $id): void
     {
         if ($this->find($id) === null) {
-            throw new \RuntimeException('후기를 찾을 수 없습니다.');
+            throw new RuntimeException('후기를 찾을 수 없습니다.');
         }
 
         $this->update($id, [
@@ -239,7 +241,6 @@ class BoardModel extends Model
     // ──────────────────────────────────────────────
     // AI 후기 신뢰성 분석 큐 (이슈 #74)
     // ──────────────────────────────────────────────
-
     /**
      * 분석 큐에 적재 — ai_status를 PENDING으로 표시 (동기, AI 호출 없음).
      *
@@ -247,16 +248,16 @@ class BoardModel extends Model
      * 비동기로 수행하므로 요청 응답을 막지 않는다. 삭제된 후기는 getPendingAnalysis가
      * 소비하지 않아 PENDING으로 방치되므로 적재 자체를 거부한다.
      *
-     * @throws \RuntimeException 후기 없음·삭제된 후기
+     * @throws RuntimeException 후기 없음·삭제된 후기
      */
     public function enqueueAnalysis(int $id): void
     {
         $board = $this->find($id);
         if ($board === null) {
-            throw new \RuntimeException('후기를 찾을 수 없습니다.');
+            throw new RuntimeException('후기를 찾을 수 없습니다.');
         }
         if ((int) $board['is_delete'] !== self::DELETE_NONE) {
-            throw new \RuntimeException('삭제된 후기는 분석할 수 없습니다.');
+            throw new RuntimeException('삭제된 후기는 분석할 수 없습니다.');
         }
 
         $this->update($id, ['ai_status' => self::AI_STATUS_PENDING]);
@@ -355,7 +356,7 @@ class BoardModel extends Model
     // ──────────────────────────────────────────────
 
     /** 후기 정렬 컬럼 화이트리스트 (sort → ORDER BY) */
-    private const SORT_COLUMNS = [
+    private const array SORT_COLUMNS = [
         'latest' => 'id',
         'rating' => 'rate_sum',
         'likes'  => 'like_count',
@@ -538,7 +539,7 @@ class BoardModel extends Model
     public function adjustCounter(int $id, string $column, int $delta): void
     {
         if (!in_array($column, ['like_count', 'comment_count', 'complain_count'], true)) {
-            throw new \InvalidArgumentException('허용되지 않은 카운터 컬럼: ' . $column);
+            throw new InvalidArgumentException('허용되지 않은 카운터 컬럼: ' . $column);
         }
 
         $this->db->table('boards')
@@ -563,6 +564,6 @@ class BoardModel extends Model
             return [];
         }
 
-        return array_values(array_filter($decoded, 'is_string'));
+        return array_values(array_filter($decoded, is_string(...)));
     }
 }

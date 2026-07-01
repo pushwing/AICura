@@ -18,11 +18,11 @@ use RuntimeException;
  */
 class AiComplianceService
 {
-    private AiClientInterface $ai;
-    private ComplianceCheckModel $checkModel;
-    private CampaignModel $campaignModel;
-    private CampaignReviewRequestModel $reviewModel;
-    private string $modelName;
+    private readonly AiClientInterface $ai;
+    private readonly ComplianceCheckModel $checkModel;
+    private readonly CampaignModel $campaignModel;
+    private readonly CampaignReviewRequestModel $reviewModel;
+    private readonly string $modelName;
 
     public function __construct(
         ?AiClientInterface $ai = null,
@@ -117,7 +117,7 @@ class AiComplianceService
                     continue;
                 }
 
-                $severity = is_string($flag['severity'] ?? null) ? strtolower((string) $flag['severity']) : 'low';
+                $severity = is_string($flag['severity'] ?? null) ? strtolower($flag['severity']) : 'low';
 
                 $flags[] = [
                     'rule'       => $this->str($flag['rule'] ?? ''),
@@ -129,7 +129,7 @@ class AiComplianceService
             }
         }
 
-        $level = is_string($raw['risk_level'] ?? null) ? strtolower((string) $raw['risk_level']) : '';
+        $level = is_string($raw['risk_level'] ?? null) ? strtolower($raw['risk_level']) : '';
         if (! in_array($level, ComplianceCheckModel::RISK_LEVELS, true)) {
             $level = $this->inferLevel($flags);
         }
@@ -157,7 +157,6 @@ class AiComplianceService
         return ComplianceCheckModel::RISK_WARNING;
     }
 
-    /** @param mixed $value */
     private function str(mixed $value): string
     {
         return is_string($value) ? trim($value) : '';

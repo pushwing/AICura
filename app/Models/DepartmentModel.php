@@ -70,7 +70,7 @@ class DepartmentModel extends Model
 
         // 중복·0 제거 후 일괄 삽입
         $ids = array_values(array_unique(array_filter(
-            array_map('intval', $departmentIds),
+            array_map(intval(...), $departmentIds),
             static fn (int $id): bool => $id > 0
         )));
 

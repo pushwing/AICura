@@ -2,9 +2,9 @@
 
 namespace App\Commands;
 
+use RuntimeException;
 use App\Libraries\RedisQueue;
 use App\Models\AppLogModel;
-use App\Services\LogIngestService;
 use CodeIgniter\CLI\BaseCommand;
 use CodeIgniter\CLI\CLI;
 use Throwable;
@@ -42,7 +42,7 @@ class LogConsumeQueue extends BaseCommand
         '--sleep'  => '데몬 모드에서 빈 큐일 때 대기 초 (기본값: 2)',
     ];
 
-    private const DEFAULT_LIMIT = 100;
+    private const int DEFAULT_LIMIT = 100;
 
     /** 데몬 모드 실행 플래그 — SIGTERM/SIGINT 수신 시 false 로 전환해 graceful 종료. */
     private bool $running = true;
@@ -138,7 +138,7 @@ class LogConsumeQueue extends BaseCommand
             // ② 가공 후 DB 적재
             $record = json_decode($raw, true);
             if (! is_array($record)) {
-                throw new \RuntimeException('JSON 디코드 실패');
+                throw new RuntimeException('JSON 디코드 실패');
             }
 
             model(AppLogModel::class)->insert($this->transform($record));

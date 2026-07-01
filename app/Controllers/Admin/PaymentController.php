@@ -2,6 +2,12 @@
 
 namespace App\Controllers\Admin;
 
+use Override;
+use CodeIgniter\HTTP\RequestInterface;
+use Psr\Log\LoggerInterface;
+use CodeIgniter\Exceptions\PageNotFoundException;
+use RuntimeException;
+use Throwable;
 use App\Models\PaymentModel;
 use App\Models\RefundModel;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -11,10 +17,11 @@ class PaymentController extends BaseAdminController
     private PaymentModel $paymentModel;
     private RefundModel $refundModel;
 
+    #[Override]
     public function initController(
-        \CodeIgniter\HTTP\RequestInterface $request,
-        \CodeIgniter\HTTP\ResponseInterface $response,
-        \Psr\Log\LoggerInterface $logger
+        RequestInterface $request,
+        ResponseInterface $response,
+        LoggerInterface $logger
     ): void {
         parent::initController($request, $response, $logger);
         $this->paymentModel = model(PaymentModel::class);
@@ -55,7 +62,7 @@ class PaymentController extends BaseAdminController
     {
         $payment = $this->paymentModel->getPaymentDetail($id);
         if ($payment === null) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         $refundedTotal = $this->refundModel->getRefundedTotal($id);
@@ -78,7 +85,7 @@ class PaymentController extends BaseAdminController
     {
         $payment = $this->paymentModel->getPaymentDetail($id);
         if ($payment === null) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         if ($payment['status'] === 'refunded') {
@@ -115,9 +122,9 @@ class PaymentController extends BaseAdminController
 
         try {
             $this->paymentModel->processRefund($id, $refundAmount, $refundType, $userId);
-        } catch (\RuntimeException $e) {
+        } catch (RuntimeException $e) {
             return redirect()->back()->with('error', $e->getMessage());
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return redirect()->back()->with('error', '환불 처리 중 오류가 발생했습니다.');
         }
 

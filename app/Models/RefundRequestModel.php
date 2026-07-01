@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use RuntimeException;
+use Throwable;
 use CodeIgniter\Model;
 
 /**
@@ -44,7 +46,7 @@ class RefundRequestModel extends Model
     ];
 
     /** deposits 환불 복원 거래 상태 (기타충전 +) */
-    private const DEPOSIT_RESTORE_STATUS = 4;
+    private const int DEPOSIT_RESTORE_STATUS = 4;
 
     /**
      * 신청 건이 환불요청으로 잠겨 있는지 — 대기(1) 또는 승인(2) 건이 존재하면 true.
@@ -135,16 +137,16 @@ class RefundRequestModel extends Model
      * 복원 거래(deposits status=4 기타충전)를 기록하고 call_requests.is_charged를 0으로 되돌려
      * 이중 복원을 방지한다. 전 과정을 트랜잭션으로 원자 처리한다.
      *
-     * @throws \RuntimeException 환불요청 없음·이미 처리됨
+     * @throws RuntimeException 환불요청 없음·이미 처리됨
      */
     public function approve(int $id, int $adminUserId): void
     {
         $refund = $this->find($id);
         if ($refund === null) {
-            throw new \RuntimeException('환불요청을 찾을 수 없습니다.');
+            throw new RuntimeException('환불요청을 찾을 수 없습니다.');
         }
         if ((int) $refund['status'] !== self::STATUS_PENDING) {
-            throw new \RuntimeException('이미 처리된 환불요청입니다.');
+            throw new RuntimeException('이미 처리된 환불요청입니다.');
         }
 
         $db = $this->db;
@@ -201,7 +203,7 @@ class RefundRequestModel extends Model
                 ]);
 
             $db->transCommit();
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $db->transRollback();
             throw $e;
         }
@@ -210,16 +212,16 @@ class RefundRequestModel extends Model
     /**
      * 환불요청 거부 — 대기(1) 건만 처리. 거부 사유를 저장(광고주 노출)하고 잠금을 해제한다.
      *
-     * @throws \RuntimeException 환불요청 없음·이미 처리됨
+     * @throws RuntimeException 환불요청 없음·이미 처리됨
      */
     public function reject(int $id, int $adminUserId, string $reason): void
     {
         $refund = $this->find($id);
         if ($refund === null) {
-            throw new \RuntimeException('환불요청을 찾을 수 없습니다.');
+            throw new RuntimeException('환불요청을 찾을 수 없습니다.');
         }
         if ((int) $refund['status'] !== self::STATUS_PENDING) {
-            throw new \RuntimeException('이미 처리된 환불요청입니다.');
+            throw new RuntimeException('이미 처리된 환불요청입니다.');
         }
 
         $this->update($id, [

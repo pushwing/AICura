@@ -2,6 +2,9 @@
 
 namespace App\Controllers\Admin;
 
+use Override;
+use CodeIgniter\HTTP\RequestInterface;
+use Psr\Log\LoggerInterface;
 use App\Models\DepartmentModel;
 use App\Models\HospitalModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
@@ -18,19 +21,20 @@ class HospitalController extends BaseAdminController
     private DepartmentModel $departmentModel;
 
     // 목록 페이지당 행 수
-    private const PER_PAGE = 20;
+    private const int PER_PAGE = 20;
 
     /** @var array<int, string> 병원 망 구분 라벨 (hospitals.type) */
-    private const TYPE_LABELS = [
+    private const array TYPE_LABELS = [
         1 => '일반',
         2 => '네트워크(모)',
         3 => '네트워크(자)',
     ];
 
+    #[Override]
     public function initController(
-        \CodeIgniter\HTTP\RequestInterface $request,
-        \CodeIgniter\HTTP\ResponseInterface $response,
-        \Psr\Log\LoggerInterface $logger
+        RequestInterface $request,
+        ResponseInterface $response,
+        LoggerInterface $logger
     ): void {
         parent::initController($request, $response, $logger);
         $this->hospitalModel   = model(HospitalModel::class);
@@ -64,7 +68,7 @@ class HospitalController extends BaseAdminController
             $row['type_label']        = self::TYPE_LABELS[(int) $row['type']] ?? '-';
             $row['departments']       = $deptMap[$id] ?? [];
             $row['department_names']  = implode(', ', array_column($deptMap[$id] ?? [], 'name'));
-            $row['created_at_kst']    = !empty($row['created_at']) ? $this->toKst($row['created_at']) : '-';
+            $row['created_at_kst']    = empty($row['created_at']) ? '-' : $this->toKst($row['created_at']);
             return $row;
         }, $list);
 
@@ -219,7 +223,7 @@ class HospitalController extends BaseAdminController
     {
         $posted = $this->request->getPost('departments');
 
-        return is_array($posted) ? array_map('intval', $posted) : [];
+        return is_array($posted) ? array_map(intval(...), $posted) : [];
     }
 
     /** 활성 병원 공개 URL 을 IndexNow 에 제출 (이슈 #152). */

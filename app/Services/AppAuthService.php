@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use RuntimeException;
+use Throwable;
 use App\Exceptions\AuthException;
 use App\Libraries\JwtLibrary;
 use App\Models\UserModel;
@@ -16,17 +18,17 @@ use App\Models\UserModel;
  */
 class AppAuthService
 {
-    private const ACCESS_TTL = 3600;
+    private const int ACCESS_TTL = 3600;
 
     /** 지원 소셜 제공자 → users.provider 코드 매핑 */
-    private const PROVIDER_MAP = [
+    private const array PROVIDER_MAP = [
         'naver' => 2,
         'kakao' => 3,
     ];
 
-    private UserModel $users;
-    private JwtLibrary $jwt;
-    private HealthPointService $points;
+    private readonly UserModel $users;
+    private readonly JwtLibrary $jwt;
+    private readonly HealthPointService $points;
 
     public function __construct(
         ?UserModel $users = null,
@@ -146,7 +148,7 @@ class AppAuthService
     {
         try {
             $userId = $this->users->createAppUser($data);
-        } catch (\RuntimeException $e) {
+        } catch (RuntimeException $e) {
             log_message('error', '[AppAuthService] 앱 계정 생성 실패: {message}', ['message' => $e->getMessage()]);
 
             throw AuthException::registrationFailed();
@@ -155,7 +157,7 @@ class AppAuthService
         // 가입 적립 — 포인트 적립 실패가 가입 자체를 막지 않도록 로깅만 하고 진행한다.
         try {
             $this->points->awardSignup($userId);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             log_message('error', '[AppAuthService] 가입 적립 실패 (user {id}): {message}', [
                 'id'      => $userId,
                 'message' => $e->getMessage(),

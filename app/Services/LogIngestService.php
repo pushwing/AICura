@@ -16,7 +16,7 @@ use App\Libraries\RedisQueue;
  */
 class LogIngestService
 {
-    public function __construct(private ?RedisQueue $queue = null)
+    public function __construct(private readonly ?RedisQueue $queue = null)
     {
     }
 

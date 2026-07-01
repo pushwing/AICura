@@ -6,7 +6,7 @@ use App\Exceptions\TokenException;
 
 class JwtLibrary
 {
-    private string $secret;
+    private readonly string $secret;
     private int $accessTtl  = 3600;      // 1시간
     private int $refreshTtl = 2592000;   // 30일
 

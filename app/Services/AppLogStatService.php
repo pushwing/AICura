@@ -19,7 +19,7 @@ use App\Models\HourlyEventStatModel;
 class AppLogStatService
 {
     /** 한 번에 메모리로 읽을 로그 행 수 — 메모리 사용을 제한한다. */
-    private const CHUNK = 1000;
+    private const int CHUNK = 1000;
 
     public function __construct(
         private ?AppLogModel $logs = null,

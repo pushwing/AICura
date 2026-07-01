@@ -21,8 +21,8 @@ use App\Models\UserModel;
  */
 class HealthPointService
 {
-    private UserModel $users;
-    private HealthPointLogModel $logs;
+    private readonly UserModel $users;
+    private readonly HealthPointLogModel $logs;
 
     public function __construct(?UserModel $users = null, ?HealthPointLogModel $logs = null)
     {

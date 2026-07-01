@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Throwable;
 use CodeIgniter\Model;
 
 /**
@@ -367,7 +368,7 @@ class ContractOrderModel extends Model
             $db->transCommit();
 
             return $orderId;
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $db->transRollback();
             throw $e;
         }

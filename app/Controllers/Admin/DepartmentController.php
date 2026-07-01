@@ -2,6 +2,9 @@
 
 namespace App\Controllers\Admin;
 
+use Override;
+use CodeIgniter\HTTP\RequestInterface;
+use Psr\Log\LoggerInterface;
 use App\Models\DepartmentModel;
 use App\Models\HospitalModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
@@ -17,10 +20,11 @@ class DepartmentController extends BaseAdminController
 {
     private DepartmentModel $departmentModel;
 
+    #[Override]
     public function initController(
-        \CodeIgniter\HTTP\RequestInterface $request,
-        \CodeIgniter\HTTP\ResponseInterface $response,
-        \Psr\Log\LoggerInterface $logger
+        RequestInterface $request,
+        ResponseInterface $response,
+        LoggerInterface $logger
     ): void {
         parent::initController($request, $response, $logger);
         $this->departmentModel = model(DepartmentModel::class);

@@ -2,6 +2,12 @@
 
 namespace App\Controllers\Admin;
 
+use Override;
+use CodeIgniter\HTTP\RequestInterface;
+use Psr\Log\LoggerInterface;
+use CodeIgniter\Exceptions\PageNotFoundException;
+use App\Models\ContractOrderModel;
+use RuntimeException;
 use App\Models\AdvertiserModel;
 use App\Models\BoardModel;
 use App\Models\CallRequestModel;
@@ -13,28 +19,28 @@ class UserController extends BaseAdminController
     private UserModel $userModel;
 
     // 목록 페이지당 행 수
-    private const PER_PAGE = 20;
+    private const int PER_PAGE = 20;
 
     // 상세 하위 목록(신청 이벤트·작성 후기)의 페이지당 행 수
-    private const SUB_PER_PAGE = 5;
+    private const int SUB_PER_PAGE = 5;
 
     // 대행사 탭 — user_type이 아닌 is_agency_account 플래그로 구분
-    private const TAB_AGENCY = 4;
+    private const int TAB_AGENCY = 4;
 
     // 사용자 탭 — 일반 사용자(user_type=1)
-    private const TAB_USER = 1;
+    private const int TAB_USER = 1;
 
     // 기본 탭
-    private const TAB_DEFAULT = 2;
+    private const int TAB_DEFAULT = 2;
 
     // user_type 그룹 → 실제 user_type 값 매핑
-    private const TYPE_GROUPS = [
+    private const array TYPE_GROUPS = [
         self::TAB_USER => [UserModel::TYPE_USER],
         2 => [UserModel::TYPE_OPERATOR, UserModel::TYPE_ADMIN, UserModel::TYPE_STATS, UserModel::TYPE_GENERAL, UserModel::TYPE_INSTALL, UserModel::TYPE_EXTERNAL],
         3 => [UserModel::TYPE_HOSPITAL_AD, UserModel::TYPE_HOSPITAL_GENE, UserModel::TYPE_HOSPITAL_RECV],
     ];
 
-    private const TAB_LABELS = [
+    private const array TAB_LABELS = [
         self::TAB_USER => '사용자',
         2 => '운영자',
         3 => '광고주/병원',
@@ -42,7 +48,7 @@ class UserController extends BaseAdminController
     ];
 
     /** @var array<int, string> */
-    private const USER_TYPE_LABELS = [
+    private const array USER_TYPE_LABELS = [
         UserModel::TYPE_USER          => '일반 사용자',
         UserModel::TYPE_OPERATOR      => '운영자',
         UserModel::TYPE_HOSPITAL_AD   => '광고주병원',
@@ -55,10 +61,11 @@ class UserController extends BaseAdminController
         UserModel::TYPE_EXTERNAL      => '외부운영자',
     ];
 
+    #[Override]
     public function initController(
-        \CodeIgniter\HTTP\RequestInterface $request,
-        \CodeIgniter\HTTP\ResponseInterface $response,
-        \Psr\Log\LoggerInterface $logger
+        RequestInterface $request,
+        ResponseInterface $response,
+        LoggerInterface $logger
     ): void {
         parent::initController($request, $response, $logger);
         $this->userModel = model(UserModel::class);
@@ -141,7 +148,7 @@ class UserController extends BaseAdminController
     {
         $user = $this->userModel->find($id);
         if ($user === null) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         // 대행사 계정이면 소유 광고주 목록 + 계약 요약을 함께 노출
@@ -160,10 +167,10 @@ class UserController extends BaseAdminController
             'whereFromLabels'   => UserModel::WHERE_FROM_LABELS,
             'providerLabels'    => UserModel::PROVIDER_LABELS,
             'agencyAdvertisers' => $agencyAdvertisers,
-            'adType2Labels'     => \App\Models\ContractOrderModel::AD_TYPE2_LABELS,
-            'events'            => array_map([$this, 'formatEvent'], $events['list']),
+            'adType2Labels'     => ContractOrderModel::AD_TYPE2_LABELS,
+            'events'            => array_map($this->formatEvent(...), $events['list']),
             'eventsTotal'       => $events['total'],
-            'reviews'           => array_map([$this, 'formatReview'], $reviews['list']),
+            'reviews'           => array_map($this->formatReview(...), $reviews['list']),
             'reviewsTotal'      => $reviews['total'],
             'subPerPage'        => self::SUB_PER_PAGE,
         ]);
@@ -181,7 +188,7 @@ class UserController extends BaseAdminController
 
         try {
             $this->userModel->updateStatus($id, $isDormant, $isActive);
-        } catch (\RuntimeException $e) {
+        } catch (RuntimeException $e) {
             return $this->response->setStatusCode(422)
                 ->setJSON(['success' => false, 'message' => $e->getMessage()]);
         }
@@ -202,7 +209,7 @@ class UserController extends BaseAdminController
         $result = model(CallRequestModel::class)->getByUser($id, self::SUB_PER_PAGE, ($page - 1) * self::SUB_PER_PAGE);
 
         return $this->response->setJSON([
-            'items'    => array_map([$this, 'formatEvent'], $result['list']),
+            'items'    => array_map($this->formatEvent(...), $result['list']),
             'has_more' => $page * self::SUB_PER_PAGE < $result['total'],
         ]);
     }
@@ -213,7 +220,7 @@ class UserController extends BaseAdminController
         $result = model(BoardModel::class)->getByUser($id, self::SUB_PER_PAGE, ($page - 1) * self::SUB_PER_PAGE);
 
         return $this->response->setJSON([
-            'items'    => array_map([$this, 'formatReview'], $result['list']),
+            'items'    => array_map($this->formatReview(...), $result['list']),
             'has_more' => $page * self::SUB_PER_PAGE < $result['total'],
         ]);
     }

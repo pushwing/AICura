@@ -50,7 +50,7 @@ class GuideModel extends Model
     {
         $builder = $this->builder()
             ->select('id, title, slug, status, published_at, updated_at')
-            ->where('deleted_at', null);
+            ->where('deleted_at');
 
         if (($params['status'] ?? '') !== '') {
             $builder->where('status', (string) $params['status']);
@@ -83,7 +83,7 @@ class GuideModel extends Model
     {
         $builder = $this->builder()
             ->select('id, title, slug, summary, published_at')
-            ->where('deleted_at', null)
+            ->where('deleted_at')
             ->where('status', self::STATUS_PUBLISHED);
 
         $total = (clone $builder)->countAllResults(false);
@@ -123,7 +123,7 @@ class GuideModel extends Model
         /** @var array<int, array{slug: string, updated_at: string|null}> $rows */
         $rows = $this->builder()
             ->select('slug, updated_at')
-            ->where('deleted_at', null)
+            ->where('deleted_at')
             ->where('status', self::STATUS_PUBLISHED)
             ->orderBy('published_at', 'DESC')
             ->limit($limit)

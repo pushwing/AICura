@@ -17,17 +17,17 @@ use App\Models\FavoriteModel;
 class EventService
 {
     /** 이미지 서빙 경로 prefix (admin 뷰와 동일) */
-    private const IMAGE_PATH = 'uploads/campaigns/';
+    private const string IMAGE_PATH = 'uploads/campaigns/';
 
     /** 목록·집계 캐시 TTL (초) */
-    private const LIST_TTL = 300;
+    private const int LIST_TTL = 300;
 
     /** 메인·추천 캐시 TTL (초) */
-    private const FEED_TTL = 600;
+    private const int FEED_TTL = 600;
 
-    private CampaignModel $campaigns;
-    private EventCategoryModel $categories;
-    private FavoriteModel $favorites;
+    private readonly CampaignModel $campaigns;
+    private readonly EventCategoryModel $categories;
+    private readonly FavoriteModel $favorites;
 
     public function __construct(
         ?CampaignModel $campaigns = null,
@@ -57,7 +57,7 @@ class EventService
             cache()->save($cacheKey, $base, self::LIST_TTL);
         }
 
-        $items = array_map([$this, 'transformListItem'], $base['list']);
+        $items = array_map($this->transformListItem(...), $base['list']);
         $items = $this->overlayLikes($userId, $items);
 
         return ['items' => $items, 'total' => $base['total']];
@@ -155,7 +155,7 @@ class EventService
             cache()->save($cacheKey, $rows, self::FEED_TTL);
         }
 
-        $items = array_map([$this, 'transformListItem'], $rows);
+        $items = array_map($this->transformListItem(...), $rows);
 
         return $this->overlayLikes($userId, $items);
     }

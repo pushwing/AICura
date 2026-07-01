@@ -27,13 +27,13 @@ class PortalReportModel extends Model
     protected $table      = 'deposits';
     protected $returnType = 'array';
 
-    private const STATUS_CHARGED  = [2, 4, 12];
-    private const STATUS_CONSUMED = [3, 5, 8, 9, 10, 11];
-    private const STATUS_REFUNDED = [6, 7];
+    private const array STATUS_CHARGED  = [2, 4, 12];
+    private const array STATUS_CONSUMED = [3, 5, 8, 9, 10, 11];
+    private const array STATUS_REFUNDED = [6, 7];
     // CPA 환불 복원(상계) — 신청DB 환불요청 승인 시 기록되는 기타충전. 충전(status 4)에 이미 포함된 별도 표시용 지표.
-    private const STATUS_CPA_REFUND = [4];
+    private const array STATUS_CPA_REFUND = [4];
 
-    private const CALL_VISITED = 7;
+    private const int CALL_VISITED = 7;
 
     /** 드라이버별 연도 표현식 (MySQL: YEAR / SQLite3: strftime) */
     private function yearExpr(string $col): string
@@ -314,11 +314,11 @@ class PortalReportModel extends Model
      */
     private function statusSum(array $statuses, array $contra = []): string
     {
-        $list = implode(', ', array_map('intval', $statuses));
+        $list = implode(', ', array_map(intval(...), $statuses));
         $expr = "CASE WHEN d.status IN ({$list}) THEN d.price";
 
         if ($contra !== []) {
-            $contraList = implode(', ', array_map('intval', $contra));
+            $contraList = implode(', ', array_map(intval(...), $contra));
             $expr .= " WHEN d.status IN ({$contraList}) THEN -d.price";
         }
 
@@ -336,11 +336,11 @@ class PortalReportModel extends Model
      */
     private function statusSumForYear(array $statuses, string $yearCol, int $year, array $contra = []): string
     {
-        $list = implode(', ', array_map('intval', $statuses));
+        $list = implode(', ', array_map(intval(...), $statuses));
         $expr = "CASE WHEN d.status IN ({$list}) AND {$yearCol} = {$year} THEN d.price";
 
         if ($contra !== []) {
-            $contraList = implode(', ', array_map('intval', $contra));
+            $contraList = implode(', ', array_map(intval(...), $contra));
             $expr .= " WHEN d.status IN ({$contraList}) AND {$yearCol} = {$year} THEN -d.price";
         }
 

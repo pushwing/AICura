@@ -17,32 +17,25 @@ use OpenApi\Attributes as OA;
 #[OA\Tag(name: 'Uploads', description: '이미지 업로드 — 소비자 앱')]
 class UploadController extends BaseApiController
 {
-    private UploadService $uploads;
+    private readonly UploadService $uploads;
 
     public function __construct()
     {
         $this->uploads = Services::uploadService();
     }
 
-    #[OA\Post(
-        path: '/uploads/images',
-        summary: '이미지 업로드 (후기/프로필 공용)',
-        security: [['bearerAuth' => []]],
-        tags: ['Uploads'],
-        requestBody: new OA\RequestBody(
-            required: true,
-            content: new OA\MediaType(
-                mediaType: 'multipart/form-data',
-                schema: new OA\Schema(properties: [
-                    new OA\Property(property: 'image', type: 'string', format: 'binary'),
-                ])
-            )
-        ),
-        responses: [
-            new OA\Response(response: 201, description: '업로드 성공 (file, url)'),
-            new OA\Response(response: 422, description: '유효성 검사 실패'),
-        ]
-    )]
+    #[OA\Post(path: '/uploads/images', summary: '이미지 업로드 (후기/프로필 공용)', security: [['bearerAuth' => []]], requestBody: new OA\RequestBody(
+        required: true,
+        content: new OA\MediaType(
+            mediaType: 'multipart/form-data',
+            schema: new OA\Schema(properties: [
+                new OA\Property(property: 'image', type: 'string', format: 'binary'),
+            ])
+        )
+    ), tags: ['Uploads'], responses: [
+        new OA\Response(response: 201, description: '업로드 성공 (file, url)'),
+        new OA\Response(response: 422, description: '유효성 검사 실패'),
+    ])]
     public function images(): ResponseInterface
     {
         $rules = [

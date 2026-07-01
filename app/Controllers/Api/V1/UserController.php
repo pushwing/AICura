@@ -17,7 +17,7 @@ use OpenApi\Attributes as OA;
 #[OA\Tag(name: 'Me', description: '내 정보·마이페이지 — 소비자 앱')]
 class UserController extends BaseApiController
 {
-    private MeService $me;
+    private readonly MeService $me;
 
     public function __construct()
     {
@@ -43,28 +43,21 @@ class UserController extends BaseApiController
         }
     }
 
-    #[OA\Patch(
-        path: '/me',
-        summary: '프로필 수정',
-        security: [['bearerAuth' => []]],
-        tags: ['Me'],
-        requestBody: new OA\RequestBody(
-            content: new OA\JsonContent(
-                properties: [
-                    new OA\Property(property: 'username', type: 'string', example: '홍길동'),
-                    new OA\Property(property: 'phone', type: 'string', example: '01012345678'),
-                    new OA\Property(property: 'age', type: 'integer', example: 29),
-                    new OA\Property(property: 'sex', type: 'string', example: 'F'),
-                    new OA\Property(property: 'job', type: 'string', example: '회사원'),
-                    new OA\Property(property: 'picture', type: 'string', example: 'https://...'),
-                ]
-            )
-        ),
-        responses: [
-            new OA\Response(response: 200, description: '수정된 프로필'),
-            new OA\Response(response: 422, description: '유효성 검사 실패'),
-        ]
-    )]
+    #[OA\Patch(path: '/me', summary: '프로필 수정', security: [['bearerAuth' => []]], requestBody: new OA\RequestBody(
+        content: new OA\JsonContent(
+            properties: [
+                new OA\Property(property: 'username', type: 'string', example: '홍길동'),
+                new OA\Property(property: 'phone', type: 'string', example: '01012345678'),
+                new OA\Property(property: 'age', type: 'integer', example: 29),
+                new OA\Property(property: 'sex', type: 'string', example: 'F'),
+                new OA\Property(property: 'job', type: 'string', example: '회사원'),
+                new OA\Property(property: 'picture', type: 'string', example: 'https://...'),
+            ]
+        )
+    ), tags: ['Me'], responses: [
+        new OA\Response(response: 200, description: '수정된 프로필'),
+        new OA\Response(response: 422, description: '유효성 검사 실패'),
+    ])]
     public function updateProfile(): ResponseInterface
     {
         $rules = [
@@ -101,26 +94,19 @@ class UserController extends BaseApiController
         return $this->success(null);
     }
 
-    #[OA\Post(
-        path: '/me/device',
-        summary: '푸시 토큰·기기 등록',
-        security: [['bearerAuth' => []]],
-        tags: ['Me'],
-        requestBody: new OA\RequestBody(
-            required: true,
-            content: new OA\JsonContent(
-                required: ['push_token'],
-                properties: [
-                    new OA\Property(property: 'push_token', type: 'string', example: 'fcm-token-xxxx'),
-                    new OA\Property(property: 'platform', type: 'integer', description: '2 iOS · 3 Android', example: 2),
-                ]
-            )
-        ),
-        responses: [
-            new OA\Response(response: 200, description: '등록 완료'),
-            new OA\Response(response: 422, description: '유효성 검사 실패'),
-        ]
-    )]
+    #[OA\Post(path: '/me/device', summary: '푸시 토큰·기기 등록', security: [['bearerAuth' => []]], requestBody: new OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(
+            required: ['push_token'],
+            properties: [
+                new OA\Property(property: 'push_token', type: 'string', example: 'fcm-token-xxxx'),
+                new OA\Property(property: 'platform', description: '2 iOS · 3 Android', type: 'integer', example: 2),
+            ]
+        )
+    ), tags: ['Me'], responses: [
+        new OA\Response(response: 200, description: '등록 완료'),
+        new OA\Response(response: 422, description: '유효성 검사 실패'),
+    ])]
     public function registerDevice(): ResponseInterface
     {
         $rules = [
@@ -191,7 +177,7 @@ class UserController extends BaseApiController
         security: [['bearerAuth' => []]],
         tags: ['Me'],
         parameters: [
-            new OA\Parameter(name: 'type', in: 'query', schema: new OA\Schema(type: 'string', enum: ['campaign', 'hospital'], default: 'campaign')),
+            new OA\Parameter(name: 'type', in: 'query', schema: new OA\Schema(type: 'string', default: 'campaign', enum: ['campaign', 'hospital'])),
         ],
         responses: [new OA\Response(response: 200, description: '찜 목록')]
     )]
@@ -227,26 +213,19 @@ class UserController extends BaseApiController
         );
     }
 
-    #[OA\Post(
-        path: '/me/health-point/redeem',
-        summary: '헬스포인트 차감(사용)',
-        security: [['bearerAuth' => []]],
-        tags: ['Me'],
-        requestBody: new OA\RequestBody(
-            required: true,
-            content: new OA\JsonContent(
-                required: ['amount'],
-                properties: [
-                    new OA\Property(property: 'amount', type: 'integer', description: '차감할 포인트(1 이상)', example: 100),
-                    new OA\Property(property: 'memo', type: 'string', description: '사용 메모(선택)', example: '쿠폰 교환'),
-                ]
-            )
-        ),
-        responses: [
-            new OA\Response(response: 200, description: '차감 후 잔액'),
-            new OA\Response(response: 422, description: '금액 오류 또는 잔액 부족'),
-        ]
-    )]
+    #[OA\Post(path: '/me/health-point/redeem', summary: '헬스포인트 차감(사용)', security: [['bearerAuth' => []]], requestBody: new OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(
+            required: ['amount'],
+            properties: [
+                new OA\Property(property: 'amount', description: '차감할 포인트(1 이상)', type: 'integer', example: 100),
+                new OA\Property(property: 'memo', description: '사용 메모(선택)', type: 'string', example: '쿠폰 교환'),
+            ]
+        )
+    ), tags: ['Me'], responses: [
+        new OA\Response(response: 200, description: '차감 후 잔액'),
+        new OA\Response(response: 422, description: '금액 오류 또는 잔액 부족'),
+    ])]
     public function redeemHealthPoint(): ResponseInterface
     {
         if (!$this->validate(['amount' => 'required|is_natural_no_zero'])) {

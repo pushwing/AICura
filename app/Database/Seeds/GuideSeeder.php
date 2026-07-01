@@ -2,6 +2,7 @@
 
 namespace App\Database\Seeds;
 
+use App\Models\GuideModel;
 use CodeIgniter\Database\Seeder;
 
 /**
@@ -18,7 +19,7 @@ class GuideSeeder extends Seeder
     public function run(): void
     {
         $now   = date('Y-m-d H:i:s');
-        $guide = model(\App\Models\GuideModel::class);
+        $guide = model(GuideModel::class);
         $rows  = [];
 
         foreach ($this->samples() as $i => $sample) {

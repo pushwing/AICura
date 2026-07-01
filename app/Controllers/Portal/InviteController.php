@@ -2,6 +2,10 @@
 
 namespace App\Controllers\Portal;
 
+use Override;
+use CodeIgniter\HTTP\RequestInterface;
+use CodeIgniter\HTTP\ResponseInterface;
+use Psr\Log\LoggerInterface;
 use App\Models\AdvertiserOwnerInviteModel;
 use CodeIgniter\HTTP\RedirectResponse;
 
@@ -15,10 +19,11 @@ class InviteController extends BasePortalController
 {
     private AdvertiserOwnerInviteModel $inviteModel;
 
+    #[Override]
     public function initController(
-        \CodeIgniter\HTTP\RequestInterface $request,
-        \CodeIgniter\HTTP\ResponseInterface $response,
-        \Psr\Log\LoggerInterface $logger
+        RequestInterface $request,
+        ResponseInterface $response,
+        LoggerInterface $logger
     ): void {
         parent::initController($request, $response, $logger);
         $this->inviteModel = model(AdvertiserOwnerInviteModel::class);

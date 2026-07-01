@@ -1,11 +1,12 @@
 <?php
 
+use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\Router\RouteCollection;
 
 /** @var RouteCollection $routes */
 
 // ── 루트 진입 → 관리자 로그인 리다이렉트 ──────────────────
-$routes->get('/', static fn (): \CodeIgniter\HTTP\RedirectResponse => redirect()->to('/admin/login'));
+$routes->get('/', static fn (): RedirectResponse => redirect()->to('/admin/login'));
 
 // ── API Docs (Swagger UI) ────────────────────────────────
 $routes->get('api/docs',      'Api\DocsController::index');

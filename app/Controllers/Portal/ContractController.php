@@ -2,6 +2,10 @@
 
 namespace App\Controllers\Portal;
 
+use Override;
+use CodeIgniter\HTTP\RequestInterface;
+use CodeIgniter\HTTP\ResponseInterface;
+use Psr\Log\LoggerInterface;
 use App\Models\AdvertiserModel;
 use App\Models\ContractModel;
 use App\Models\ContractOrderModel;
@@ -19,10 +23,11 @@ class ContractController extends BasePortalController
     private ContractOrderModel $orderModel;
     private AdvertiserModel $advertiserModel;
 
+    #[Override]
     public function initController(
-        \CodeIgniter\HTTP\RequestInterface $request,
-        \CodeIgniter\HTTP\ResponseInterface $response,
-        \Psr\Log\LoggerInterface $logger
+        RequestInterface $request,
+        ResponseInterface $response,
+        LoggerInterface $logger
     ): void {
         parent::initController($request, $response, $logger);
         $this->contractModel   = model(ContractModel::class);
@@ -97,7 +102,7 @@ class ContractController extends BasePortalController
 
             $orders = array_map(function (array $o) use ($balances): array {
                 $o['balance']        = $balances[(int) $o['id']] ?? 0;
-                $o['created_at_kst'] = !empty($o['created_at']) ? $this->toKst($o['created_at']) : '-';
+                $o['created_at_kst'] = empty($o['created_at']) ? '-' : $this->toKst($o['created_at']);
                 return $o;
             }, $rawOrders);
         }
@@ -142,7 +147,7 @@ class ContractController extends BasePortalController
         }
 
         $history = array_map(function (array $h): array {
-            $h['created_at_kst'] = !empty($h['created_at']) ? $this->toKst($h['created_at']) : '-';
+            $h['created_at_kst'] = empty($h['created_at']) ? '-' : $this->toKst($h['created_at']);
             return $h;
         }, $this->orderModel->getDepositHistory($id));
 

@@ -2,6 +2,7 @@
 
 namespace App\Controllers\Web;
 
+use Override;
 use App\Exceptions\NotFoundException;
 use App\Libraries\Seo\JsonLdBuilder;
 use App\Services\HospitalService;
@@ -21,6 +22,7 @@ class HospitalPageController extends BaseWebController
 {
     private HospitalService $hospitals;
 
+    #[Override]
     public function initController(
         RequestInterface $request,
         ResponseInterface $response,

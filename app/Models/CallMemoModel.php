@@ -29,7 +29,7 @@ class CallMemoModel extends Model
     ];
 
     /** 시스템 자동 메모(상태 변경 히스토리)의 접두사 — 분석 입력에서 제외 */
-    private const SYSTEM_MEMO_PREFIX = '[상태변경]';
+    private const string SYSTEM_MEMO_PREFIX = '[상태변경]';
 
     /**
      * AI 분석 입력용 메모 텍스트 목록 (오래된 순, 시스템 메모 제외)

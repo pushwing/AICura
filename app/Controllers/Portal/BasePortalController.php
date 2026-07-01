@@ -2,6 +2,12 @@
 
 namespace App\Controllers\Portal;
 
+use Override;
+use CodeIgniter\HTTP\RequestInterface;
+use CodeIgniter\HTTP\ResponseInterface;
+use Psr\Log\LoggerInterface;
+use DateTime;
+use DateTimeZone;
 use App\Controllers\BaseController;
 use CodeIgniter\Exceptions\PageNotFoundException;
 
@@ -22,10 +28,11 @@ abstract class BasePortalController extends BaseController
     /** @var array<string, mixed> */
     protected array $viewData = [];
 
+    #[Override]
     public function initController(
-        \CodeIgniter\HTTP\RequestInterface $request,
-        \CodeIgniter\HTTP\ResponseInterface $response,
-        \Psr\Log\LoggerInterface $logger
+        RequestInterface $request,
+        ResponseInterface $response,
+        LoggerInterface $logger
     ): void {
         parent::initController($request, $response, $logger);
 
@@ -90,8 +97,8 @@ abstract class BasePortalController extends BaseController
 
     protected function toKst(string $datetime): string
     {
-        $dt = new \DateTime($datetime, new \DateTimeZone('UTC'));
-        $dt->setTimezone(new \DateTimeZone('Asia/Seoul'));
+        $dt = new DateTime($datetime, new DateTimeZone('UTC'));
+        $dt->setTimezone(new DateTimeZone('Asia/Seoul'));
 
         return $dt->format('Y-m-d H:i');
     }

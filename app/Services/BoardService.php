@@ -23,18 +23,18 @@ use App\Models\UserModel;
 class BoardService
 {
     /** 상세에 함께 싣는 댓글 기본 개수 */
-    private const DETAIL_COMMENT_LIMIT = 20;
+    private const int DETAIL_COMMENT_LIMIT = 20;
 
-    private BoardModel $boards;
-    private BoardCommentModel $comments;
-    private BoardEstimationModel $estimations;
-    private BoardFileModel $files;
-    private BoardSummaryModel $summaries;
-    private CampaignModel $campaigns;
-    private HospitalModel $hospitals;
-    private UserModel $users;
-    private UploadService $uploads;
-    private HealthPointService $points;
+    private readonly BoardModel $boards;
+    private readonly BoardCommentModel $comments;
+    private readonly BoardEstimationModel $estimations;
+    private readonly BoardFileModel $files;
+    private readonly BoardSummaryModel $summaries;
+    private readonly CampaignModel $campaigns;
+    private readonly HospitalModel $hospitals;
+    private readonly UserModel $users;
+    private readonly UploadService $uploads;
+    private readonly HealthPointService $points;
 
     public function __construct(
         ?BoardModel $boards = null,
@@ -69,7 +69,7 @@ class BoardService
     public function list(int $userId, array $params): array
     {
         $base  = $this->boards->getConsumerList($params);
-        $items = array_map([$this, 'transformListItem'], $base['list']);
+        $items = array_map($this->transformListItem(...), $base['list']);
         $items = $this->overlayLikes($userId, $items);
 
         return ['items' => $items, 'total' => $base['total']];
@@ -89,11 +89,11 @@ class BoardService
         }
 
         $item = $this->transformDetail($row);
-        $item['images']   = array_map(fn (string $n): string => $this->uploads->urlFor($n), $this->files->fileNames($id));
+        $item['images']   = array_map($this->uploads->urlFor(...), $this->files->fileNames($id));
         $item['is_liked'] = $this->estimations->likedBoardIds($userId, [$id]) !== [];
 
         $comments         = $this->comments->getByBoard($id, 1, self::DETAIL_COMMENT_LIMIT);
-        $item['comments'] = array_map([$this, 'transformComment'], $comments['list']);
+        $item['comments'] = array_map($this->transformComment(...), $comments['list']);
 
         return $item;
     }
@@ -292,7 +292,7 @@ class BoardService
 
         $base = $this->comments->getByBoard($id, $page, $limit);
 
-        return ['items' => array_map([$this, 'transformComment'], $base['list']), 'total' => $base['total']];
+        return ['items' => array_map($this->transformComment(...), $base['list']), 'total' => $base['total']];
     }
 
     /**
@@ -449,7 +449,6 @@ class BoardService
     /**
      * 업로드 이미지 파일명 목록 정규화 (문자열·basename 만 허용).
      *
-     * @param mixed $images
      * @return array<int, string>
      */
     private function normalizeImages(mixed $images): array

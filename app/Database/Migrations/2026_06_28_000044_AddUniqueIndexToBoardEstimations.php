@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
@@ -15,7 +17,7 @@ use CodeIgniter\Database\Migration;
  */
 class AddUniqueIndexToBoardEstimations extends Migration
 {
-    private const INDEX_NAME = 'uniq_board_estimations_type_board_user';
+    private const string INDEX_NAME = 'uniq_board_estimations_type_board_user';
 
     public function up(): void
     {

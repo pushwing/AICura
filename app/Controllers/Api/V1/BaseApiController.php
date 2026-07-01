@@ -2,6 +2,7 @@
 
 namespace App\Controllers\Api\V1;
 
+use CodeIgniter\HTTP\ResponseInterface;
 use App\Libraries\Auth;
 use CodeIgniter\RESTful\ResourceController;
 
@@ -15,18 +16,18 @@ abstract class BaseApiController extends ResourceController
     }
 
     /** @param array<string, mixed> $meta */
-    protected function success(mixed $data, array $meta = [], int $status = 200): \CodeIgniter\HTTP\ResponseInterface
+    protected function success(mixed $data, array $meta = [], int $status = 200): ResponseInterface
     {
         $body = ['status' => 'success', 'data' => $data];
 
-        if (!empty($meta)) {
+        if ($meta !== []) {
             $body['meta'] = $meta;
         }
 
         return $this->respond($body, $status);
     }
 
-    protected function error(string $code, string $message, int $status = 400): \CodeIgniter\HTTP\ResponseInterface
+    protected function error(string $code, string $message, int $status = 400): ResponseInterface
     {
         return $this->respond([
             'status'  => 'error',

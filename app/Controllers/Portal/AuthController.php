@@ -21,7 +21,7 @@ class AuthController extends BaseController
      * 사용자가 없을 때도 실제 bcrypt 연산을 수행시켜 응답 시간을 일정하게 유지한다.
      * — 포맷이 유효하지 않으면 password_verify가 즉시 false를 반환해 타이밍 방어가 무력화되므로 반드시 유효 해시여야 한다.
      */
-    private const DUMMY_HASH = '$2y$12$chex6Gk78iwfSqE9g8CzZe2mOvY6bFpVaG/hiXGFh8KjCNFEkw.D2';
+    private const string DUMMY_HASH = '$2y$12$chex6Gk78iwfSqE9g8CzZe2mOvY6bFpVaG/hiXGFh8KjCNFEkw.D2';
 
     public function login(): string|RedirectResponse
     {

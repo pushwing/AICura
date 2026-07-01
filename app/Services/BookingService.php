@@ -15,9 +15,9 @@ use App\Models\HospitalModel;
  */
 class BookingService
 {
-    private BookingModel $bookings;
-    private HospitalModel $hospitals;
-    private CallRequestModel $callRequests;
+    private readonly BookingModel $bookings;
+    private readonly HospitalModel $hospitals;
+    private readonly CallRequestModel $callRequests;
 
     public function __construct(
         ?BookingModel $bookings = null,

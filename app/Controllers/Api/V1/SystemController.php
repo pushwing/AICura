@@ -4,7 +4,6 @@ namespace App\Controllers\Api\V1;
 
 use App\Models\CodeModel;
 use App\Models\SettingModel;
-use App\Services\LogIngestService;
 use CodeIgniter\HTTP\ResponseInterface;
 use OpenApi\Attributes as OA;
 use Throwable;
@@ -34,7 +33,7 @@ class SystemController extends BaseApiController
         summary: '코드성 데이터',
         tags: ['System'],
         parameters: [
-            new OA\Parameter(name: 'type', in: 'query', description: '코드 유형 필터', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'type', description: '코드 유형 필터', in: 'query', schema: new OA\Schema(type: 'string')),
         ],
         responses: [new OA\Response(response: 200, description: '코드 목록')]
     )]
@@ -46,23 +45,17 @@ class SystemController extends BaseApiController
         return $this->success(model(CodeModel::class)->getActive($type));
     }
 
-    #[OA\Post(
-        path: '/logs',
-        summary: '앱 로그 수집 (큐 적재 후 202)',
-        tags: ['System'],
-        requestBody: new OA\RequestBody(
-            required: true,
-            content: new OA\JsonContent(properties: [
-                new OA\Property(property: 'level', type: 'string', example: 'info'),
-                new OA\Property(property: 'event', type: 'string', example: 'screen_view'),
-                new OA\Property(property: 'message', type: 'string', example: '이벤트 상세 진입'),
-            ])
-        ),
-        responses: [
-            new OA\Response(response: 202, description: '수집 접수'),
-            new OA\Response(response: 422, description: '본문 형식 오류'),
-        ]
-    )]
+    #[OA\Post(path: '/logs', summary: '앱 로그 수집 (큐 적재 후 202)', requestBody: new OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(properties: [
+            new OA\Property(property: 'level', type: 'string', example: 'info'),
+            new OA\Property(property: 'event', type: 'string', example: 'screen_view'),
+            new OA\Property(property: 'message', type: 'string', example: '이벤트 상세 진입'),
+        ])
+    ), tags: ['System'], responses: [
+        new OA\Response(response: 202, description: '수집 접수'),
+        new OA\Response(response: 422, description: '본문 형식 오류'),
+    ])]
     public function logs(): ResponseInterface
     {
         $payload = $this->request->getJSON(true);

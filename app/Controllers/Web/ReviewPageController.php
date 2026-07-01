@@ -2,6 +2,7 @@
 
 namespace App\Controllers\Web;
 
+use Override;
 use App\Exceptions\NotFoundException;
 use App\Libraries\Seo\JsonLdBuilder;
 use App\Libraries\Seo\NameMasker;
@@ -23,6 +24,7 @@ class ReviewPageController extends BaseWebController
 {
     private BoardService $boards;
 
+    #[Override]
     public function initController(
         RequestInterface $request,
         ResponseInterface $response,
@@ -84,7 +86,7 @@ class ReviewPageController extends BaseWebController
             'targetName' => $targetName, // 내부 링크: 리뷰 대상(병원/이벤트)명 (이슈 #152)
             'jsonLd'     => [JsonLdBuilder::review($review, base_url('reviews/' . $reviewId), $targetName)],
         ], [
-            'title'       => (string) $review['subject'] . ' | AICura 후기',
+            'title'       => $review['subject'] . ' | AICura 후기',
             'description' => $summary !== '' ? $summary : '성형·시술 실사용 후기 — AICura',
             'og_type'     => 'article',
             // 신고·의심 후기는 색인 제외(§4.3). 링크는 따라가도록 follow 유지

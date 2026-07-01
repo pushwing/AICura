@@ -2,6 +2,11 @@
 
 namespace App\Controllers\Admin;
 
+use Override;
+use CodeIgniter\HTTP\RequestInterface;
+use Psr\Log\LoggerInterface;
+use CodeIgniter\Exceptions\PageNotFoundException;
+use RuntimeException;
 use App\Models\CampaignModel;
 use App\Models\CampaignReviewRequestModel;
 use App\Models\ComplianceCheckModel;
@@ -14,10 +19,11 @@ class ReviewController extends BaseAdminController
     private CampaignReviewRequestModel $reviewModel;
     private CampaignModel $campaignModel;
 
+    #[Override]
     public function initController(
-        \CodeIgniter\HTTP\RequestInterface $request,
-        \CodeIgniter\HTTP\ResponseInterface $response,
-        \Psr\Log\LoggerInterface $logger
+        RequestInterface $request,
+        ResponseInterface $response,
+        LoggerInterface $logger
     ): void {
         parent::initController($request, $response, $logger);
         $this->reviewModel   = model(CampaignReviewRequestModel::class);
@@ -54,7 +60,7 @@ class ReviewController extends BaseAdminController
     {
         $detail = $this->reviewModel->getDetail($id);
         if ($detail === null) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         $compliance = model(ComplianceCheckModel::class)
@@ -77,11 +83,11 @@ class ReviewController extends BaseAdminController
     {
         $detail = $this->reviewModel->getDetail($id);
         if ($detail === null) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         try {
-            (new AiComplianceService())->check((int) $detail['campaign_id'], $id);
+            new AiComplianceService()->check((int) $detail['campaign_id'], $id);
         } catch (Throwable $e) {
             log_message('error', '심의 사전검사 재요청 실패 [review {id}]: {msg}', [
                 'id'  => $id,
@@ -104,7 +110,7 @@ class ReviewController extends BaseAdminController
     {
         $detail = $this->reviewModel->getDetail($id);
         if ($detail === null) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         $action = $this->request->getPost('action') ?? '';
@@ -151,7 +157,7 @@ class ReviewController extends BaseAdminController
                     'review_status' => $cacheStatus,
                 ]);
             }
-        } catch (\RuntimeException $e) {
+        } catch (RuntimeException $e) {
             return redirect()->back()->with('error', $e->getMessage());
         }
 

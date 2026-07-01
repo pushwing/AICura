@@ -2,6 +2,11 @@
 
 namespace App\Controllers\Admin;
 
+use Override;
+use CodeIgniter\HTTP\RequestInterface;
+use Psr\Log\LoggerInterface;
+use CodeIgniter\Exceptions\PageNotFoundException;
+use RuntimeException;
 use App\Models\CampaignModel;
 use App\Models\CampaignHistoryModel;
 use App\Models\CampaignReviewRequestModel;
@@ -25,10 +30,11 @@ class CampaignController extends BaseAdminController
     private ContractModel $contractModel;
     private EventCategoryModel $eventCategoryModel;
 
+    #[Override]
     public function initController(
-        \CodeIgniter\HTTP\RequestInterface $request,
-        \CodeIgniter\HTTP\ResponseInterface $response,
-        \Psr\Log\LoggerInterface $logger
+        RequestInterface $request,
+        ResponseInterface $response,
+        LoggerInterface $logger
     ): void {
         parent::initController($request, $response, $logger);
         $this->campaignModel      = model(CampaignModel::class);
@@ -75,7 +81,7 @@ class CampaignController extends BaseAdminController
     {
         $campaign = $this->campaignModel->getCampaignDetail($id);
         if ($campaign === null) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         $histories = $this->campaignModel->getHistoryList($id, ['limit' => 5]);
@@ -154,7 +160,7 @@ class CampaignController extends BaseAdminController
     {
         $campaign = $this->campaignModel->find($id);
         if ($campaign === null || $campaign['is_deleted']) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         // 폼 pre-populate: 최신 검수 요청 데이터 우선, 없으면 캠페인 승인 데이터
@@ -186,7 +192,7 @@ class CampaignController extends BaseAdminController
     {
         $campaign = $this->campaignModel->find($id);
         if ($campaign === null || $campaign['is_deleted']) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         $rules = $this->campaignValidationRules();
@@ -248,7 +254,7 @@ class CampaignController extends BaseAdminController
 
         try {
             $newStatus = $this->campaignModel->updateStatus($id, $action);
-        } catch (\RuntimeException $e) {
+        } catch (RuntimeException $e) {
             return $this->response->setStatusCode(422)
                 ->setJSON(['success' => false, 'message' => $e->getMessage()]);
         }
@@ -279,7 +285,7 @@ class CampaignController extends BaseAdminController
     {
         $campaign = $this->campaignModel->find($id);
         if ($campaign === null || $campaign['is_deleted']) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         $params = [
@@ -326,7 +332,7 @@ class CampaignController extends BaseAdminController
     {
         $campaign = $this->campaignModel->find($id);
         if ($campaign === null || $campaign['is_deleted']) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         if ($campaign['status'] !== 'ended') {
@@ -357,7 +363,7 @@ class CampaignController extends BaseAdminController
         $categoryTitle = $categoryId > 0 ? $this->eventCategoryModel->titleById($categoryId) : '';
 
         try {
-            $result = (new AiCopyService())->suggest([
+            $result = new AiCopyService()->suggest([
                 'keyword'       => $keyword,
                 'hospital_type' => CampaignModel::HOSPITAL_TYPES[$hospitalTypeInt] ?? '',
                 'category'      => $categoryTitle,
@@ -408,7 +414,7 @@ class CampaignController extends BaseAdminController
         }
 
         try {
-            (new AiComplianceService())->check($campaignId, $reviewRequestId);
+            new AiComplianceService()->check($campaignId, $reviewRequestId);
         } catch (Throwable $e) {
             log_message('error', '심의 사전검사 실패 [campaign {id}]: {msg}', [
                 'id'  => $campaignId,
@@ -511,7 +517,7 @@ class CampaignController extends BaseAdminController
                     $paths[] = 'campaigns/' . $newName;
                 }
             }
-            if (!empty($paths)) {
+            if ($paths !== []) {
                 $result['d_image_json'] = json_encode($paths);
             } elseif ($existing !== null) {
                 $result['d_image_json'] = $existing['d_image_json'] ?? null;

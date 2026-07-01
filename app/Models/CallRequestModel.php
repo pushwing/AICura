@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use RuntimeException;
+use Throwable;
 use CodeIgniter\Model;
 
 /**
@@ -208,7 +210,7 @@ class CallRequestModel extends Model
     // ──────────────────────────────────────────────
 
     /** 소비자 상세 노출 컬럼 (AI 분석·과금·핑거프린트 등 내부 필드 제외) */
-    private const CONSUMER_DETAIL_COLUMNS = 'cr.id, cr.hospital_id, cr.campaign_id, cr.status, '
+    private const string CONSUMER_DETAIL_COLUMNS = 'cr.id, cr.hospital_id, cr.campaign_id, cr.status, '
         . 'cr.name, cr.phone, cr.content, cr.call_time, cr.reserved_at, cr.created_at';
 
     /**
@@ -279,19 +281,19 @@ class CallRequestModel extends Model
      *
      * @param string|null $reservedAt 예약 일시 (Y-m-d H:i[:s]) — 예약 상태일 때 필수
      * @param int|null    $memoUserId 변경 주체 user id (히스토리 메모 작성자)
-     * @throws \RuntimeException 신청 건 없음·유효하지 않은 상태·예약 일시 누락
+     * @throws RuntimeException 신청 건 없음·유효하지 않은 상태·예약 일시 누락
      */
     public function changeStatus(int $id, int $status, ?string $reservedAt = null, ?int $memoUserId = null): void
     {
         if (!isset(self::STATUSES[$status])) {
-            throw new \RuntimeException('유효하지 않은 상태입니다.');
+            throw new RuntimeException('유효하지 않은 상태입니다.');
         }
 
         $request = $this->select('id, status, confirm_date')
             ->where('is_delete', 0)
             ->find($id);
         if ($request === null) {
-            throw new \RuntimeException('신청 건을 찾을 수 없습니다.');
+            throw new RuntimeException('신청 건을 찾을 수 없습니다.');
         }
 
         $fromStatus = (int) $request['status'];
@@ -306,7 +308,7 @@ class CallRequestModel extends Model
         if ($status === self::STATUS_RESERVED) {
             $normalized = $this->normalizeReservedAt($reservedAt);
             if ($normalized === null) {
-                throw new \RuntimeException('예약 상태는 예약 일시를 입력해야 합니다.');
+                throw new RuntimeException('예약 상태는 예약 일시를 입력해야 합니다.');
             }
             $update['reserved_at'] = $normalized;
         }
@@ -425,7 +427,7 @@ class CallRequestModel extends Model
             $db->transCommit();
 
             return true;
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $db->transRollback();
             throw $e;
         }
