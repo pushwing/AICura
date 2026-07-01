@@ -384,8 +384,8 @@ class CampaignController extends BaseAdminController
     // ──────────────────────────────────────────────
 
     /**
-     * 상세문구 HTML 정화 — 허용 태그만 남기고 모든 속성 제거 (XSS 방지).
-     * Tiptap 에디터가 제출하는 리치 텍스트를 저장 전에 화이트리스트 필터한다.
+     * 리치 텍스트 HTML 정화 — 허용 태그만 남기고 모든 속성 제거 (XSS 방지).
+     * Tiptap 에디터가 제출하는 상세문구·상태변경 메모를 저장 전에 화이트리스트 필터한다.
      */
     private function sanitizeDetailHtml(string $html): string
     {
