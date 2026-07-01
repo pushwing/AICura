@@ -238,7 +238,34 @@ Sitemap: https://{운영도메인}/sitemap.xml
 
 > ✅ **결정(§0): 전체 허용.** 검색 인용 크롤러와 LLM 학습 크롤러를 모두 허용한다.
 > (선별 차단이 필요해지면 학습 크롤러(GPTBot 등)만 `Disallow`로 전환할 수 있으나, 현재는 노출 극대화 우선.)
-> 실제 적용본은 `public/robots.txt` 참조 — 이슈 #137 골격에서 이미 반영됨.
+> 실제 적용본은 `RobotsController::index()`(`GET /robots.txt`, 동적 생성) 참조 — 이슈 #143에서 정적 파일을 대체함.
+
+### 6.1 Brave Search(Claude) 대응 (이슈 #160)
+
+Claude(claude.ai)의 웹 검색은 자체 크롤러가 아니라 **Brave Search API**를 통해 결과를 가져온다
+(Anthropic이 2025년 도입, TechCrunch가 확인). Brave Search는 독립 색인(300억+ 페이지)을 운영하지만
+**전용 크롤러 User-agent를 광고하지 않는다** — Googlebot이 크롤링 가능한 페이지만 Brave도 크롤링한다는 정책이다.
+
+- robots.txt에 별도의 `User-agent: Brave...` 항목을 추가할 필요가 **없다**(그런 UA 자체가 존재하지 않음).
+  현재 `User-agent: *` → `Allow: /` 로 이미 충족.
+- Brave는 **IndexNow 프로토콜 미참여** — `IndexNowService`(§7.2) 제출은 Brave에는 통지되지 않는다.
+  별도 즉시 제출 채널이 없으므로 Brave의 자연 재크롤링 주기에 의존한다.
+- Brave가 AI 인용(LLM Context API)에서 우선하는 신호는 **JSON-LD 구조화 데이터**와 명확한 heading 구조
+  — 이미 `JsonLdBuilder`(§4)로 구현됨. 추가 코드 대응 불필요, 유지·확장만 하면 됨.
+- Brave는 UA를 구분하지 않으므로 서버 로그 기반 모니터링은 의미가 없다. 배포 후에는 대표 질의를
+  Claude에 직접 넣어 인용 여부를 점검한다(§7.1 E).
+
+### 6.2 Bing(ChatGPT Search) 대응 (이슈 #160)
+
+OpenAI의 ChatGPT Search는 **Bing 색인에 전적으로 의존**한다 — ChatGPT가 인용하는 모든 URL은 먼저
+Bing API(`OAI-SearchBot`)로 발견된 것이다. 즉 Bing에 색인되지 않으면 ChatGPT Search에도 노출되지 않는다.
+
+- `Bingbot`(Bing 자체 크롤러)을 robots.txt AI 크롤러 목록에 명시적으로 추가함(`RobotsController`, 이슈 #160).
+  기존에도 와일드카드(`*`)로 허용되어 동작 차이는 없으나 의도를 코드로 명시.
+- `IndexNowService` 제출은 Bing에 즉시 통지된다(Bing이 IndexNow 공동 개발사) — 이미 구현됨(§7.2).
+- **Bing Webmaster Tools 등록**: 사이트 등록 시 발급되는 인증 코드를 `.env`(`BING_SITE_VERIFICATION`)에
+  넣으면 `GET /BingSiteAuth.xml`로 인증 파일이 서빙된다(`BingSiteVerificationController`,
+  `IndexNowController`의 키 검증과 동일 패턴).
 
 ---
 
@@ -266,7 +293,8 @@ Sitemap: https://{운영도메인}/sitemap.xml
 **B. 검색엔진 등록**
 - [ ] Google Search Console 속성 등록 → `sitemap.xml` 제출
 - [ ] Naver 서치어드바이저 사이트 등록 → 사이트맵 제출·수집 요청
-- [ ] (선택) Bing Webmaster Tools 등록
+- [ ] **Bing Webmaster Tools 등록 (필수 — ChatGPT Search 노출의 전제조건, §6.2)**
+      → `.env` 의 `BING_SITE_VERIFICATION` 설정 → `https://{도메인}/BingSiteAuth.xml` 200 확인 → 사이트맵 제출
 
 **C. 구조화 데이터 검증** — [Rich Results Test](https://search.google.com/test/rich-results) / [Schema Validator](https://validator.schema.org)
 - [ ] 이벤트 상세(`/events/{id}`) — `Offer` 오류 0
@@ -278,8 +306,8 @@ Sitemap: https://{운영도메인}/sitemap.xml
 - [ ] 주요 페이지 PageSpeed Insights LCP/INP/CLS 확인 → 이미지 지연로딩·캐시 점검
 
 **E. AI 크롤러·GEO 모니터링**
-- [ ] 서버 로그 User-agent 로 AI 크롤러 유입 확인: `GPTBot`·`OAI-SearchBot`·`ChatGPT-User`·`PerplexityBot`·`Google-Extended`·`ClaudeBot`
-- [ ] 대표 질의(예: "강남 쌍꺼풀 이벤트", "쌍꺼풀 수술 비용")를 ChatGPT Search·Perplexity·Google AI Overviews 에 넣어 **인용·언급 여부** 주기 점검
+- [ ] 서버 로그 User-agent 로 AI 크롤러 유입 확인: `GPTBot`·`OAI-SearchBot`·`ChatGPT-User`·`PerplexityBot`·`Google-Extended`·`ClaudeBot`·`Bingbot`(Brave는 전용 UA 없음, §6.1)
+- [ ] 대표 질의(예: "강남 쌍꺼풀 이벤트", "쌍꺼풀 수술 비용")를 ChatGPT Search·Perplexity·Google AI Overviews·**Claude**(Brave Search 기반, §6.1)에 넣어 **인용·언급 여부** 주기 점검
 - [ ] GSC 색인 페이지 수·노출·클릭·평균순위 추이 기록(월 단위)
 
 ### 7.2 IndexNow 즉시 색인 + 내부 링크 강화 (이슈 #152) ✅

@@ -316,4 +316,5 @@ $routes->group('', ['namespace' => 'App\Controllers\Web'], static function (Rout
     $routes->get('robots.txt',  'RobotsController::index');
     $routes->get('llms.txt',    'LlmsController::index'); // AI 크롤러용 사이트 요약 (이슈 #147)
     $routes->get('indexnow-key.txt', 'IndexNowController::key'); // IndexNow 키 검증 (이슈 #152)
+    $routes->get('BingSiteAuth.xml', 'BingSiteVerificationController::index'); // Bing Webmaster Tools 사이트 인증 (이슈 #160)
 });

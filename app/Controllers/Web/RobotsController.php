@@ -25,6 +25,7 @@ class RobotsController extends BaseController
         'ClaudeBot',
         'Claude-Web',
         'Applebot-Extended',
+        'Bingbot',            // Bing 색인 → ChatGPT Search 인용 기반 (이슈 #160)
     ];
 
     public function index(): ResponseInterface
