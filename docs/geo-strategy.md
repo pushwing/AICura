@@ -252,6 +252,36 @@ Sitemap: https://{운영도메인}/sitemap.xml
 | GEO | AI 크롤러 유입 | 서버 로그 User-agent 분석(GPTBot·PerplexityBot 등) |
 | 공통 | 구조화 데이터 유효성 | Google Rich Results Test, Schema Markup Validator |
 
+### 7.1 배포 후 측정·검증 체크리스트 (이슈 #148)
+
+> #148 은 **배포 시점까지 열어 둔다**(코드 구현이 아닌 운영 활동). 운영 도메인·HTTPS 확정 후 아래 순서로 수행한다.
+> 현재 구현된 크롤러 진입점: `GET /robots.txt` · `GET /sitemap.xml` · `GET /llms.txt` (모두 `base_url()` 기준 절대 URL).
+
+**A. 배포 전 확인**
+- [ ] `.env` 의 `app.baseURL` 을 운영 도메인(HTTPS)으로 설정 → canonical·OG·sitemap·robots·llms 절대 URL 자동 반영
+- [ ] `https://{도메인}/robots.txt` · `/sitemap.xml` · `/llms.txt` 200 응답·내용 확인
+- [ ] 미심의·저신뢰 콘텐츠 `noindex` 동작 확인(신고·의심 후기 상세)
+- [ ] 의료광고법 검토(§8) 완료 — 가격 표기·후기 공개 범위
+
+**B. 검색엔진 등록**
+- [ ] Google Search Console 속성 등록 → `sitemap.xml` 제출
+- [ ] Naver 서치어드바이저 사이트 등록 → 사이트맵 제출·수집 요청
+- [ ] (선택) Bing Webmaster Tools 등록
+
+**C. 구조화 데이터 검증** — [Rich Results Test](https://search.google.com/test/rich-results) / [Schema Validator](https://validator.schema.org)
+- [ ] 이벤트 상세(`/events/{id}`) — `Offer` 오류 0
+- [ ] 병원 상세(`/hospitals/{id}`) — `MedicalClinic`/`AggregateRating` 오류 0
+- [ ] 후기 상세(`/reviews/{id}`) — `Review` 오류 0
+- [ ] 가이드 상세(`/guides/{slug}`) — `MedicalWebPage`+`FAQPage` 오류 0
+
+**D. 성능(Core Web Vitals)**
+- [ ] 주요 페이지 PageSpeed Insights LCP/INP/CLS 확인 → 이미지 지연로딩·캐시 점검
+
+**E. AI 크롤러·GEO 모니터링**
+- [ ] 서버 로그 User-agent 로 AI 크롤러 유입 확인: `GPTBot`·`OAI-SearchBot`·`ChatGPT-User`·`PerplexityBot`·`Google-Extended`·`ClaudeBot`
+- [ ] 대표 질의(예: "강남 쌍꺼풀 이벤트", "쌍꺼풀 수술 비용")를 ChatGPT Search·Perplexity·Google AI Overviews 에 넣어 **인용·언급 여부** 주기 점검
+- [ ] GSC 색인 페이지 수·노출·클릭·평균순위 추이 기록(월 단위)
+
 ---
 
 ## 8. 리스크 — 의료광고법 (성형 도메인 특수성) ⚠️
@@ -283,7 +313,7 @@ Sitemap: https://{운영도메인}/sitemap.xml
 | 4 | JSON-LD 구조화 데이터 | `JsonLdBuilder` — Offer/MedicalClinic/Review/Article | 2,3 | ✅ 완료 (#145) — 이벤트 Offer·병원 MedicalClinic·후기 Review, web/partials/json_ld 주입 (가이드 Article 은 #146) |
 | 5 | GEO 콘텐츠 자산 — 가이드 | `guides` 테이블·CRUD(Admin)·공개 페이지·Article/FAQ 스키마 | 4 | ✅ 완료 (#146) — guides 마이그레이션·Admin CRUD(Tiptap·FAQ)·공개 슬러그 페이지·MedicalWebPage+FAQPage JSON-LD·sitemap |
 | 6 | llms.txt + AI 크롤러 정책 | `public/llms.txt`, robots AI 크롤러 섹션 점검 | 2 | ✅ 완료 (#147) — 동적 llms.txt(사이트 요약·주요 페이지·발행 가이드·카테고리, 절대 URL), robots AI 크롤러 확인 |
-| 7 | 측정·검증 | GSC/Naver 등록, Rich Results 검증, 크롤러 로그 분석 | 전체 | 서브이슈 |
+| 7 | 측정·검증 | GSC/Naver 등록, Rich Results 검증, 크롤러 로그 분석 | 전체 | ⏸ 배포 시점까지 보류(#148) — 운영 활동, 체크리스트 §7.1 참조 |
 
 선행 결정사항(비기술) — **모두 확정**(§0):
 1. ✅ **운영 도메인·HTTPS** — 환경변수로 추상화 (도메인 값만 추후 주입)
