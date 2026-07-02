@@ -477,11 +477,27 @@ sudo chmod 440 /etc/sudoers.d/aicura-deploy && sudo visudo -c
 
 ## 서버 요구사항
 
+### 프로덕션 (아파치)
+
 | 항목 | 버전 | 용도 |
 |------|------|------|
-| FrankenPHP | 1.12+ | 웹 서버 (PHP 8.5 내장) |
-| PHP CLI | 8.4+ | composer · spark · PHPStan |
+| Apache HTTP Server | 2.4+ | 웹 서버 (mod_php) — `DocumentRoot` 는 `public/` |
+| PHP (mod_php) | 8.4+ | 웹 요청 처리 (`php-mysql` 확장 포함) |
+| PHP CLI | 8.4+ | composer · spark · PHPStan (배포 스크립트) |
 | MySQL | 8.0+ | 데이터베이스 |
+
+- 배포 자동화(SSH)는 위 [CD (배포)](#cd-배포) 참고 — deploy key · `.env` · NOPASSWD sudo 필요
+- OPcache 갱신은 `sudo systemctl reload apache2`(무중단). PHP-FPM 구성이면 `php8.4-fpm` 리로드
+
+### 로컬 개발
+
+| 항목 | 버전 | 용도 |
+|------|------|------|
+| FrankenPHP | 1.12+ | 개발 서버 (PHP 8.5 내장) — `make serve` |
+| PHP CLI | 8.4+ | composer · spark · 테스트 |
+| MySQL | 8.0+ | 데이터베이스 |
+
+> 로컬은 FrankenPHP, 프로덕션은 아파치(mod_php)로 서로 다르다. CI4 는 두 환경 모두 `public/` 을 문서 루트로 사용한다.
 
 **필수 PHP 확장**: `intl` `mbstring` `json` `mysqlnd` `curl` `gd` `xml` `zip`
 
