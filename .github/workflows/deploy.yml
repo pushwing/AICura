@@ -48,7 +48,11 @@ jobs:
             echo "▶ writable 디렉토리·권한 보정 (아파치 실행 유저가 쓸 수 있도록)"
             mkdir -p writable/cache writable/logs writable/logs/raw \
                      writable/session writable/uploads writable/debugbar
-            chmod -R 775 writable
+            # chmod 는 best-effort: 런타임에 아파치(www-data)가 만든 캐시·세션 파일은
+            # 배포 계정 소유가 아니라 chmod 가 실패한다(Operation not permitted).
+            # 그 실패로 배포 전체가 중단되지 않도록 무시한다(set -e 회피).
+            # 근본 해결은 서버에서 writable/ 를 setgid + 공용 그룹으로 구성하는 것.
+            chmod -R 775 writable 2>/dev/null || echo "  (일부 파일 chmod 건너뜀 — 타 유저 소유, 무시)"
 
             echo "▶ Composer 의존성 설치 (프로덕션 — dev 제외)"
             composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-progress
