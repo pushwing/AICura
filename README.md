@@ -69,12 +69,20 @@ make serve-spark  # CI4 내장 서버 (포트 8300)
 
 ### 기본 관리자 계정
 
-마이그레이션 후 아래 계정이 없으면 직접 INSERT합니다 (`user_type = 401`).
+마이그레이션 후 시더로 기본 관리자 계정(`user_type = 401`)을 생성한다.
 
+```bash
+php spark db:seed AdminUserSeeder
 ```
-이메일:   admin@aicura.com
-비밀번호: Admin@2026!
-```
+
+| 항목 | 값 |
+|------|-----|
+| 이메일 | `admin@aicura.com` |
+| 비밀번호 | `Admin@2026!` |
+| user_type | `401` (관리자) |
+
+- 재실행 안전 — 이미 있으면 건너뛴다(비밀번호 덮어쓰기 없음).
+- **운영 환경에서는 최초 로그인 후 반드시 비밀번호를 변경**한다.
 
 ---
 
