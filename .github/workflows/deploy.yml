@@ -54,7 +54,15 @@ jobs:
             composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-progress
 
             echo "▶ DB 마이그레이션"
-            php spark migrate --all -f
+            # 주의: php spark migrate 는 DB 연결 실패·마이그레이션 예외가 나도
+            # 종료코드 0 을 반환한다(set -e 로 못 잡음). 출력을 캡처해 예외 패턴을
+            # 직접 검사하고, 실패면 배포를 명시적으로 중단시킨다.
+            MIGRATE_OUT="$(php spark migrate --all -f 2>&1)"
+            echo "$MIGRATE_OUT"
+            if echo "$MIGRATE_OUT" | grep -qiE '\[.*Exception\]|Unable to connect|Access denied|ERROR'; then
+              echo "❌ 마이그레이션 실패 감지 — 배포 중단 (아파치 리로드 안 함)"
+              exit 1
+            fi
 
             echo "▶ 캐시 정리"
             php spark cache:clear || true
@@ -65,9 +73,12 @@ jobs:
             #
             #  - mod_php  구성: 아파치 리로드로 OPcache까지 함께 갱신됨 (아래 기본값)
             #  - PHP-FPM  구성: 아파치 대신 php-fpm 을 리로드해야 OPcache 갱신됨
-            #      예) sudo systemctl reload php8.4-fpm
+            #      예) sudo -n systemctl reload php8.4-fpm
             #
+            # sudo -n: 비대화형(-n)이라 NOPASSWD 미설정 시 멈추지 않고 즉시 실패한다.
+            #   서버 준비: /etc/sudoers.d/aicura-deploy 에
+            #   '<DEPLOY_USER> ALL=(ALL) NOPASSWD: /usr/bin/systemctl reload apache2'
             # 배포판별 아파치 서비스명: Debian/Ubuntu = apache2, RHEL/CentOS = httpd
-            sudo systemctl reload apache2
+            sudo -n systemctl reload apache2
 
             echo "✅ 배포 완료: $(git rev-parse --short HEAD)"
