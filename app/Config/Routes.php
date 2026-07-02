@@ -1,8 +1,12 @@
 <?php
 
+use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\Router\RouteCollection;
 
 /** @var RouteCollection $routes */
+
+// ── 루트 진입 → 관리자 로그인 리다이렉트 ──────────────────
+$routes->get('/', static fn (): RedirectResponse => redirect()->to('/admin/login'));
 
 // ── API Docs (Swagger UI) ────────────────────────────────
 $routes->get('api/docs',      'Api\DocsController::index');
@@ -47,6 +51,7 @@ $routes->group('admin', static function (RouteCollection $routes): void {
         // 리포트
         $routes->get('reports',           'Admin\ReportController::index');
         $routes->get('reports/campaigns', 'Admin\ReportController::campaigns');
+        $routes->get('reports/app-logs',  'Admin\ReportController::appLogs'); // 앱 액션 로그 통계 (이슈 #120)
         // AI 일일 보고서 (이슈 #65)
         $routes->post('reports/ai/generate',       'Admin\ReportController::generateAi');
         $routes->get('reports/ai/(:num)',          'Admin\ReportController::aiReportShow/$1');
@@ -115,6 +120,28 @@ $routes->group('admin', static function (RouteCollection $routes): void {
         $routes->get('users/(:num)/events',   'Admin\UserController::events/$1');       // 신청 이벤트 더보기(JSON)
         $routes->get('users/(:num)/reviews',  'Admin\UserController::reviews/$1');      // 작성 후기 더보기(JSON)
 
+        // 병원 관리 (이슈 #113)
+        $routes->get('hospitals',                'Admin\HospitalController::index');
+        $routes->get('hospitals/new',            'Admin\HospitalController::newForm');
+        $routes->post('hospitals',               'Admin\HospitalController::create');
+        $routes->get('hospitals/(:num)/edit',    'Admin\HospitalController::edit/$1');
+        $routes->post('hospitals/(:num)',        'Admin\HospitalController::update/$1');
+        $routes->post('hospitals/(:num)/delete', 'Admin\HospitalController::delete/$1');
+
+        // 시술 가이드 관리 (이슈 #146)
+        $routes->get('guides',                 'Admin\GuideController::index');
+        $routes->get('guides/new',             'Admin\GuideController::newForm');
+        $routes->post('guides',                'Admin\GuideController::create');
+        $routes->get('guides/(:num)/edit',     'Admin\GuideController::edit/$1');
+        $routes->post('guides/(:num)/update',  'Admin\GuideController::update/$1');
+        $routes->post('guides/(:num)/delete',  'Admin\GuideController::delete/$1');
+
+        // 진료과 마스터 관리 (이슈 #113)
+        $routes->get('departments',                'Admin\DepartmentController::index');
+        $routes->post('departments',               'Admin\DepartmentController::create');
+        $routes->post('departments/(:num)',        'Admin\DepartmentController::update/$1');
+        $routes->post('departments/(:num)/delete', 'Admin\DepartmentController::delete/$1');
+
         // 설정 (이슈 #63) — 내 계정(프로필·비밀번호) + 시스템 설정
         $routes->get('settings',           'Admin\SettingController::index');
         $routes->post('settings/profile',  'Admin\SettingController::updateProfile');
@@ -179,23 +206,116 @@ $routes->group('portal', static function (RouteCollection $routes): void {
 // ── API v1 ──────────────────────────────────────────────
 $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static function (RouteCollection $routes): void {
 
-    // 인증 (JWT 불필요)
-    $routes->post('auth/login',   'AuthController::login');
-    $routes->post('auth/refresh', 'AuthController::refresh');
-    $routes->post('auth/logout',  'AuthController::logout');
+    // 인증 (JWT 불필요) — 외부(소비자) 앱 전용
+    $routes->post('auth/login',       'AuthController::login');
+    $routes->post('auth/register',    'AuthController::register');
+    $routes->post('auth/social',      'AuthController::social');
+    $routes->post('auth/check-email', 'AuthController::checkEmail');
+    $routes->post('auth/refresh',     'AuthController::refresh');
+    $routes->post('auth/logout',      'AuthController::logout');
 
-    // 이하 jwt_auth 필터 적용
+    // 업로드 이미지 서빙 (인증 불필요 — 랜덤 파일명 capability) (이슈 #102)
+    $routes->get('uploads/images/(:segment)', 'UploadController::serve/$1');
+
+    // 공통·운영 (이슈 #103) — 앱 부트스트랩·운영 (인증 불필요)
+    $routes->get('settings',  'SystemController::settings');
+    $routes->get('codes',     'SystemController::codes');
+    $routes->post('logs',     'SystemController::logs');
+    $routes->get('health',    'SystemController::health');
+
+    // 이벤트(캠페인) 조회 — 비로그인 열람 허용 (선택적 인증)
+    // 로그인 시 is_liked 등 부가 정보 제공. 주의: 정적 경로를 (:num) 보다 먼저 선언
+    $routes->group('', ['filter' => 'jwt_optional'], static function (RouteCollection $routes): void {
+        $routes->get('campaigns/categories', 'CampaignController::categories');
+        $routes->get('campaigns/main',       'CampaignController::main');
+        $routes->get('campaigns/recommend',  'CampaignController::recommend');
+        $routes->get('campaigns',            'CampaignController::index');
+        $routes->get('campaigns/(:num)',     'CampaignController::show/$1');
+
+        // 병원 조회 — 비로그인 열람 허용 (이슈 #99)
+        $routes->get('hospitals',                  'HospitalController::index');
+        $routes->get('hospitals/(:num)',           'HospitalController::show/$1');
+        $routes->get('hospitals/(:num)/campaigns', 'HospitalController::campaigns/$1');
+        $routes->get('hospitals/(:num)/reviews',   'HospitalController::reviews/$1');
+
+        // 후기 커뮤니티 조회 — 비로그인 열람 허용 (이슈 #102)
+        // 주의: (:num)/comments 를 bare (:num) 보다 먼저 선언
+        $routes->get('boards',                 'BoardController::index');
+        $routes->get('boards/(:num)/comments', 'BoardController::comments/$1');
+        $routes->get('boards/(:num)',          'BoardController::show/$1');
+    });
+
+    // 이하 jwt_auth 필터 적용 (로그인 필수)
     $routes->group('', ['filter' => 'jwt_auth'], static function (RouteCollection $routes): void {
 
-        // 캠페인
-        $routes->resource('campaigns', ['controller' => 'CampaignController']);
+        // 이벤트 찜 토글 — 로그인 필요 (이슈 #98)
+        $routes->post('campaigns/(:num)/like', 'CampaignController::like/$1');
+
+        // 상담 신청 (이슈 #100)
+        $routes->post('call-requests',         'CallRequestController::create');
+        $routes->get('call-requests/(:num)',   'CallRequestController::show/$1');
+        $routes->delete('call-requests/(:num)', 'CallRequestController::delete/$1');
+
+        // 병원 찜 토글 — 로그인 필요 (이슈 #99)
+        $routes->post('hospitals/(:num)/like',       'HospitalController::like/$1');
 
         // 리포트
         $routes->get('reports/summary',  'ReportController::summary');
         $routes->get('reports/campaigns/(:num)', 'ReportController::campaign/$1');
 
-        // 사용자 프로필
-        $routes->get('me',        'UserController::me');
-        $routes->patch('me',      'UserController::update');
+        // 후기 커뮤니티 쓰기·상호작용 — 로그인 필요 (이슈 #102)
+        $routes->post('boards',                         'BoardController::create');
+        $routes->post('boards/(:num)/comments',         'BoardController::commentCreate/$1');
+        $routes->delete('boards/(:num)/comments/(:num)', 'BoardController::commentDelete/$1/$2');
+        $routes->post('boards/(:num)/like',             'BoardController::like/$1');
+        $routes->post('boards/(:num)/report',           'BoardController::report/$1');
+        $routes->patch('boards/(:num)',                 'BoardController::update/$1');
+        $routes->delete('boards/(:num)',                'BoardController::delete/$1');
+
+        // 예약 (이슈 #101)
+        $routes->post('bookings',        'BookingController::create');
+        $routes->get('bookings/(:num)',  'BookingController::show/$1');
+        $routes->patch('bookings/(:num)', 'BookingController::update/$1');
+        $routes->delete('bookings/(:num)', 'BookingController::delete/$1');
+
+        // 이미지 업로드 (이슈 #102)
+        $routes->post('uploads/images', 'UploadController::images');
+
+        // 내 정보·마이페이지 (이슈 #97)
+        $routes->get('me',                  'UserController::me');
+        $routes->patch('me',                'UserController::updateProfile');
+        $routes->delete('me',               'UserController::withdraw');
+        $routes->post('me/device',          'UserController::registerDevice');
+        $routes->get('me/call-requests',    'UserController::callRequests');
+        $routes->get('me/boards',           'UserController::boards');
+        $routes->get('me/bookings',         'UserController::bookings');
+        $routes->get('me/likes',            'UserController::likes');
+        $routes->get('me/health-point',     'UserController::healthPoint');
+        $routes->post('me/health-point/redeem', 'UserController::redeemHealthPoint'); // 차감 (이슈 #114)
     });
+});
+
+// ── 공개 웹 (SSR · SEO/GEO) ───────────────────────────────
+// 인증 없이 크롤링 가능한 HTML 을 제공한다 (이슈 #137 Phase 1 골격).
+// 현재는 이벤트 목록·상세만. 병원/후기/가이드는 후속 이슈(③·⑤)에서 추가.
+$routes->group('', ['namespace' => 'App\Controllers\Web'], static function (RouteCollection $routes): void {
+    $routes->get('events',        'EventPageController::index');
+    $routes->get('events/(:num)', 'EventPageController::show/$1');
+
+    // 병원·후기 공개 페이지 (이슈 #144)
+    $routes->get('hospitals',        'HospitalPageController::index');
+    $routes->get('hospitals/(:num)', 'HospitalPageController::show/$1');
+    $routes->get('reviews',          'ReviewPageController::index');
+    $routes->get('reviews/(:num)',   'ReviewPageController::show/$1');
+
+    // 시술 가이드 공개 페이지 (이슈 #146) — 슬러그 URL
+    $routes->get('guides',           'GuidePageController::index');
+    $routes->get('guides/(:segment)', 'GuidePageController::show/$1');
+
+    // 크롤러 진입점 — 동적 생성(이슈 #143). 정적 public/robots.txt 는 제거됨
+    $routes->get('sitemap.xml', 'SitemapController::index');
+    $routes->get('robots.txt',  'RobotsController::index');
+    $routes->get('llms.txt',    'LlmsController::index'); // AI 크롤러용 사이트 요약 (이슈 #147)
+    $routes->get('indexnow-key.txt', 'IndexNowController::key'); // IndexNow 키 검증 (이슈 #152)
+    $routes->get('BingSiteAuth.xml', 'BingSiteVerificationController::index'); // Bing Webmaster Tools 사이트 인증 (이슈 #160)
 });

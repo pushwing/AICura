@@ -2,6 +2,7 @@
 
 namespace App\Filters;
 
+use App\Exceptions\TokenException;
 use App\Libraries\Auth;
 use App\Libraries\JwtLibrary;
 use CodeIgniter\HTTP\RequestInterface;
@@ -21,13 +22,14 @@ class JwtAuthFilter implements FilterInterface
         }
 
         $token = substr($authHeader, 7);
-        $jwt   = new JwtLibrary();
-        $payload = $jwt->validateAccessToken($token);
 
-        if (!$payload) {
+        try {
+            // 만료(TOKEN_EXPIRED)와 무효(INVALID_TOKEN)를 구분해 응답한다.
+            $payload = new JwtLibrary()->validateAccessToken($token);
+        } catch (TokenException $e) {
             return service('response')
-                ->setStatusCode(401)
-                ->setJSON(['status' => 'error', 'code' => 'TOKEN_EXPIRED', 'message' => '토큰이 만료되었거나 유효하지 않습니다.']);
+                ->setStatusCode($e->httpStatusCode())
+                ->setJSON(['status' => 'error', 'code' => $e->errorCode(), 'message' => $e->getMessage()]);
         }
 
         Auth::setUserId((int) $payload['sub']);

@@ -16,7 +16,7 @@ class App extends BaseConfig
      *
      * E.g., http://example.com/
      */
-    public string $baseURL = 'http://localhost:8080/';
+    public string $baseURL = 'http://localhost:8300/';
 
     /**
      * Allowed Hostnames in the Site URL other than the hostname in the baseURL.
@@ -30,6 +30,29 @@ class App extends BaseConfig
      * @var list<string>
      */
     public array $allowedHostnames = [];
+
+    /**
+     * 로컬 개발 환경에서 FrankenPHP(8300)·CI4 내장 서버(8080)를 동시에 띄워두고 쓰는 경우,
+     * 요청 Host 헤더에 따라 baseURL 을 맞춰준다. Host header injection 방지를 위해
+     * 화이트리스트에 있는 host:port 조합만 허용한다.
+     */
+    public function __construct()
+    {
+        parent::__construct();
+
+        if (ENVIRONMENT === 'development') {
+            $allowedLocalHosts = [
+                'localhost:8080', '127.0.0.1:8080',
+                'localhost:8300', '127.0.0.1:8300',
+            ];
+
+            $host = service('superglobals')->server('HTTP_HOST') ?? '';
+
+            if (in_array($host, $allowedLocalHosts, true)) {
+                $this->baseURL = "http://{$host}/";
+            }
+        }
+    }
 
     /**
      * --------------------------------------------------------------------------
@@ -81,7 +104,8 @@ class App extends BaseConfig
     | DO NOT CHANGE THIS UNLESS YOU FULLY UNDERSTAND THE REPERCUSSIONS!!
     |
     */
-    public string $permittedURIChars = 'a-z 0-9~%.:_\-';
+    // 시술 가이드(guides) 슬러그가 한글 그대로 생성되므로 유니코드 문자(\p{L})·숫자(\p{N})를 허용한다 (이슈 #146).
+    public string $permittedURIChars = 'a-z 0-9~%.:_\-\p{L}\p{N}';
 
     /**
      * --------------------------------------------------------------------------

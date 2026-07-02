@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Throwable;
 use CodeIgniter\Model;
 
 class AdvertiserModel extends Model
@@ -268,7 +269,7 @@ class AdvertiserModel extends Model
             ->join('contracts c', 'c.hospital_id = a.hospital_id', 'left')
             ->join('contract_order_connects coc', 'coc.contract_id = c.id', 'left')
             ->join('contract_orders co', 'co.id = coc.contract_order_id AND co.contract_status = 1', 'left')
-            ->whereIn('a.agency_user_id', array_map('intval', $agencyUserIds))
+            ->whereIn('a.agency_user_id', array_map(intval(...), $agencyUserIds))
             ->groupBy('a.agency_user_id')
             ->get()
             ->getResultArray();
@@ -366,7 +367,7 @@ class AdvertiserModel extends Model
             // 원자적 선점: contract_agreed_at NULL → 동의 시각. 동시 호출 중 한 건만 성공한다.
             $db->table('advertisers')
                 ->where('id', $advertiserId)
-                ->where('contract_agreed_at', null)
+                ->where('contract_agreed_at')
                 ->update([
                     'status'             => 1,
                     'contract_agreed_at' => $now,
@@ -399,7 +400,7 @@ class AdvertiserModel extends Model
             $db->transCommit();
 
             return true;
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $db->transRollback();
             throw $e;
         }

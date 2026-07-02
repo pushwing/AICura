@@ -2,6 +2,21 @@
 
 namespace Config;
 
+use App\Libraries\RedisQueue;
+use App\Services\AppAuthService;
+use App\Services\AppLogStatService;
+use App\Services\BoardService;
+use App\Services\BookingService;
+use App\Services\CallRequestService;
+use App\Services\EventService;
+use App\Services\GuideService;
+use App\Services\HealthPointService;
+use App\Services\IndexNowService;
+use App\Services\HospitalService;
+use App\Services\LogIngestService;
+use App\Services\MeService;
+use App\Services\SitemapService;
+use App\Services\UploadService;
 use CodeIgniter\Config\BaseService;
 
 /**
@@ -19,14 +34,202 @@ use CodeIgniter\Config\BaseService;
  */
 class Services extends BaseService
 {
-    /*
-     * public static function example($getShared = true)
-     * {
-     *     if ($getShared) {
-     *         return static::getSharedInstance('example');
-     *     }
+    /**
+     * 외부(소비자) 앱 인증 서비스 (이슈 #96)
      *
-     *     return new \CodeIgniter\Example();
-     * }
+     * 컨트롤러는 `service('appAuthService')` 또는 `Services::appAuthService()` 로 주입받아
+     * 직접 `new` 없이 사용하며, 테스트에서는 `Services::injectMock()` 으로 대체할 수 있다.
      */
+    public static function appAuthService(bool $getShared = true): AppAuthService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('appAuthService');
+        }
+
+        return new AppAuthService();
+    }
+
+    /**
+     * 외부(소비자) 앱 이벤트 서비스 (이슈 #98)
+     *
+     * 컨트롤러는 `service('eventService')` 또는 `Services::eventService()` 로 주입받아
+     * 직접 `new` 없이 사용하며, 테스트에서는 `Services::injectMock()` 으로 대체할 수 있다.
+     */
+    public static function eventService(bool $getShared = true): EventService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('eventService');
+        }
+
+        return new EventService();
+    }
+
+    /**
+     * 시술 가이드 서비스 (이슈 #146)
+     */
+    public static function guideService(bool $getShared = true): GuideService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('guideService');
+        }
+
+        return new GuideService();
+    }
+
+    /**
+     * IndexNow 즉시 색인 제출 서비스 (이슈 #152)
+     */
+    public static function indexNowService(bool $getShared = true): IndexNowService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('indexNowService');
+        }
+
+        return new IndexNowService();
+    }
+
+    /**
+     * sitemap.xml 생성 서비스 (이슈 #143)
+     */
+    public static function sitemapService(bool $getShared = true): SitemapService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('sitemapService');
+        }
+
+        return new SitemapService();
+    }
+
+    /**
+     * 외부(소비자) 앱 상담 신청 서비스 (이슈 #100)
+     *
+     * 컨트롤러는 `service('callRequestService')` 또는 `Services::callRequestService()` 로 주입받아
+     * 직접 `new` 없이 사용하며, 테스트에서는 `Services::injectMock()` 으로 대체할 수 있다.
+     */
+    public static function callRequestService(bool $getShared = true): CallRequestService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('callRequestService');
+        }
+
+        return new CallRequestService();
+    }
+
+    /**
+     * 외부(소비자) 앱 병원 서비스 (이슈 #99)
+     *
+     * 컨트롤러는 `service('hospitalService')` 또는 `Services::hospitalService()` 로 주입받아
+     * 직접 `new` 없이 사용하며, 테스트에서는 `Services::injectMock()` 으로 대체할 수 있다.
+     */
+    public static function hospitalService(bool $getShared = true): HospitalService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('hospitalService');
+        }
+
+        return new HospitalService();
+    }
+
+    /**
+     * 외부(소비자) 앱 마이페이지 서비스 (이슈 #97)
+     *
+     * 컨트롤러는 `service('meService')` 또는 `Services::meService()` 로 주입받아
+     * 직접 `new` 없이 사용하며, 테스트에서는 `Services::injectMock()` 으로 대체할 수 있다.
+     */
+    public static function meService(bool $getShared = true): MeService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('meService');
+        }
+
+        return new MeService();
+    }
+
+    /**
+     * 외부(소비자) 앱 이미지 업로드 서비스 (이슈 #102)
+     */
+    public static function uploadService(bool $getShared = true): UploadService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('uploadService');
+        }
+
+        return new UploadService();
+    }
+
+    /**
+     * 외부(소비자) 앱 후기 커뮤니티 서비스 (이슈 #102)
+     */
+    public static function boardService(bool $getShared = true): BoardService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('boardService');
+        }
+
+        return new BoardService();
+    }
+
+    /**
+     * 외부(소비자) 앱 로그 수집 서비스 (이슈 #103)
+     */
+    public static function logIngestService(bool $getShared = true): LogIngestService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('logIngestService');
+        }
+
+        return new LogIngestService();
+    }
+
+    /**
+     * 외부(소비자) 앱 예약 서비스 (이슈 #101)
+     */
+    public static function bookingService(bool $getShared = true): BookingService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('bookingService');
+        }
+
+        return new BookingService();
+    }
+
+    /**
+     * 헬스포인트 적립/차감 서비스 (이슈 #114)
+     */
+    public static function healthPointService(bool $getShared = true): HealthPointService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('healthPointService');
+        }
+
+        return new HealthPointService();
+    }
+
+    /**
+     * Redis 리스트 기반 경량 큐 (이슈 #115)
+     *
+     * 로그 수집 파이프라인의 큐 계층. 테스트에서는 injectMock 으로 대체한다.
+     */
+    public static function redisQueue(bool $getShared = true): RedisQueue
+    {
+        if ($getShared) {
+            return static::getSharedInstance('redisQueue');
+        }
+
+        return new RedisQueue();
+    }
+
+    /**
+     * 소비자 앱 액션 로그 시간별 집계 서비스 (이슈 #120)
+     *
+     * app_logs 를 hourly_event_stats 로 롤업한다. logs:aggregate 배치가 사용한다.
+     */
+    public static function appLogStatService(bool $getShared = true): AppLogStatService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('appLogStatService');
+        }
+
+        return new AppLogStatService();
+    }
 }

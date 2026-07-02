@@ -24,13 +24,13 @@ class ReportModel extends Model
     protected $returnType = 'array';
 
     // 충전 — 계약충전 + 이월충전 (CPA 환불 복원 status 4 제외)
-    private const STATUS_CHARGED  = [2, 12];
+    private const array STATUS_CHARGED  = [2, 12];
     // 소진 — DB소진·기타차감·취소·이월소진 (환불 6·7은 별도 집계로 제외)
-    private const STATUS_CONSUMED = [3, 5, 8, 9, 10, 11];
+    private const array STATUS_CONSUMED = [3, 5, 8, 9, 10, 11];
     // 환불 — 발행환불 + 계약환불 (별도 KPI)
-    private const STATUS_REFUNDED = [6, 7];
+    private const array STATUS_REFUNDED = [6, 7];
     // CPA 환불 복원 — 신청DB 환불요청 승인 시 기록되는 소진 상계 거래 (status 4 전용 집계)
-    private const STATUS_CPA_REFUND = [4];
+    private const array STATUS_CPA_REFUND = [4];
 
     /**
      * 드라이버별 연도 표현식 (MySQL: YEAR / SQLite3: strftime)

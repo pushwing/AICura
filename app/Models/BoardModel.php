@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use RuntimeException;
+use InvalidArgumentException;
 use CodeIgniter\Model;
 
 /**
@@ -32,6 +34,14 @@ class BoardModel extends Model
         'ai_flags',
         'ai_reason',
         'ai_status',
+        // 외부 앱 후기 작성 필드 (이슈 #102)
+        'user_id',
+        'user_name',
+        'type',
+        'target_id',
+        'rate_sum',
+        'files_count',
+        'is_secret',
     ];
 
     /** @var array<int, string> 후기 유형 */
@@ -137,13 +147,19 @@ class BoardModel extends Model
     /**
      * 특정 사용자가 작성한 후기 목록 (페이징) — 사용자 상세용. (이슈 #90)
      *
+     * @param bool $onlyActive 삭제(임시·완전) 후기를 제외할지 여부. 소비자 노출(#97)은 true,
+     *                         어드민 상세는 삭제 상태까지 보여주므로 false(기본).
      * @return array{list: array<int, array<string, mixed>>, total: int}
      */
-    public function getByUser(int $userId, int $limit, int $offset): array
+    public function getByUser(int $userId, int $limit, int $offset, bool $onlyActive = false): array
     {
         $builder = $this->db->table('boards')
             ->select('id, type, target_id, subject, rate_sum, like_count, is_delete, created_at')
             ->where('user_id', $userId);
+
+        if ($onlyActive) {
+            $builder->where('is_delete', self::DELETE_NONE);
+        }
 
         $total = (clone $builder)->countAllResults(false);
 
@@ -186,15 +202,15 @@ class BoardModel extends Model
     /**
      * 삭제 처리 (임시 1 / 완전 2)
      *
-     * @throws \RuntimeException 유효하지 않은 삭제 유형 또는 후기 없음
+     * @throws RuntimeException 유효하지 않은 삭제 유형 또는 후기 없음
      */
     public function markDeleted(int $id, int $state, string $memo): void
     {
         if (!in_array($state, [self::DELETE_TEMP, self::DELETE_FULL], true)) {
-            throw new \RuntimeException('유효하지 않은 삭제 유형입니다.');
+            throw new RuntimeException('유효하지 않은 삭제 유형입니다.');
         }
         if ($this->find($id) === null) {
-            throw new \RuntimeException('후기를 찾을 수 없습니다.');
+            throw new RuntimeException('후기를 찾을 수 없습니다.');
         }
 
         $this->update($id, [
@@ -207,12 +223,12 @@ class BoardModel extends Model
     /**
      * 삭제 복구 (is_delete → 0)
      *
-     * @throws \RuntimeException 후기 없음
+     * @throws RuntimeException 후기 없음
      */
     public function restore(int $id): void
     {
         if ($this->find($id) === null) {
-            throw new \RuntimeException('후기를 찾을 수 없습니다.');
+            throw new RuntimeException('후기를 찾을 수 없습니다.');
         }
 
         $this->update($id, [
@@ -225,7 +241,6 @@ class BoardModel extends Model
     // ──────────────────────────────────────────────
     // AI 후기 신뢰성 분석 큐 (이슈 #74)
     // ──────────────────────────────────────────────
-
     /**
      * 분석 큐에 적재 — ai_status를 PENDING으로 표시 (동기, AI 호출 없음).
      *
@@ -233,16 +248,16 @@ class BoardModel extends Model
      * 비동기로 수행하므로 요청 응답을 막지 않는다. 삭제된 후기는 getPendingAnalysis가
      * 소비하지 않아 PENDING으로 방치되므로 적재 자체를 거부한다.
      *
-     * @throws \RuntimeException 후기 없음·삭제된 후기
+     * @throws RuntimeException 후기 없음·삭제된 후기
      */
     public function enqueueAnalysis(int $id): void
     {
         $board = $this->find($id);
         if ($board === null) {
-            throw new \RuntimeException('후기를 찾을 수 없습니다.');
+            throw new RuntimeException('후기를 찾을 수 없습니다.');
         }
         if ((int) $board['is_delete'] !== self::DELETE_NONE) {
-            throw new \RuntimeException('삭제된 후기는 분석할 수 없습니다.');
+            throw new RuntimeException('삭제된 후기는 분석할 수 없습니다.');
         }
 
         $this->update($id, ['ai_status' => self::AI_STATUS_PENDING]);
@@ -289,6 +304,250 @@ class BoardModel extends Model
         $this->update($id, ['ai_status' => self::AI_STATUS_FAILED]);
     }
 
+    // ──────────────────────────────────────────────
+    // 외부(소비자) 앱 — 후기 조회 (이슈 #99)
+    // ──────────────────────────────────────────────
+
+    /** boards.type — 1 이벤트 · 2 병원 · 3 접수 */
+    public const TYPE_EVENT    = 1;
+    public const TYPE_HOSPITAL = 2;
+
+    /**
+     * 대상(type+target_id)의 공개 후기 목록 — 비밀글·삭제글 제외, 최신순, 페이징.
+     *
+     * @return array{list: array<int, array<string, mixed>>, total: int}
+     */
+    public function getReviewsByTarget(int $type, int $targetId, int $page, int $limit): array
+    {
+        $builder = $this->db->table('boards')
+            ->select('id, user_name, subject, contents, rate_sum, like_count, comment_count, files_count, created_at')
+            ->where('type', $type)
+            ->where('target_id', $targetId)
+            ->where('is_delete', self::DELETE_NONE)
+            ->where('is_secret', 0)
+            ->where('is_list', 1);
+
+        $total = (clone $builder)->countAllResults(false);
+
+        $list = $builder
+            ->orderBy('id', 'DESC')
+            ->limit($limit, ($page - 1) * $limit)
+            ->get()
+            ->getResultArray();
+
+        return ['list' => $list, 'total' => (int) $total];
+    }
+
+    /**
+     * 대상(type+target_id)의 공개 후기 수 — 상세 요약용.
+     */
+    public function countReviewsByTarget(int $type, int $targetId): int
+    {
+        return $this->where('type', $type)
+            ->where('target_id', $targetId)
+            ->where('is_delete', self::DELETE_NONE)
+            ->where('is_secret', 0)
+            ->where('is_list', 1)
+            ->countAllResults();
+    }
+
+    // ──────────────────────────────────────────────
+    // 외부(소비자) 앱 — 후기 작성/관리 (이슈 #102)
+    // ──────────────────────────────────────────────
+
+    /** 후기 정렬 컬럼 화이트리스트 (sort → ORDER BY) */
+    private const array SORT_COLUMNS = [
+        'latest' => 'id',
+        'rating' => 'rate_sum',
+        'likes'  => 'like_count',
+    ];
+
+    /**
+     * 후기 목록 — type·target 필터, 정렬(latest/rating/likes), 페이징. 공개글만.
+     *
+     * @param array<string, mixed> $params type·target_id·sort·page·limit
+     * @return array{list: array<int, array<string, mixed>>, total: int}
+     */
+    public function getConsumerList(array $params): array
+    {
+        // 목록은 본문 전체 대신 발췌만 조회해 전송량·페이로드를 최소화한다 (SUBSTR: MySQL·SQLite 공통)
+        $builder = $this->db->table('boards')
+            ->select('id, type, target_id, user_name, subject, SUBSTR(contents, 1, 150) AS excerpt, rate_sum, like_count, comment_count, files_count, created_at', false)
+            ->where('is_delete', self::DELETE_NONE)
+            ->where('is_secret', 0)
+            ->where('is_list', 1);
+
+        if (!empty($params['type'])) {
+            $builder->where('type', (int) $params['type']);
+        }
+        if (!empty($params['target_id'])) {
+            $builder->where('target_id', (int) $params['target_id']);
+        }
+
+        $total = (clone $builder)->countAllResults(false);
+
+        $sortCol = self::SORT_COLUMNS[$params['sort'] ?? 'latest'] ?? 'id';
+        $builder->orderBy($sortCol, 'DESC');
+        if ($sortCol !== 'id') {
+            $builder->orderBy('id', 'DESC');
+        }
+
+        $page  = max(1, (int) ($params['page'] ?? 1));
+        $limit = max(1, (int) ($params['limit'] ?? 20));
+
+        $list = $builder
+            ->limit($limit, ($page - 1) * $limit)
+            ->get()
+            ->getResultArray();
+
+        return ['list' => $list, 'total' => (int) $total];
+    }
+
+    /**
+     * 후기 상세 (공개글만) — 댓글·이미지는 Service에서 합성.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getConsumerDetail(int $id): ?array
+    {
+        return $this->db->table('boards')
+            ->select('id, type, target_id, user_id, user_name, subject, contents, rate_sum, like_count, comment_count, complain_count, files_count, created_at')
+            ->where('id', $id)
+            ->where('is_delete', self::DELETE_NONE)
+            ->where('is_secret', 0)
+            ->get()
+            ->getRowArray();
+    }
+
+    /**
+     * SEO 색인 적합 여부 (이슈 #144, §4.3)
+     *
+     * 신고(complain_count>0)되었거나 AI 분석상 의심(분석완료 && 저신뢰 또는 플래그)인 후기는
+     * 검색·AI 인용 대상에서 제외하기 위해 false 를 반환한다(상세 페이지 noindex 판단용).
+     */
+    public function isReviewIndexable(int $id): bool
+    {
+        /** @var array{complain_count: int|string, ai_status: int|string, ai_trust_score: int|string|null, ai_flags: string|null}|null $row */
+        $row = $this->db->table('boards')
+            ->select('complain_count, ai_status, ai_trust_score, ai_flags')
+            ->where('id', $id)
+            ->get()
+            ->getRowArray();
+
+        if ($row === null) {
+            return false;
+        }
+        if ((int) $row['complain_count'] > 0) {
+            return false;
+        }
+        if ((int) $row['ai_status'] === self::AI_STATUS_DONE) {
+            $lowTrust = (int) $row['ai_trust_score'] < self::SUSPICIOUS_SCORE;
+            $hasFlags = $this->decodeFlags($row['ai_flags'] ?? null) !== [];
+            if ($lowTrust || $hasFlags) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * sitemap.xml 용 색인 가능 후기 목록 — 노출·미신고·비의심 건의 id·작성시각. (이슈 #144)
+     *
+     * 이식성을 위해 플래그(JSON) 판정은 제외하고 신고·저신뢰만 SQL 로 거른다(플래그 단독 의심은
+     * 상세 noindex 에서 최종 차단). sitemaps.org 단일 파일 상한(50,000)을 기본 한도로 둔다.
+     *
+     * @return array<int, array{id: int, created_at: string|null}>
+     */
+    public function getSitemapReviews(int $limit = 50000): array
+    {
+        /** @var array<int, array{id: int, created_at: string|null}> $rows */
+        $rows = $this->db->table('boards')
+            ->select('id, created_at')
+            ->where('is_delete', self::DELETE_NONE)
+            ->where('is_secret', 0)
+            ->where('is_list', 1)
+            ->where('complain_count', 0)
+            ->groupStart()
+                ->where('ai_status !=', self::AI_STATUS_DONE)
+                ->orWhere('ai_trust_score >=', self::SUSPICIOUS_SCORE)
+            ->groupEnd()
+            ->orderBy('id', 'DESC')
+            ->limit($limit)
+            ->get()
+            ->getResultArray();
+
+        return $rows;
+    }
+
+    /**
+     * 후기 작성 — 생성된 id 반환. ai_status 는 DEFAULT(대기)로 자동 큐 적재.
+     *
+     * @param array<string, mixed> $data
+     */
+    public function createReview(array $data): int
+    {
+        return (int) $this->insert($data, true);
+    }
+
+    /**
+     * 본인 소유·미삭제 후기 조회 (수정·삭제 권한 확인용).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findOwnedReview(int $id, int $userId): ?array
+    {
+        return $this->select('id, user_id, type, target_id')
+            ->where('id', $id)
+            ->where('user_id', $userId)
+            ->where('is_delete', self::DELETE_NONE)
+            ->first();
+    }
+
+    /**
+     * 후기 수정 — 재분석을 위해 ai_status 를 다시 대기로 돌린다.
+     *
+     * @param array<string, mixed> $data
+     */
+    public function updateReview(int $id, array $data): void
+    {
+        $this->update($id, $data + ['ai_status' => self::AI_STATUS_PENDING]);
+    }
+
+    /**
+     * 후기 soft delete.
+     */
+    public function softDeleteReview(int $id): void
+    {
+        $this->update($id, ['is_delete' => self::DELETE_FULL]);
+    }
+
+    /**
+     * 공개 후기 존재 여부 — 좋아요·신고·댓글 전 대상 검증용.
+     */
+    public function isVisibleReview(int $id): bool
+    {
+        return $this->where('id', $id)
+            ->where('is_delete', self::DELETE_NONE)
+            ->where('is_secret', 0)
+            ->countAllResults() > 0;
+    }
+
+    /**
+     * 집계 컬럼 증감 (like_count·comment_count·complain_count). 음수 방지.
+     */
+    public function adjustCounter(int $id, string $column, int $delta): void
+    {
+        if (!in_array($column, ['like_count', 'comment_count', 'complain_count'], true)) {
+            throw new InvalidArgumentException('허용되지 않은 카운터 컬럼: ' . $column);
+        }
+
+        $this->db->table('boards')
+            ->where('id', $id)
+            ->set($column, "CASE WHEN {$column} + {$delta} < 0 THEN 0 ELSE {$column} + {$delta} END", false)
+            ->update();
+    }
+
     /**
      * ai_flags JSON 문자열을 안전하게 list<string> 로 디코드.
      *
@@ -305,6 +564,6 @@ class BoardModel extends Model
             return [];
         }
 
-        return array_values(array_filter($decoded, 'is_string'));
+        return array_values(array_filter($decoded, is_string(...)));
     }
 }

@@ -17,19 +17,19 @@ use CodeIgniter\Cache\CacheInterface;
 class AiCopyService
 {
     /** 캐시 TTL(초) — 동일 입력 반복 생성 방어 */
-    private const CACHE_TTL = 3600;
+    private const int CACHE_TTL = 3600;
 
     // CI4 캐시 키는 콜론(:) 등을 예약 문자로 금지(app/Config/Cache.php)하므로 언더스코어 사용
-    private const CACHE_PREFIX = 'ai_copy_';
+    private const string CACHE_PREFIX = 'ai_copy_';
 
     /** 생성 제목 후보 개수 */
-    private const TITLE_COUNT = 3;
+    private const int TITLE_COUNT = 3;
 
     /** 상세문구에 허용하는 HTML 태그 (Tiptap StarterKit 출력 호환) */
-    private const ALLOWED_TAGS = '<p><br><strong><em><s><ul><ol><li><h3><h4><blockquote>';
+    private const string ALLOWED_TAGS = '<p><br><strong><em><s><ul><ol><li><h3><h4><blockquote>';
 
-    private AiClientInterface $ai;
-    private CacheInterface $cache;
+    private readonly AiClientInterface $ai;
+    private readonly CacheInterface $cache;
 
     public function __construct(?AiClientInterface $ai = null, ?CacheInterface $cache = null)
     {
@@ -81,7 +81,7 @@ class AiCopyService
         $rawTitles = $raw['titles'] ?? [];
         if (is_array($rawTitles)) {
             foreach ($rawTitles as $title) {
-                $value = trim((string) (is_string($title) ? $title : ''));
+                $value = trim(is_string($title) ? $title : '');
                 if ($value !== '') {
                     $titles[] = $value;
                 }
@@ -91,7 +91,7 @@ class AiCopyService
             }
         }
 
-        $detail = is_string($raw['detail'] ?? null) ? $this->sanitizeHtml((string) $raw['detail']) : '';
+        $detail = is_string($raw['detail'] ?? null) ? $this->sanitizeHtml($raw['detail']) : '';
 
         return ['titles' => $titles, 'detail' => $detail];
     }

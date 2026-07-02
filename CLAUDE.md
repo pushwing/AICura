@@ -4,6 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 AI 기반 성형·토탈 광고 솔루션. CodeIgniter 4 기반 Admin + REST API 단일 프로젝트.
 
+## 언어 규칙
+
+- 모든 응답은 반드시 한국어로 작성할 것
+- 코드 주석도 한국어로 작성할 것
+- 영어 응답은 절대 금지
+
 ## 기술 스택
 
 - **언어**: PHP 8.4+ (시스템 CLI) / PHP 8.5 (FrankenPHP 내장)
@@ -15,7 +21,8 @@ AI 기반 성형·토탈 광고 솔루션. CodeIgniter 4 기반 Admin + REST API
 > **PHP 버전 구분**  
 > - 웹 요청 처리: FrankenPHP 내장 PHP 8.5.7  
 > - CLI (composer/spark/PHPStan/PHPUnit): 시스템 PHP 8.4.22  
-> - `composer.json` 요구사항은 시스템 PHP 기준 (`^8.4`)
+> - CI (GitHub Actions `backend` 잡): PHP 8.5 (setup-php)  
+> - `composer.json` 요구사항은 `^8.4` (8.5 포함)
 
 ## 로컬 환경 설정
 
@@ -486,6 +493,45 @@ composer check            # PHPStan + PHPUnit 순차 실행
 - 분석 대상: `app/` (Views 제외)
 - 새 클래스·메서드 작성 시 `array<string, mixed>` 등 제네릭 타입 명시 필수
 - `@phpstan-ignore` 주석으로 억제 금지 — 원인을 찾아 코드를 수정할 것
+
+## CI (GitHub Actions)
+
+`dev` · `main` 으로의 **push / PR** 마다 자동 검증된다. 정의: `.github/workflows/ci.yml` (단일 파일, 두 잡 병렬).
+
+- **동시성**: 같은 ref 새 푸시 시 진행 중 실행 취소 (`concurrency.cancel-in-progress`)
+
+### `backend` 잡 — PHP 8.5 · PHPStan · PHPUnit
+
+`mysql:8.0` 서비스 컨테이너를 띄우고 다음 순서로 검증한다.
+
+1. setup-php `8.5` (확장: `mbstring intl mysqli curl dom xml tokenizer`, 커버리지 `pcov`)
+   - `phpunit.dist.xml` 이 `failOnWarning` + `<coverage>` 를 켜 두어 커버리지 드라이버 없으면 경고→실패 → `pcov` 필수
+2. Composer 캐시 → `composer install`
+3. `env` → `.env` 복사 후 CI용 DB·`JWT_SECRET` 주입
+4. `writable/` 하위 디렉토리 생성 (git 미추적, `WRITEPATH` 보장)
+5. `composer analyse` (PHPStan level 6)
+6. MySQL 헬스 대기 → `phpunit.dist.xml` 의 `database.tests.hostname` 을 `localhost` → `127.0.0.1` 로 sed 치환 (MySQLi TCP 강제)
+7. `composer test` (PHPUnit 단위·DB 통합)
+
+### `app` 잡 — Flutter · analyze · test
+
+`app-mobile/` 작업 디렉토리에서 실행한다.
+
+1. Flutter stable 채널 설치 → `flutter pub get`
+2. `dart format --set-exit-if-changed lib test` (포맷 검사)
+3. `flutter analyze`
+4. `flutter test`
+
+### 푸시 전 로컬 사전 검증
+
+CI 실패를 줄이기 위해 푸시 전 동일 검증을 로컬에서 수행한다.
+
+```bash
+composer check   # = analyse + test (백엔드)
+# 앱: cd app-mobile && dart format --output=none --set-exit-if-changed lib test && flutter analyze && flutter test
+```
+
+> 새 PHP 코드는 PHPStan level 6 통과 + 관련 PHPUnit 테스트가 그린이어야 CI를 통과한다. 새 기능에는 `tests/` 테스트를 함께 작성한다.
 
 ## 네이밍 규칙
 

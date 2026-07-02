@@ -2,6 +2,10 @@
 
 namespace App\Controllers\Portal;
 
+use Override;
+use CodeIgniter\HTTP\RequestInterface;
+use Psr\Log\LoggerInterface;
+use RuntimeException;
 use App\Models\CallMemoModel;
 use App\Models\CallRequestModel;
 use App\Models\RefundRequestModel;
@@ -20,10 +24,11 @@ class CallRequestController extends BasePortalController
     private CallMemoModel $callMemoModel;
     private RefundRequestModel $refundRequestModel;
 
+    #[Override]
     public function initController(
-        \CodeIgniter\HTTP\RequestInterface $request,
-        \CodeIgniter\HTTP\ResponseInterface $response,
-        \Psr\Log\LoggerInterface $logger
+        RequestInterface $request,
+        ResponseInterface $response,
+        LoggerInterface $logger
     ): void {
         parent::initController($request, $response, $logger);
         $this->callRequestModel   = model(CallRequestModel::class);
@@ -123,7 +128,7 @@ class CallRequestController extends BasePortalController
 
         try {
             $this->callRequestModel->changeStatus($id, $status, $reservedAt, $this->userId() ?: null);
-        } catch (\RuntimeException $e) {
+        } catch (RuntimeException $e) {
             return $this->response->setStatusCode(422)
                 ->setJSON(['success' => false, 'message' => $e->getMessage()]);
         }

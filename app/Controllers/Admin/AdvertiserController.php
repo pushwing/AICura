@@ -2,6 +2,10 @@
 
 namespace App\Controllers\Admin;
 
+use Override;
+use CodeIgniter\HTTP\RequestInterface;
+use Psr\Log\LoggerInterface;
+use CodeIgniter\Exceptions\PageNotFoundException;
 use App\Models\AdvertiserModel;
 use App\Models\HospitalModel;
 use App\Models\UserModel;
@@ -13,10 +17,11 @@ class AdvertiserController extends BaseAdminController
     private HospitalModel $hospitalModel;
     private UserModel $userModel;
 
+    #[Override]
     public function initController(
-        \CodeIgniter\HTTP\RequestInterface $request,
-        \CodeIgniter\HTTP\ResponseInterface $response,
-        \Psr\Log\LoggerInterface $logger
+        RequestInterface $request,
+        ResponseInterface $response,
+        LoggerInterface $logger
     ): void {
         parent::initController($request, $response, $logger);
         $this->advertiserModel = model(AdvertiserModel::class);
@@ -42,7 +47,7 @@ class AdvertiserController extends BaseAdminController
 
         // Fix #6: toKst() 헬퍼로 KST 변환 통합
         $advertisers = array_map(function (array $row): array {
-            $row['created_at_kst'] = !empty($row['created_at']) ? $this->toKst($row['created_at']) : '-';
+            $row['created_at_kst'] = empty($row['created_at']) ? '-' : $this->toKst($row['created_at']);
             return $row;
         }, $result['list']);
 
@@ -61,7 +66,7 @@ class AdvertiserController extends BaseAdminController
     {
         $advertiser = $this->advertiserModel->getDetail($id);
         if ($advertiser === null) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         // 연결된 광고주 본인 계정 이메일 (있으면)
@@ -72,12 +77,12 @@ class AdvertiserController extends BaseAdminController
         }
 
         // Fix #6: toKst() 헬퍼로 KST 변환 통합
-        $advertiser['created_at_kst'] = !empty($advertiser['created_at']) ? $this->toKst($advertiser['created_at']) : '-';
+        $advertiser['created_at_kst'] = empty($advertiser['created_at']) ? '-' : $this->toKst($advertiser['created_at']);
 
         /** @var list<array<string, mixed>> $contracts */
         $contracts = is_array($advertiser['contracts'] ?? null) ? $advertiser['contracts'] : [];
         $advertiser['contracts'] = array_map(function (array $c): array {
-            $c['created_at_kst'] = !empty($c['created_at']) ? $this->toKst($c['created_at']) : '-';
+            $c['created_at_kst'] = empty($c['created_at']) ? '-' : $this->toKst($c['created_at']);
             return $c;
         }, $contracts);
 
@@ -240,7 +245,7 @@ class AdvertiserController extends BaseAdminController
     {
         $advertiser = $this->advertiserModel->find($id);
         if ($advertiser === null) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         // 연결된 광고주 본인 계정 (있으면 수정 폼에 표시)
@@ -271,7 +276,7 @@ class AdvertiserController extends BaseAdminController
     {
         $advertiser = $this->advertiserModel->find($id);
         if ($advertiser === null) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         // 아직 owner 미연결인 경우에만 계정 연결 허용

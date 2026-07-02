@@ -5,6 +5,7 @@
 /** @var array<int, string> $adTypes */
 /** @var array<int, string> $channels */
 /** @var array<int, array{id: int, title: string}> $categories */
+/** @var array<int, string> $adTypeCostField */
 
 $isEdit   = $campaign !== null;
 $formAction = $isEdit
@@ -67,7 +68,7 @@ $old   = fn(string $key, mixed $default = '') => old($key, $campaign[$key] ?? $d
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
                         <div class="form-group">
                             <label class="form-label">광고 타입 <span style="color:#ef4444">*</span></label>
-                            <select name="ad_type" class="form-control" required>
+                            <select name="ad_type" class="form-control" required onchange="toggleAdTypeCost(Number(this.value))">
                                 <?php foreach ($adTypes as $val => $label): ?>
                                     <option value="<?= $val ?>"
                                         <?= (int)$old('ad_type', 1) === $val ? 'selected' : '' ?>>
@@ -142,10 +143,10 @@ $old   = fn(string $key, mixed $default = '') => old($key, $campaign[$key] ?? $d
                 </div>
             </div>
 
-            <!-- 가격 정보 -->
+            <!-- 가격 정보 (소비자 노출용 시술 가격 — 광고 타입과 무관하게 공통) -->
             <div class="card">
                 <div class="card-body">
-                    <h3 style="font-size:15px;margin-bottom:16px;">가격 정보</h3>
+                    <h3 style="font-size:15px;margin-bottom:16px;">가격 정보 (소비자 노출)</h3>
 
                     <div class="form-group">
                         <label class="form-label">가격 유형 <span style="color:#ef4444">*</span></label>
@@ -187,12 +188,35 @@ $old   = fn(string $key, mixed $default = '') => old($key, $campaign[$key] ?? $d
                                    value="<?= esc($old('text_cost')) ?>" placeholder="예: 상담 후 결정">
                         </div>
                     </div>
+                </div>
+            </div>
 
-                    <div class="form-group" style="margin-top:12px;">
-                        <label class="form-label">DB 단가 (원)</label>
+            <!-- 광고 단가 (과금) — 광고 타입별로 다른 단가 구조 (이슈 #157) -->
+            <div class="card">
+                <div class="card-body">
+                    <h3 style="font-size:15px;margin-bottom:16px;">광고 단가 (과금)</h3>
+
+                    <div id="costFieldCpa" class="form-group">
+                        <label class="form-label">DB 단가 (원) — CPA <span style="color:#ef4444">*</span></label>
                         <input type="number" name="db_cost" class="form-control"
                                value="<?= esc($old('db_cost', 0)) ?>" min="0">
                     </div>
+
+                    <div id="costFieldCpm" class="form-group" style="display:none;">
+                        <label class="form-label">CPM 단가 (원, 1000회 노출당) <span style="color:#ef4444">*</span></label>
+                        <input type="number" name="cpm_price" class="form-control"
+                               value="<?= esc($old('cpm_price', 0)) ?>" min="0">
+                    </div>
+
+                    <div id="costFieldCpc" class="form-group" style="display:none;">
+                        <label class="form-label">CPC 단가 (원, 클릭당) <span style="color:#ef4444">*</span></label>
+                        <input type="number" name="cpc_price" class="form-control"
+                               value="<?= esc($old('cpc_price', 0)) ?>" min="0">
+                    </div>
+
+                    <p id="costFieldNone" style="display:none;color:var(--color-text-muted);font-size:13px;margin:0;">
+                        해당 광고 타입은 별도 과금 단가가 없습니다.
+                    </p>
                 </div>
             </div>
 
@@ -310,6 +334,22 @@ function toggleCostType(type) {
     document.getElementById('textCostField').style.display     = type === 2 ? 'block' : 'none';
 }
 
+// 광고 타입별 과금 단가 필드 전환 (이슈 #157)
+// 타입 → 단가 필드명 매핑은 CampaignModel::AD_TYPE_COST_FIELD 를 단일 출처로 사용(서버에서 주입)
+const adTypeCostField    = <?= json_encode($adTypeCostField ?? [], JSON_FORCE_OBJECT) ?>;
+const costFieldElementId = { db_cost: 'costFieldCpa', cpm_price: 'costFieldCpm', cpc_price: 'costFieldCpc' };
+
+function toggleAdTypeCost(adType) {
+    const activeField = adTypeCostField[String(adType)] ?? null;
+    Object.values(costFieldElementId).forEach((id) => {
+        document.getElementById(id).style.display = 'none';
+    });
+    if (activeField && costFieldElementId[activeField]) {
+        document.getElementById(costFieldElementId[activeField]).style.display = 'block';
+    }
+    document.getElementById('costFieldNone').style.display = activeField ? 'none' : 'block';
+}
+
 function previewImage(input, previewId) {
     const preview = document.getElementById(previewId);
     if (input.files && input.files[0]) {
@@ -326,6 +366,12 @@ function previewImage(input, previewId) {
 (function () {
     const checked = document.querySelector('input[name="cost_type"]:checked');
     if (checked) toggleCostType(Number(checked.value));
+})();
+
+// 초기 광고 타입별 과금 단가 적용
+(function () {
+    const select = document.querySelector('select[name="ad_type"]');
+    if (select) toggleAdTypeCost(Number(select.value));
 })();
 </script>
 

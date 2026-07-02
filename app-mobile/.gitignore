@@ -1,0 +1,22 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# 플랫폼 빌드 산출물 (flutter create 로 생성되는 항목)
+ios/Pods/
+ios/.symlinks/
+android/.gradle/
+android/local.properties
+*.log
+.DS_Store

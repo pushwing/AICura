@@ -2,6 +2,11 @@
 
 namespace App\Controllers\Admin;
 
+use Override;
+use CodeIgniter\HTTP\RequestInterface;
+use Psr\Log\LoggerInterface;
+use CodeIgniter\Exceptions\PageNotFoundException;
+use RuntimeException;
 use App\Models\CampaignModel;
 use App\Models\CampaignHistoryModel;
 use App\Models\CampaignReviewRequestModel;
@@ -25,10 +30,11 @@ class CampaignController extends BaseAdminController
     private ContractModel $contractModel;
     private EventCategoryModel $eventCategoryModel;
 
+    #[Override]
     public function initController(
-        \CodeIgniter\HTTP\RequestInterface $request,
-        \CodeIgniter\HTTP\ResponseInterface $response,
-        \Psr\Log\LoggerInterface $logger
+        RequestInterface $request,
+        ResponseInterface $response,
+        LoggerInterface $logger
     ): void {
         parent::initController($request, $response, $logger);
         $this->campaignModel      = model(CampaignModel::class);
@@ -75,7 +81,7 @@ class CampaignController extends BaseAdminController
     {
         $campaign = $this->campaignModel->getCampaignDetail($id);
         if ($campaign === null) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         $histories = $this->campaignModel->getHistoryList($id, ['limit' => 5]);
@@ -96,12 +102,13 @@ class CampaignController extends BaseAdminController
     public function new(): string
     {
         return $this->render('admin/campaigns/form', [
-            'campaign'   => null,
-            'hospitals'  => $this->hospitalModel->getActiveList(),
-            'contracts'  => $this->contractModel->findAll(),
-            'adTypes'    => CampaignModel::AD_TYPES,
-            'channels'   => CampaignModel::CHANNELS,
-            'categories' => $this->eventCategoryModel->getSelectOptions(),
+            'campaign'        => null,
+            'hospitals'       => $this->hospitalModel->getActiveList(),
+            'contracts'       => $this->contractModel->findAll(),
+            'adTypes'         => CampaignModel::AD_TYPES,
+            'channels'        => CampaignModel::CHANNELS,
+            'categories'      => $this->eventCategoryModel->getSelectOptions(),
+            'adTypeCostField' => CampaignModel::AD_TYPE_COST_FIELD,
         ]);
     }
 
@@ -111,15 +118,7 @@ class CampaignController extends BaseAdminController
 
     public function create(): ResponseInterface
     {
-        $rules = [
-            'ad_title'      => 'required|max_length[255]',
-            'hospital_id'   => 'required|integer',
-            'ad_type'       => 'required|in_list[1,2,3,4,5]',
-            'ad_start_date' => 'required|valid_date[Y-m-d]',
-            'ad_end_date'   => 'required|valid_date[Y-m-d]',
-            'cost_type'     => 'required|in_list[1,2]',
-            'channel'       => 'required|in_list[1,2]',
-        ];
+        $rules = $this->campaignValidationRules();
 
         if (!$this->validate($rules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
@@ -161,7 +160,7 @@ class CampaignController extends BaseAdminController
     {
         $campaign = $this->campaignModel->find($id);
         if ($campaign === null || $campaign['is_deleted']) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         // 폼 pre-populate: 최신 검수 요청 데이터 우선, 없으면 캠페인 승인 데이터
@@ -175,12 +174,13 @@ class CampaignController extends BaseAdminController
         }
 
         return $this->render('admin/campaigns/form', [
-            'campaign'   => $campaign,
-            'hospitals'  => $this->hospitalModel->getActiveList(),
-            'contracts'  => $this->contractModel->findAll(),
-            'adTypes'    => CampaignModel::AD_TYPES,
-            'channels'   => CampaignModel::CHANNELS,
-            'categories' => $this->eventCategoryModel->getSelectOptions(),
+            'campaign'        => $campaign,
+            'hospitals'       => $this->hospitalModel->getActiveList(),
+            'contracts'       => $this->contractModel->findAll(),
+            'adTypes'         => CampaignModel::AD_TYPES,
+            'channels'        => CampaignModel::CHANNELS,
+            'categories'      => $this->eventCategoryModel->getSelectOptions(),
+            'adTypeCostField' => CampaignModel::AD_TYPE_COST_FIELD,
         ]);
     }
 
@@ -192,18 +192,10 @@ class CampaignController extends BaseAdminController
     {
         $campaign = $this->campaignModel->find($id);
         if ($campaign === null || $campaign['is_deleted']) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
-        $rules = [
-            'ad_title'      => 'required|max_length[255]',
-            'hospital_id'   => 'required|integer',
-            'ad_type'       => 'required|in_list[1,2,3,4,5]',
-            'ad_start_date' => 'required|valid_date[Y-m-d]',
-            'ad_end_date'   => 'required|valid_date[Y-m-d]',
-            'cost_type'     => 'required|in_list[1,2]',
-            'channel'       => 'required|in_list[1,2]',
-        ];
+        $rules = $this->campaignValidationRules();
 
         if (!$this->validate($rules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
@@ -247,16 +239,22 @@ class CampaignController extends BaseAdminController
 
         $body   = $this->request->getJSON(true);
         $action = (string) ($body['action'] ?? '');
-        $memo   = isset($body['memo']) ? (string) $body['memo'] : null;
+        $memo   = isset($body['memo']) ? $this->sanitizeDetailHtml((string) $body['memo']) : null;
 
         if (!in_array($action, ['approve', 'reject', 'end', 'reopen'], true)) {
             return $this->response->setStatusCode(400)
                 ->setJSON(['success' => false, 'message' => '유효하지 않은 액션입니다.']);
         }
 
+        // 종료 처리는 사유 기록이 필수다 (이슈 #157)
+        if ($action === 'end' && trim(strip_tags($memo ?? '')) === '') {
+            return $this->response->setStatusCode(422)
+                ->setJSON(['success' => false, 'message' => '종료 처리 시 메모(사유)를 반드시 입력해야 합니다.']);
+        }
+
         try {
             $newStatus = $this->campaignModel->updateStatus($id, $action);
-        } catch (\RuntimeException $e) {
+        } catch (RuntimeException $e) {
             return $this->response->setStatusCode(422)
                 ->setJSON(['success' => false, 'message' => $e->getMessage()]);
         }
@@ -287,7 +285,7 @@ class CampaignController extends BaseAdminController
     {
         $campaign = $this->campaignModel->find($id);
         if ($campaign === null || $campaign['is_deleted']) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         $params = [
@@ -334,7 +332,7 @@ class CampaignController extends BaseAdminController
     {
         $campaign = $this->campaignModel->find($id);
         if ($campaign === null || $campaign['is_deleted']) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         if ($campaign['status'] !== 'ended') {
@@ -365,7 +363,7 @@ class CampaignController extends BaseAdminController
         $categoryTitle = $categoryId > 0 ? $this->eventCategoryModel->titleById($categoryId) : '';
 
         try {
-            $result = (new AiCopyService())->suggest([
+            $result = new AiCopyService()->suggest([
                 'keyword'       => $keyword,
                 'hospital_type' => CampaignModel::HOSPITAL_TYPES[$hospitalTypeInt] ?? '',
                 'category'      => $categoryTitle,
@@ -392,8 +390,8 @@ class CampaignController extends BaseAdminController
     // ──────────────────────────────────────────────
 
     /**
-     * 상세문구 HTML 정화 — 허용 태그만 남기고 모든 속성 제거 (XSS 방지).
-     * Tiptap 에디터가 제출하는 리치 텍스트를 저장 전에 화이트리스트 필터한다.
+     * 리치 텍스트 HTML 정화 — 허용 태그만 남기고 모든 속성 제거 (XSS 방지).
+     * Tiptap 에디터가 제출하는 상세문구·상태변경 메모를 저장 전에 화이트리스트 필터한다.
      */
     private function sanitizeDetailHtml(string $html): string
     {
@@ -416,13 +414,41 @@ class CampaignController extends BaseAdminController
         }
 
         try {
-            (new AiComplianceService())->check($campaignId, $reviewRequestId);
+            new AiComplianceService()->check($campaignId, $reviewRequestId);
         } catch (Throwable $e) {
             log_message('error', '심의 사전검사 실패 [campaign {id}]: {msg}', [
                 'id'  => $campaignId,
                 'msg' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * 캠페인 등록·수정 공통 검증 규칙 — 광고 타입별 필수 단가 필드를 동적으로 추가한다(이슈 #157).
+     *
+     * CPA=db_cost, CPM=cpm_price, CPC=cpc_price 만 필수이며, 프로모션·옵션은 별도 과금 단가가 없다.
+     *
+     * @return array<string, string>
+     */
+    private function campaignValidationRules(): array
+    {
+        $rules = [
+            'ad_title'      => 'required|max_length[255]',
+            'hospital_id'   => 'required|integer',
+            'ad_type'       => 'required|in_list[1,2,3,4,5]',
+            'ad_start_date' => 'required|valid_date[Y-m-d]',
+            'ad_end_date'   => 'required|valid_date[Y-m-d]',
+            'cost_type'     => 'required|in_list[1,2]',
+            'channel'       => 'required|in_list[1,2]',
+        ];
+
+        $adType    = (int) $this->request->getPost('ad_type');
+        $costField = CampaignModel::AD_TYPE_COST_FIELD[$adType] ?? null;
+        if ($costField !== null) {
+            $rules[$costField] = 'required|integer|greater_than[0]';
+        }
+
+        return $rules;
     }
 
     /** @return array<string, mixed> */
@@ -441,6 +467,8 @@ class CampaignController extends BaseAdminController
             'discount_cost'     => (int) ($this->request->getPost('discount_cost') ?? 0),
             'text_cost'         => $this->request->getPost('text_cost'),
             'db_cost'           => (int) ($this->request->getPost('db_cost') ?? 0),
+            'cpm_price'         => (int) ($this->request->getPost('cpm_price') ?? 0),
+            'cpc_price'         => (int) ($this->request->getPost('cpc_price') ?? 0),
             'category'          => (int) ($this->request->getPost('category') ?? 0),
             'exposure'          => (int) ($this->request->getPost('exposure') ?? 1),
             'contract_id'       => ((int) ($this->request->getPost('contract_id') ?? 0)) ?: null,
@@ -489,7 +517,7 @@ class CampaignController extends BaseAdminController
                     $paths[] = 'campaigns/' . $newName;
                 }
             }
-            if (!empty($paths)) {
+            if ($paths !== []) {
                 $result['d_image_json'] = json_encode($paths);
             } elseif ($existing !== null) {
                 $result['d_image_json'] = $existing['d_image_json'] ?? null;

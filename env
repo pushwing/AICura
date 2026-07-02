@@ -26,6 +26,12 @@
 # app.forceGlobalSecureRequests = false
 # app.CSPEnabled = false
 
+# ── 공개 웹(SEO/GEO) 도메인 (이슈 #143) ──────────────────────
+# SSR 공개 페이지의 canonical·Open Graph·sitemap.xml·robots.txt 의 절대 URL 은
+# 모두 app.baseURL 기준으로 생성된다(base_url() 경유). 운영 도메인 확정 시 아래 한 줄만 설정하면
+# sitemap/robots/canonical 이 일괄 반영된다. 예) app.baseURL = 'https://www.aicura.co.kr/'
+# 로컬: app.baseURL = 'http://localhost:8300/'
+
 #--------------------------------------------------------------------
 # DATABASE
 #--------------------------------------------------------------------
@@ -70,6 +76,18 @@
 
 # JWT
 # JWT_SECRET = your-secret-key-here
+
+# ── IndexNow 즉시 색인 (이슈 #152) ──────────────────────────
+# 콘텐츠 발행·수정 시 변경 URL 을 Bing·Naver·Yandex 등에 즉시 제출한다.
+# 키는 32~64자 랜덤 16진 문자열 권장. /indexnow-key.txt 로 검증 파일이 서빙된다.
+# 미설정 또는 로컬 도메인이면 제출하지 않는다(운영 도메인에서만 동작).
+# INDEXNOW_KEY =
+# INDEXNOW_TIMEOUT = 5   # 제출 호출 타임아웃(초)
+
+# ── Bing Webmaster Tools 사이트 인증 (이슈 #160) ────────────────
+# ChatGPT Search 는 Bing 색인에 의존 — Bing Webmaster Tools 사이트 등록 시 발급되는
+# 인증 코드를 넣으면 /BingSiteAuth.xml 로 검증 파일이 서빙된다.
+# BING_SITE_VERIFICATION =
 
 #--------------------------------------------------------------------
 # AI 일일 매출·소진 보고서 자동 생성 (이슈 #65)

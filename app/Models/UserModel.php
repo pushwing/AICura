@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use RuntimeException;
 use CodeIgniter\Model;
 
 class UserModel extends Model
@@ -44,7 +45,8 @@ class UserModel extends Model
     /** @var array<string, string> */
     protected $validationRules = [
         'email'    => 'required|valid_email|max_length[255]',
-        'password' => 'min_length[8]',
+        // 소셜 계정은 비밀번호가 없으므로(null) permit_empty — 값이 있을 때만 길이 검증
+        'password' => 'permit_empty|min_length[8]',
     ];
 
     /** @var array<int, string> 가입 경로 라벨 (where_from) */
@@ -194,6 +196,121 @@ class UserModel extends Model
     }
 
     /**
+     * 외부 앱 내 프로필 조회 — 소비자 노출 컬럼만. (이슈 #97)
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getProfile(int $id): ?array
+    {
+        return $this->db->table($this->table)
+            ->select('id, email, username, picture, phone, age, sex, job, health_point, provider, where_from, created_at')
+            ->where('id', $id)
+            ->where('deleted_at IS NULL', null, false)
+            ->get()
+            ->getRowArray() ?: null;
+    }
+
+    /**
+     * 외부 앱 내 프로필 수정 — 허용 필드만 갱신. (이슈 #97)
+     *
+     * @param array<string, mixed> $data
+     */
+    public function updateProfile(int $id, array $data): void
+    {
+        $allowed = ['username', 'phone', 'age', 'sex', 'job', 'picture'];
+        $update  = array_intersect_key($data, array_flip($allowed));
+
+        if ($update !== []) {
+            $this->update($id, $update);
+        }
+    }
+
+    /**
+     * 외부 앱(소비자) 로그인 인증용 — password 포함 조회 ($hidden 우회) (이슈 #96)
+     *
+     * 일반 사용자(user_type=1) 한정. 운영자·병원·대행사 계정은 앱 로그인 불가.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findAppUserForAuth(string $email): ?array
+    {
+        return $this->db->table($this->table)
+            ->select('id, email, username, password, provider, is_active')
+            ->where('email', $email)
+            ->where('user_type', self::TYPE_USER)
+            ->where('deleted_at IS NULL', null, false)
+            ->limit(1)
+            ->get()
+            ->getRowArray() ?: null;
+    }
+
+    /**
+     * 소셜 로그인 계정 조회 — provider + uid 로 식별 (이슈 #96)
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findAppUserByProviderUid(int $provider, string $uid): ?array
+    {
+        return $this->db->table($this->table)
+            ->select('id, email, username, is_active')
+            ->where('provider', $provider)
+            ->where('uid', $uid)
+            ->where('user_type', self::TYPE_USER)
+            ->where('deleted_at IS NULL', null, false)
+            ->limit(1)
+            ->get()
+            ->getRowArray() ?: null;
+    }
+
+    /**
+     * 외부 앱(소비자) 계정 생성 — user_type=1 고정, 비밀번호 해시 처리 (이슈 #96)
+     *
+     * @param array<string, mixed> $data email·password(평문, 선택)·username·phone·age·sex·where_from·provider·uid·picture
+     * @return int 생성된 user id
+     */
+    public function createAppUser(array $data): int
+    {
+        $plainPassword = $data['password'] ?? null;
+
+        $row = [
+            'email'      => $data['email'],
+            'password'   => is_string($plainPassword) && $plainPassword !== ''
+                ? password_hash($plainPassword, PASSWORD_DEFAULT)
+                : null,
+            'username'   => $data['username'] ?? null,
+            'user_type'  => self::TYPE_USER,
+            'where_from' => $data['where_from'] ?? 2,
+            'provider'   => $data['provider'] ?? 9,
+            'phone'      => $data['phone'] ?? null,
+            'age'        => $data['age'] ?? null,
+            'sex'        => $data['sex'] ?? null,
+            'picture'    => $data['picture'] ?? null,
+            'uid'        => $data['uid'] ?? null,
+            'is_dormant' => 1, // 1 = 활성 (반전 의미)
+            'is_active'  => 1,
+        ];
+
+        $id = $this->insert($row, true);
+
+        if ($id === false) {
+            throw new RuntimeException('앱 계정 생성에 실패했습니다: ' . implode(' ', $this->errors()));
+        }
+
+        return (int) $id;
+    }
+
+    /**
+     * 로그인 시각 갱신 (이슈 #96)
+     */
+    public function touchLogin(int $id): void
+    {
+        $now = date('Y-m-d H:i:s');
+        $this->db->table($this->table)
+            ->where('id', $id)
+            ->update(['last_login_at' => $now, 'last_activity_at' => $now]);
+    }
+
+    /**
      * 목록 조회 (user_type 필터, 검색, 페이징)
      *
      * @param array<string, mixed> $params
@@ -211,7 +328,7 @@ class UserModel extends Model
             $builder->where('is_agency_account', 0);
 
             if (!empty($params['user_types']) && is_array($params['user_types'])) {
-                $builder->whereIn('user_type', array_map('intval', $params['user_types']));
+                $builder->whereIn('user_type', array_map(intval(...), $params['user_types']));
             } elseif (!empty($params['user_type'])) {
                 $builder->where('user_type', (int) $params['user_type']);
             }
@@ -252,19 +369,19 @@ class UserModel extends Model
      * - is_active : 1 활성 · 0 비활성 (로그인 허용 여부).
      * - null 로 전달된 항목은 변경하지 않는다.
      *
-     * @throws \RuntimeException 사용자 없음·유효하지 않은 값·변경 항목 없음
+     * @throws RuntimeException 사용자 없음·유효하지 않은 값·변경 항목 없음
      */
     public function updateStatus(int $id, ?int $isDormant, ?int $isActive): void
     {
         if ($this->find($id) === null) {
-            throw new \RuntimeException('사용자를 찾을 수 없습니다.');
+            throw new RuntimeException('사용자를 찾을 수 없습니다.');
         }
 
         $update = [];
 
         if ($isDormant !== null) {
             if (!in_array($isDormant, [0, 1], true)) {
-                throw new \RuntimeException('유효하지 않은 휴면 상태입니다.');
+                throw new RuntimeException('유효하지 않은 휴면 상태입니다.');
             }
             $update['is_dormant'] = $isDormant;
             // 0 = 휴면 전환 시점 기록, 1 = 활성 복귀 시 해제
@@ -273,13 +390,13 @@ class UserModel extends Model
 
         if ($isActive !== null) {
             if (!in_array($isActive, [0, 1], true)) {
-                throw new \RuntimeException('유효하지 않은 계정 활성 상태입니다.');
+                throw new RuntimeException('유효하지 않은 계정 활성 상태입니다.');
             }
             $update['is_active'] = $isActive;
         }
 
         if ($update === []) {
-            throw new \RuntimeException('변경할 상태가 없습니다.');
+            throw new RuntimeException('변경할 상태가 없습니다.');
         }
 
         $this->update($id, $update);

@@ -1,0 +1,57 @@
+name: aicura_app
+description: AICura 소비자 모바일 앱 (이벤트 조회·예약·커뮤니티)
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # HTTP 클라이언트 — JWT 인터셉터·자동 토큰 갱신에 사용
+  dio: ^5.7.0
+  # 토큰 보관 (안전 저장소)
+  flutter_secure_storage: ^9.2.2
+  # 상태 관리
+  provider: ^6.1.2
+  # 무한 스크롤 등 유틸
+  intl: ^0.19.0
+  # 이벤트 상세 HTML 리치 렌더링
+  flutter_html: ^3.0.0
+  # 약관·개인정보 외부 링크 열기
+  url_launcher: ^6.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  # 런처 아이콘(Android·iOS) 일괄 생성
+  flutter_launcher_icons: ^0.14.1
+
+# 뷰니 런처 아이콘 — 핑크(#FB2D6F) 배경 + 흰색 '뷰니' 워드마크
+# 마스터 이미지에서 Android(adaptive 포함)·iOS 전 사이즈 생성.
+# 재생성: dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  image_path: "assets/icon/icon_master.png"
+  adaptive_icon_background: "#FB2D6F"
+  adaptive_icon_foreground: "assets/icon/icon_foreground.png"
+
+flutter:
+  uses-material-design: true
+  fonts:
+    - family: Pretendard
+      fonts:
+        - asset: assets/fonts/Pretendard-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Pretendard-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Pretendard-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Pretendard-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Pretendard-ExtraBold.ttf
+          weight: 800

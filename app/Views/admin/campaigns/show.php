@@ -66,6 +66,17 @@ $actionMap = [
             <h3 style="margin-bottom:16px;font-size:15px;">기본 정보</h3>
             <table style="width:100%;font-size:14px;border-collapse:collapse;">
                 <?php
+                // 광고 타입별 과금 단가 표시 (이슈 #157) — 필드는 CampaignModel::AD_TYPE_COST_FIELD 를 단일 출처로 사용
+                $costFieldNameLabels = [
+                    'db_cost'   => 'DB 단가 (CPA)',
+                    'cpm_price' => 'CPM 단가 (1000회 노출당)',
+                    'cpc_price' => 'CPC 단가 (클릭당)',
+                ];
+                $costField = \App\Models\CampaignModel::AD_TYPE_COST_FIELD[(int)$campaign['ad_type']] ?? null;
+                $costRow   = $costField !== null
+                    ? [$costFieldNameLabels[$costField], number_format((int)($campaign[$costField] ?? 0)) . '원']
+                    : ['과금 단가', '해당 없음'];
+
                 $rows = [
                     ['병원',      esc($campaign['hospital_name'] ?? '-')],
                     ['광고 타입',  esc($adTypes[(int)$campaign['ad_type']] ?? '-')],
@@ -76,7 +87,7 @@ $actionMap = [
                     ['가격 유형',  (int)$campaign['cost_type'] === 1 ? '숫자' : '텍스트'],
                     ['정상가',    number_format((int)$campaign['general_cost']) . '원'],
                     ['할인가',    number_format((int)$campaign['discount_cost']) . '원'],
-                    ['DB 단가',   number_format((int)$campaign['db_cost']) . '원'],
+                    $costRow,
                     ['지역',      esc($campaign['region'] ?? '-')],
                     ['키워드',    esc($campaign['keyword'] ?? '-')],
                     ['심의번호',  esc($campaign['deliberation_code'] ?? '-')],
@@ -198,6 +209,7 @@ $actionMap = [
             <div id="tiptapMemoEditor"
                  style="padding:8px 10px;min-height:80px;font-size:14px;line-height:1.6;color:var(--color-text);background:var(--color-bg);"></div>
         </div>
+        <p id="modalMemoHint" style="display:none;color:#ef4444;font-size:12px;margin:6px 0 0;">종료 처리 시 메모(사유)를 반드시 입력해야 합니다.</p>
 
         <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
             <button type="button" onclick="closeModal()" class="btn btn-outline btn-sm">취소</button>
@@ -235,6 +247,7 @@ const actionTitles = {
 function changeStatus(action) {
     pendingAction = action;
     document.getElementById('modalTitle').textContent = actionTitles[action] ?? action;
+    document.getElementById('modalMemoHint').style.display = action === 'end' ? 'block' : 'none';
     window.__memoEditor?.commands.clearContent(true);
     document.getElementById('actionModal').style.display = 'flex';
     setTimeout(() => window.__memoEditor?.commands.focus(), 50);
@@ -248,7 +261,16 @@ function closeModal() {
 document.getElementById('modalConfirm').addEventListener('click', async () => {
     if (!pendingAction) return;
 
-    const memo = window.__memoEditor ? window.__memoEditor.getHTML() : '';
+    const memo     = window.__memoEditor ? window.__memoEditor.getHTML() : '';
+    const memoText = window.__memoEditor ? window.__memoEditor.getText().trim() : '';
+
+    // 종료 처리는 사유 기록이 필수다 (이슈 #157)
+    if (pendingAction === 'end' && memoText === '') {
+        alert('종료 처리 시 메모(사유)를 반드시 입력해야 합니다.');
+        window.__memoEditor?.commands.focus();
+        return;
+    }
+
     const btn  = document.getElementById('modalConfirm');
     btn.disabled = true;
     btn.textContent = '처리 중...';
@@ -293,7 +315,7 @@ const editor = new Editor({
     element: document.getElementById('tiptapMemoEditor'),
     extensions: [
         StarterKit,
-        Placeholder.configure({ placeholder: '메모를 입력하세요 (선택)' }),
+        Placeholder.configure({ placeholder: '메모를 입력하세요 (종료 처리 시 필수)' }),
     ],
     content: '',
 })

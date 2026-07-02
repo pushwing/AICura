@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+# 같은 브랜치에서 새 푸시가 오면 진행 중 실행을 취소
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ───────────────────────────── 백엔드 (CodeIgniter 4) ─────────────────────────────
+  backend:
+    name: Backend (PHP 8.5 · PHPStan · PHPUnit)
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: aicura
+          MYSQL_USER: aicura
+          MYSQL_PASSWORD: "Aicura@2026!Dev"
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PHP 설정
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.5"
+          extensions: mbstring, intl, mysqli, curl, dom, xml, tokenizer
+          # phpunit.dist.xml 이 failOnWarning + <coverage> 를 켜 두어
+          # 커버리지 드라이버가 없으면 경고→실패. pcov 로 드라이버 제공.
+          coverage: pcov
+          tools: composer:v2
+
+      - name: Composer 캐시
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ hashFiles('composer.lock', 'composer.json') }}
+          restore-keys: composer-
+
+      - name: 의존성 설치
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: .env 준비
+        run: |
+          cp env .env
+          {
+            echo "app.baseURL = http://localhost:8300/"
+            echo "JWT_SECRET = ci-test-secret-key-please-change-32chars-min"
+            echo "database.default.hostname = 127.0.0.1"
+            echo "database.default.database = aicura"
+            echo "database.default.username = aicura"
+            echo "database.default.password = Aicura@2026!Dev"
+            echo "database.default.DBDriver = MySQLi"
+          } >> .env
+
+      - name: writable 디렉토리 준비 (git 미추적 — CI4 WRITEPATH 보장)
+        run: |
+          mkdir -p writable/cache writable/logs writable/logs/raw \
+                   writable/session writable/uploads writable/debugbar
+          chmod -R 777 writable
+
+      - name: 정적 분석 (PHPStan)
+        run: composer analyse
+
+      - name: MySQL 준비 대기
+        run: |
+          for i in $(seq 1 30); do
+            if mysqladmin ping -h 127.0.0.1 -P 3306 -uaicura -p"Aicura@2026!Dev" --silent; then
+              echo "MySQL ready"; break
+            fi
+            echo "waiting for mysql... ($i)"; sleep 2
+          done
+
+      - name: 테스트 DB 연결 호스트 보정 (localhost → 127.0.0.1, MySQLi TCP 강제)
+        run: sed -i 's#name="database.tests.hostname" value="localhost"#name="database.tests.hostname" value="127.0.0.1"#' phpunit.dist.xml
+
+      - name: 단위·DB 테스트 (PHPUnit)
+        run: composer test
+
+  # ───────────────────────────── 앱 (Flutter) ─────────────────────────────
+  app:
+    name: App (Flutter · analyze · test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app-mobile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Flutter 설정
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: 의존성 설치
+        run: flutter pub get
+
+      - name: 포맷 검사
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: 정적 분석
+        run: flutter analyze
+
+      - name: 테스트
+        run: flutter test

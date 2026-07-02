@@ -75,6 +75,46 @@ class SettingModel extends Model
     }
 
     /**
+     * 외부 앱에 공개하는 설정 키 → 기본값 (이슈 #103)
+     *
+     * 내부 운영 키(admin_email·AI 플래그 등)는 노출하지 않는다.
+     * 미설정 키는 기본값을 반환한다(앱 부트스트랩 안정성).
+     *
+     * @var array<string, string>
+     */
+    public const APP_PUBLIC_KEYS = [
+        'site_name'                => '',
+        'app_min_version_ios'      => '',
+        'app_min_version_android'  => '',
+        'terms_url'                => '',
+        'privacy_url'              => '',
+    ];
+
+    /**
+     * 외부 앱 공개 설정 맵 — 공개 키만, 저장값 없으면 기본값. (이슈 #103)
+     *
+     * @return array<string, string>
+     */
+    public function getPublicMap(): array
+    {
+        $rows   = $this->select('setting_key, setting_value')
+            ->whereIn('setting_key', array_keys(self::APP_PUBLIC_KEYS))
+            ->findAll();
+
+        $stored = [];
+        foreach ($rows as $row) {
+            $stored[(string) $row['setting_key']] = (string) ($row['setting_value'] ?? '');
+        }
+
+        $map = [];
+        foreach (self::APP_PUBLIC_KEYS as $key => $default) {
+            $map[$key] = $stored[$key] ?? $default;
+        }
+
+        return $map;
+    }
+
+    /**
      * 다수 설정을 upsert — 정의된 키(KEYS)만 저장한다.
      *
      * @param array<string, string> $values setting_key → setting_value

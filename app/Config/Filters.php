@@ -1,10 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Config;
 
 use App\Filters\AdminAuthFilter;
 use App\Filters\JwtAuthFilter;
+use App\Filters\OptionalJwtAuthFilter;
 use App\Filters\PortalAuthFilter;
+use App\Filters\RateLimitFilter;
 use CodeIgniter\Config\Filters as BaseFilters;
 use CodeIgniter\Filters\Cors;
 use CodeIgniter\Filters\CSRF;
@@ -39,7 +43,9 @@ class Filters extends BaseFilters
         'performance'   => PerformanceMetrics::class,
         'admin_auth'    => AdminAuthFilter::class,
         'jwt_auth'      => JwtAuthFilter::class,
+        'jwt_optional'  => OptionalJwtAuthFilter::class,
         'portal_auth'   => PortalAuthFilter::class,
+        'ratelimit'     => RateLimitFilter::class,
     ];
 
     /**
@@ -112,5 +118,8 @@ class Filters extends BaseFilters
      *
      * @var array<string, array<string, list<string>>>
      */
-    public array $filters = [];
+    public array $filters = [
+        // 공개 로그 수집 엔드포인트 — IP 당 분당 60회 (이슈 #115)
+        'ratelimit' => ['before' => ['api/v1/logs']],
+    ];
 }

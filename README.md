@@ -215,6 +215,8 @@ php spark migrate:rollback       # 마이그레이션 롤백
 php spark swagger:generate       # OpenAPI 스펙 생성
 php spark routes                 # 등록된 라우트 확인
 php spark reports:generate-ai    # Groq AI 일일 매출·소진 보고서 생성 (이슈 #65)
+php spark logs:consume           # 로그 큐 소비 → app_logs 적재 (이슈 #115)
+php spark logs:aggregate         # app_logs 시간별 집계 → hourly_event_stats (이슈 #120)
 composer test                    # PHPUnit 단위·통합 테스트
 composer analyse                 # PHPStan 정적 분석 (level 6)
 composer check                   # PHPStan + PHPUnit 순차 실행
@@ -312,6 +314,42 @@ AI가 생성한 마크다운 본문은 **서버에서** `league/commonmark`(GFM,
 
 ---
 
+## 앱 로그 수집·집계 (이슈 #115·#120)
+
+소비자 앱의 액션 로그를 큐로 비동기 수집하고, 시간 단위로 집계해 어드민에서 추이를 본다.
+
+```
+앱 액션 → POST /api/v1/logs → Redis 큐 → logs:consume → ① raw 파일 ② app_logs
+                                                              │
+                                          logs:aggregate (매시) → hourly_event_stats
+                                                              │
+                                   /admin/reports/app-logs (시간별·일별 Chart.js)
+```
+
+- **수집 이벤트**: `event_list_view` · `event_detail_view` · `apply_form_view` · `apply_submit` · `event_search` · `event_like` · `hospital_detail_view` · `app_open` (`App\Enums\AppLogEvent`)
+- **집계 단위**: `(event, campaign_id)` × 1시간 버킷. 멱등 upsert이므로 같은 시각을 재집계해도 누적되지 않는다.
+- **조회**: 어드민 사이드바 *앱 로그 통계* → 시간별(직전 1시간까지 반영)·일별(최근 14일) 토글
+
+### 정기 실행 (crontab)
+
+서버 crontab에 **두 커맨드**를 등록한다. 소비는 1분마다, 집계는 매시 5분에 직전 1시간을 처리한다.
+
+```cron
+# 로그 큐 소비 → app_logs 적재 (1분마다)
+* * * * * cd /path/to/AICura && php spark logs:consume >> writable/logs/log-consume.log 2>&1
+
+# 시간별 집계 → hourly_event_stats (매시 5분, 직전 1시간)
+5 * * * * cd /path/to/AICura && php spark logs:aggregate >> writable/logs/log-aggregate.log 2>&1
+```
+
+- `logs:consume`는 상시 데몬(`--daemon`, systemd/supervisor)으로도 운용 가능하다.
+- 특정 시각 재집계: `php spark logs:aggregate --date=2026-06-30 --hour=14`
+- 하루 전체 백필: `php spark logs:aggregate --date=2026-06-30` (`--hour` 생략 시 0~23시 전체, `--backfill` 명시도 동일)
+
+> Redis 미연결(로컬·CI) 시 수집은 원시 파일로 폴백되며, 집계는 `app_logs` 기준으로 동작한다.
+
+---
+
 ## Git 워크플로우
 
 ```
@@ -339,6 +377,54 @@ gh pr create --base main --head dev --title "release: YYYY-MM-DD"
 
 ---
 
+## CI (GitHub Actions)
+
+`dev` · `main` 브랜치로의 **push** 와 **PR** 마다 자동 검증이 실행된다.
+정의 파일은 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) 단일 파일이며, 백엔드·앱 두 잡으로 병렬 실행된다.
+
+| 항목 | 내용 |
+|------|------|
+| **트리거** | `dev` · `main` 으로의 push / pull_request |
+| **동시성 제어** | 같은 ref 에 새 푸시가 오면 진행 중 실행 자동 취소 (`cancel-in-progress`) |
+
+### Backend 잡 (PHP 8.5 · PHPStan · PHPUnit)
+
+`mysql:8.0` 서비스 컨테이너를 띄운 뒤 아래 순서로 검증한다.
+
+1. **PHP 8.5** 설치 (`mbstring · intl · mysqli · curl · dom · xml · tokenizer`, 커버리지 드라이버 `pcov`)
+2. Composer 캐시 복원 후 `composer install`
+3. `env` → `.env` 복사 + CI용 DB·JWT 값 주입
+4. `writable/` 하위 디렉토리 생성 (git 미추적 — CI4 `WRITEPATH` 보장)
+5. **정적 분석**: `composer analyse` (PHPStan level 6)
+6. MySQL 헬스 체크 대기 → 테스트 호스트 `localhost` → `127.0.0.1` 보정 (MySQLi TCP 강제)
+7. **테스트**: `composer test` (PHPUnit 단위·DB 통합)
+
+> CI DB 계정은 워크플로우 내부 전용(`aicura / Aicura@2026!Dev`)이며 운영 시크릿과 무관하다.
+
+### App 잡 (Flutter · analyze · test)
+
+`app-mobile/` 디렉토리에서 실행된다.
+
+1. Flutter **stable** 채널 설치 (pub 캐시 사용)
+2. `flutter pub get`
+3. **포맷 검사**: `dart format --set-exit-if-changed lib test`
+4. **정적 분석**: `flutter analyze`
+5. **테스트**: `flutter test`
+
+### 로컬에서 동일하게 검증
+
+푸시 전에 CI와 같은 검증을 로컬에서 미리 돌릴 수 있다.
+
+```bash
+composer check                 # PHPStan + PHPUnit (백엔드)
+
+cd app-mobile
+dart format --output=none --set-exit-if-changed lib test
+flutter analyze && flutter test
+```
+
+---
+
 ## 서버 요구사항
 
 | 항목 | 버전 | 용도 |
@@ -359,4 +445,5 @@ gh pr create --base main --head dev --title "release: YYYY-MM-DD"
 | 디자인 시스템 | `docs/design-system.md` |
 | UI 컴포넌트 가이드 | `docs/ui-guide.md` |
 | 아키텍처 설계 | `docs/architecture.md` |
+| GEO 적용 전략 (SEO→GEO) | `docs/geo-strategy.md` |
 | UI 쇼케이스 | `ui/components.html` |

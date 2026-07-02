@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use RuntimeException;
 use CodeIgniter\Model;
 
 class CampaignReviewRequestModel extends Model
@@ -24,6 +25,8 @@ class CampaignReviewRequestModel extends Model
         'discount_cost',
         'text_cost',
         'db_cost',
+        'cpm_price',
+        'cpc_price',
         'category',
         'exposure',
         'contract_id',
@@ -46,6 +49,7 @@ class CampaignReviewRequestModel extends Model
     public const CONTENT_FIELDS = [
         'ad_title', 'ad_detail_info', 'ad_type', 'ad_start_date', 'ad_end_date',
         'cost_type', 'general_cost', 'discount_cost', 'text_cost', 'db_cost',
+        'cpm_price', 'cpc_price',
         'category', 'exposure', 'contract_id', 'contract_order_id',
         'region', 'keyword', 'deliberation_code', 'channel',
         't1_image_name', 't2_image_name', 'd_image_json',
@@ -80,18 +84,17 @@ class CampaignReviewRequestModel extends Model
     }
 
     // ── 검수 처리 ─────────────────────────────────────
-
     /**
      * 검수 승인 — 콘텐츠 필드 배열을 반환 (campaigns 테이블 복사용)
      *
-     * @throws \RuntimeException
+     * @throws RuntimeException
      * @return array<string, mixed>
      */
     public function approve(int $id, int $reviewedBy, ?string $memo = null): array
     {
         $request = $this->find($id);
         if ($request === null) {
-            throw new \RuntimeException('검수 요청을 찾을 수 없습니다.');
+            throw new RuntimeException('검수 요청을 찾을 수 없습니다.');
         }
 
         $this->assertTransition($request['review_status'], 'approved');
@@ -109,13 +112,13 @@ class CampaignReviewRequestModel extends Model
     /**
      * 검수 반려
      *
-     * @throws \RuntimeException
+     * @throws RuntimeException
      */
     public function reject(int $id, int $reviewedBy, ?string $memo = null): void
     {
         $request = $this->find($id);
         if ($request === null) {
-            throw new \RuntimeException('검수 요청을 찾을 수 없습니다.');
+            throw new RuntimeException('검수 요청을 찾을 수 없습니다.');
         }
 
         $this->assertTransition($request['review_status'], 'rejected');
@@ -181,7 +184,8 @@ class CampaignReviewRequestModel extends Model
             ->select('c.ad_start_date AS approved_start, c.ad_end_date AS approved_end')
             ->select('c.cost_type AS approved_cost_type, c.general_cost AS approved_general_cost')
             ->select('c.discount_cost AS approved_discount_cost, c.text_cost AS approved_text_cost')
-            ->select('c.db_cost AS approved_db_cost, c.category AS approved_category')
+            ->select('c.db_cost AS approved_db_cost, c.cpm_price AS approved_cpm_price, c.cpc_price AS approved_cpc_price')
+            ->select('c.category AS approved_category')
             ->select('c.exposure AS approved_exposure, c.region AS approved_region')
             ->select('c.keyword AS approved_keyword, c.deliberation_code AS approved_deliberation_code')
             ->select('c.channel AS approved_channel, c.status AS campaign_status')
@@ -240,15 +244,14 @@ class CampaignReviewRequestModel extends Model
     }
 
     // ── private ───────────────────────────────────────
-
     /**
-     * @throws \RuntimeException
+     * @throws RuntimeException
      */
     private function assertTransition(string $from, string $to): void
     {
         $allowed = self::REVIEW_TRANSITIONS[$from] ?? [];
         if (!in_array($to, $allowed, true)) {
-            throw new \RuntimeException(
+            throw new RuntimeException(
                 sprintf('"%s" 상태에서 "%s"로 변경할 수 없습니다.', $from, $to)
             );
         }

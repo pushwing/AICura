@@ -19,7 +19,7 @@ class SampleAppUserSeeder extends Seeder
 {
     public function run(): void
     {
-        $now      = date('Y-m-d H:i:s');
+        date('Y-m-d H:i:s');
         $password = password_hash('password1234', PASSWORD_DEFAULT);
 
         $rows = $this->buildUsers();

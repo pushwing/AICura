@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use RuntimeException;
+use Throwable;
 use CodeIgniter\Model;
 
 /**
@@ -200,6 +202,76 @@ class CallRequestModel extends Model
         return $row;
     }
 
+    /** 신규 신청 기본 상태 — 미확인 */
+    public const STATUS_UNCONFIRMED = 1;
+
+    // ──────────────────────────────────────────────
+    // 외부(소비자) 앱 — 상담 신청 (이슈 #100)
+    // ──────────────────────────────────────────────
+
+    /** 소비자 상세 노출 컬럼 (AI 분석·과금·핑거프린트 등 내부 필드 제외) */
+    private const string CONSUMER_DETAIL_COLUMNS = 'cr.id, cr.hospital_id, cr.campaign_id, cr.status, '
+        . 'cr.name, cr.phone, cr.content, cr.call_time, cr.reserved_at, cr.created_at';
+
+    /**
+     * 외부 앱 상담 신청 생성 — 입력은 Service에서 정규화해 전달한다.
+     *
+     * @param array<string, mixed> $data
+     * @return int 생성된 신청 id
+     */
+    public function createApplication(array $data): int
+    {
+        $row = array_merge($data, [
+            'status'     => self::STATUS_UNCONFIRMED,
+            'is_charged' => 0,
+            'is_delete'  => 0,
+        ]);
+
+        return (int) $this->insert($row, true);
+    }
+
+    /**
+     * 본인 소유 신청 1건 조회 (소비자 노출 컬럼 + 병원·캠페인명) — 소유자 검증 포함.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getConsumerDetail(int $id, int $userId): ?array
+    {
+        return $this->db->table('call_requests cr')
+            ->select(self::CONSUMER_DETAIL_COLUMNS)
+            ->select('h.name AS hospital_name', false)
+            ->select('c.ad_title AS campaign_title', false)
+            ->join('hospitals h', 'h.id = cr.hospital_id', 'left')
+            ->join('campaigns c', 'c.id = cr.campaign_id', 'left')
+            ->where('cr.id', $id)
+            ->where('cr.user_id', $userId)
+            ->where('cr.is_delete', 0)
+            ->get()
+            ->getRowArray();
+    }
+
+    /**
+     * 본인 소유 신청의 상태/존재 확인용 최소 조회.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findOwned(int $id, int $userId): ?array
+    {
+        return $this->select('id, status, user_id')
+            ->where('id', $id)
+            ->where('user_id', $userId)
+            ->where('is_delete', 0)
+            ->first();
+    }
+
+    /**
+     * 신청 soft delete (본인 취소).
+     */
+    public function softDelete(int $id): void
+    {
+        $this->update($id, ['is_delete' => 1]);
+    }
+
     /**
      * 상태 변경 (9단계 중 유효한 값으로만)
      *
@@ -209,19 +281,19 @@ class CallRequestModel extends Model
      *
      * @param string|null $reservedAt 예약 일시 (Y-m-d H:i[:s]) — 예약 상태일 때 필수
      * @param int|null    $memoUserId 변경 주체 user id (히스토리 메모 작성자)
-     * @throws \RuntimeException 신청 건 없음·유효하지 않은 상태·예약 일시 누락
+     * @throws RuntimeException 신청 건 없음·유효하지 않은 상태·예약 일시 누락
      */
     public function changeStatus(int $id, int $status, ?string $reservedAt = null, ?int $memoUserId = null): void
     {
         if (!isset(self::STATUSES[$status])) {
-            throw new \RuntimeException('유효하지 않은 상태입니다.');
+            throw new RuntimeException('유효하지 않은 상태입니다.');
         }
 
         $request = $this->select('id, status, confirm_date')
             ->where('is_delete', 0)
             ->find($id);
         if ($request === null) {
-            throw new \RuntimeException('신청 건을 찾을 수 없습니다.');
+            throw new RuntimeException('신청 건을 찾을 수 없습니다.');
         }
 
         $fromStatus = (int) $request['status'];
@@ -236,7 +308,7 @@ class CallRequestModel extends Model
         if ($status === self::STATUS_RESERVED) {
             $normalized = $this->normalizeReservedAt($reservedAt);
             if ($normalized === null) {
-                throw new \RuntimeException('예약 상태는 예약 일시를 입력해야 합니다.');
+                throw new RuntimeException('예약 상태는 예약 일시를 입력해야 합니다.');
             }
             $update['reserved_at'] = $normalized;
         }
@@ -355,7 +427,7 @@ class CallRequestModel extends Model
             $db->transCommit();
 
             return true;
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $db->transRollback();
             throw $e;
         }

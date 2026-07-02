@@ -1,0 +1,8 @@
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    prefer_single_quotes: true
+    avoid_print: true
+    # 콤마 배치는 `dart format`(tall style)이 관리하므로 require_trailing_commas 는 비활성화
+    # (둘을 함께 켜면 포맷터와 린터가 충돌)

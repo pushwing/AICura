@@ -2,6 +2,12 @@
 
 namespace App\Controllers\Admin;
 
+use Override;
+use CodeIgniter\HTTP\RequestInterface;
+use CodeIgniter\HTTP\ResponseInterface;
+use Psr\Log\LoggerInterface;
+use App\Models\CallRequestModel;
+use RuntimeException;
 use App\Models\RefundRequestModel;
 use CodeIgniter\HTTP\RedirectResponse;
 
@@ -16,10 +22,11 @@ class RefundRequestController extends BaseAdminController
 {
     private RefundRequestModel $refundRequestModel;
 
+    #[Override]
     public function initController(
-        \CodeIgniter\HTTP\RequestInterface $request,
-        \CodeIgniter\HTTP\ResponseInterface $response,
-        \Psr\Log\LoggerInterface $logger
+        RequestInterface $request,
+        ResponseInterface $response,
+        LoggerInterface $logger
     ): void {
         parent::initController($request, $response, $logger);
         $this->refundRequestModel = model(RefundRequestModel::class);
@@ -40,7 +47,7 @@ class RefundRequestController extends BaseAdminController
             'total'          => $result['total'],
             'params'         => $params,
             'statusLabels'   => RefundRequestModel::STATUS_LABELS,
-            'requestStatuses' => \App\Models\CallRequestModel::REFUND_STATUSES,
+            'requestStatuses' => CallRequestModel::REFUND_STATUSES,
         ]);
     }
 
@@ -50,7 +57,7 @@ class RefundRequestController extends BaseAdminController
 
         try {
             $this->refundRequestModel->approve($id, $adminId);
-        } catch (\RuntimeException $e) {
+        } catch (RuntimeException $e) {
             return redirect()->back()->with('error', $e->getMessage());
         }
 
@@ -68,7 +75,7 @@ class RefundRequestController extends BaseAdminController
 
         try {
             $this->refundRequestModel->reject($id, $adminId, (string) $this->request->getPost('reject_reason'));
-        } catch (\RuntimeException $e) {
+        } catch (RuntimeException $e) {
             return redirect()->back()->with('error', $e->getMessage());
         }
 

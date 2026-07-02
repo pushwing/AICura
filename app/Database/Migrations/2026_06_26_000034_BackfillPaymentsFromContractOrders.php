@@ -24,7 +24,7 @@ class BackfillPaymentsFromContractOrders extends Migration
             ->select('co.id, co.hospital_id, co.ad_price, co.deposit_date, co.created_at, coc.contract_id')
             ->join('contract_order_connects coc', 'coc.contract_order_id = co.id', 'left')
             ->join('payments p', 'p.contract_order_id = co.id', 'left')
-            ->where('p.id', null)
+            ->where('p.id')
             ->get()
             ->getResultArray();
 

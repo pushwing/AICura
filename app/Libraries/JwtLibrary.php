@@ -2,9 +2,11 @@
 
 namespace App\Libraries;
 
+use App\Exceptions\TokenException;
+
 class JwtLibrary
 {
-    private string $secret;
+    private readonly string $secret;
     private int $accessTtl  = 3600;      // 1시간
     private int $refreshTtl = 2592000;   // 30일
 
@@ -33,25 +35,47 @@ class JwtLibrary
         ]);
     }
 
-    /** @return array<string, mixed>|false */
-    public function validateAccessToken(string $token): array|false
+    /**
+     * Access Token 검증
+     *
+     * @return array<string, mixed> 유효한 페이로드
+     * @throws TokenException 무효(서명·형식·타입) 또는 만료
+     */
+    public function validateAccessToken(string $token): array
     {
-        $payload = $this->decode($token);
-
-        if (!$payload || ($payload['type'] ?? '') !== 'access' || $payload['exp'] < time()) {
-            return false;
-        }
-
-        return $payload;
+        return $this->validate($token, 'access');
     }
 
-    /** @return array<string, mixed>|false */
-    public function validateRefreshToken(string $token): array|false
+    /**
+     * Refresh Token 검증
+     *
+     * @return array<string, mixed> 유효한 페이로드
+     * @throws TokenException 무효(서명·형식·타입) 또는 만료
+     */
+    public function validateRefreshToken(string $token): array
+    {
+        return $this->validate($token, 'refresh');
+    }
+
+    /**
+     * 공통 검증 — 서명·형식 → 타입 → 만료 순으로 확인한다.
+     * 서명이 위조된 토큰은 exp 를 신뢰할 수 없으므로 INVALID 로 처리한다.
+     *
+     * @return array<string, mixed>
+     * @throws TokenException
+     */
+    private function validate(string $token, string $expectedType): array
     {
         $payload = $this->decode($token);
 
-        if (!$payload || ($payload['type'] ?? '') !== 'refresh' || $payload['exp'] < time()) {
-            return false;
+        // 서명·형식 오류 또는 타입 불일치 → 신뢰 불가
+        if (!$payload || ($payload['type'] ?? '') !== $expectedType) {
+            throw TokenException::invalid();
+        }
+
+        // 서명은 정상이나 만료
+        if (((int) ($payload['exp'] ?? 0)) < time()) {
+            throw TokenException::expired();
         }
 
         return $payload;

@@ -2,6 +2,9 @@
 
 namespace App\Controllers\Portal;
 
+use Override;
+use CodeIgniter\HTTP\RequestInterface;
+use Psr\Log\LoggerInterface;
 use App\Models\AdvertiserModel;
 use App\Models\AdvertiserOwnerInviteModel;
 use App\Models\ContractModel;
@@ -22,10 +25,11 @@ class AdvertiserController extends BasePortalController
     private AdvertiserModel $advertiserModel;
     private AdvertiserOwnerInviteModel $inviteModel;
 
+    #[Override]
     public function initController(
-        \CodeIgniter\HTTP\RequestInterface $request,
-        \CodeIgniter\HTTP\ResponseInterface $response,
-        \Psr\Log\LoggerInterface $logger
+        RequestInterface $request,
+        ResponseInterface $response,
+        LoggerInterface $logger
     ): void {
         parent::initController($request, $response, $logger);
         $this->advertiserModel = model(AdvertiserModel::class);
@@ -46,7 +50,7 @@ class AdvertiserController extends BasePortalController
         $result = $this->advertiserModel->getListByAgency($this->userId(), $params);
 
         $advertisers = array_map(function (array $row): array {
-            $row['created_at_kst'] = !empty($row['created_at']) ? $this->toKst($row['created_at']) : '-';
+            $row['created_at_kst'] = empty($row['created_at']) ? '-' : $this->toKst($row['created_at']);
             return $row;
         }, $result['list']);
 
@@ -67,8 +71,8 @@ class AdvertiserController extends BasePortalController
             throw PageNotFoundException::forPageNotFound();
         }
 
-        $advertiser['created_at_kst']        = !empty($advertiser['created_at']) ? $this->toKst($advertiser['created_at']) : '-';
-        $advertiser['contract_agreed_at_kst'] = !empty($advertiser['contract_agreed_at']) ? $this->toKst($advertiser['contract_agreed_at']) : '';
+        $advertiser['created_at_kst']        = empty($advertiser['created_at']) ? '-' : $this->toKst($advertiser['created_at']);
+        $advertiser['contract_agreed_at_kst'] = empty($advertiser['contract_agreed_at']) ? '' : $this->toKst($advertiser['contract_agreed_at']);
 
         // 표준계약서 갑(광고대행사) 정보 — 광고주 계약 화면과 동일하게 노출
         $agencyInfo = model(ContractOrderModel::class)

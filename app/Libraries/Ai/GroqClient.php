@@ -20,21 +20,21 @@ use RuntimeException;
  */
 class GroqClient implements AiClientInterface
 {
-    private const ENDPOINT      = 'https://api.groq.com/openai/v1/chat/completions';
-    private const DEFAULT_MODEL = 'llama-3.3-70b-versatile';
+    private const string ENDPOINT      = 'https://api.groq.com/openai/v1/chat/completions';
+    private const string DEFAULT_MODEL = 'llama-3.3-70b-versatile';
 
     /** 응답 토큰 상한 — 보고서 본문이 잘리지 않을 만큼 충분, 과금 폭주 방지 */
-    private const MAX_TOKENS = 2048;
+    private const int MAX_TOKENS = 2048;
 
     /** 429·5xx 재시도 횟수 (총 시도 = MAX_RETRIES + 1) */
-    private const MAX_RETRIES = 2;
+    private const int MAX_RETRIES = 2;
 
     /** 백오프 상한(초) — Retry-After가 비정상적으로 길어도 이 값으로 캡 */
-    private const MAX_BACKOFF = 10;
+    private const int MAX_BACKOFF = 10;
 
-    private string $apiKey;
-    private string $model;
-    private int $timeout;
+    private readonly string $apiKey;
+    private readonly string $model;
+    private readonly int $timeout;
 
     public function __construct()
     {
