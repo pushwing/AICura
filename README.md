@@ -425,6 +425,56 @@ flutter analyze && flutter test
 
 ---
 
+## CD (배포)
+
+`main` 브랜치에 push(= `dev → main` PR 머지)되면 프로덕션 서버로 **SSH 자동 배포**가 실행된다.
+정의 파일은 [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml).
+
+| 항목 | 내용 |
+|------|------|
+| **트리거** | `main` push + `workflow_dispatch`(수동 실행·롤백) |
+| **동시성 제어** | `deploy-production` 그룹으로 배포 동시 실행 1개만 (`cancel-in-progress: false`) |
+| **대상** | Ubuntu + mod_php 아파치 단일 서버 |
+
+### 배포 절차 (서버에서 SSH로 실행)
+
+1. `git fetch --prune origin main` → `git reset --hard origin/main` (최신 main 반영)
+2. `writable/` 디렉토리·권한 보정 — **composer/migrate 이전**에 생성 (없으면 `WRITEPATH` 오류)
+3. `composer install --no-dev --optimize-autoloader`
+4. `php spark migrate --all -f` — 출력을 검사해 예외 감지 시 배포 중단(spark 는 실패해도 exit 0)
+5. `php spark cache:clear`
+6. `sudo -n systemctl reload apache2` — OPcache 갱신(무중단)
+
+### 필요한 GitHub Secrets (`production` 환경)
+
+| 시크릿 | 용도 |
+|--------|------|
+| `DEPLOY_HOST` | 서버 IP/도메인 |
+| `DEPLOY_USER` | SSH 계정 |
+| `DEPLOY_SSH_KEY` | 배포용 개인키 (전체 내용) |
+| `DEPLOY_PORT` | SSH 포트 |
+| `DEPLOY_PATH` | 서버 프로젝트 경로 (예: `/var/www/aicura`) |
+
+### 서버 사전 준비 (한 번만)
+
+```bash
+# 1) GitHub 읽기전용 deploy key — 서버 저장소 리모트는 SSH 여야 함 (HTTPS면 인증 실패)
+git remote set-url origin git@github.com:pushwing/AICura.git
+
+# 2) 프로덕션 .env 에 실제 DB 접속 정보 (없으면 migrate 시 Access denied)
+
+# 3) 아파치 리로드용 비밀번호 없는 sudo
+echo '<DEPLOY_USER> ALL=(ALL) NOPASSWD: /usr/bin/systemctl reload apache2' \
+  | sudo tee /etc/sudoers.d/aicura-deploy
+sudo chmod 440 /etc/sudoers.d/aicura-deploy && sudo visudo -c
+```
+
+> **참고**: 아파치 `DocumentRoot` 는 프로젝트 루트가 아니라 `public/` 을 가리켜야 하며,
+> `writable/` 는 아파치 실행 유저(`www-data`)가 쓸 수 있어야 한다.
+> PHP-FPM 구성이면 리로드 대상을 `apache2` 대신 `php8.4-fpm` 으로 바꾼다.
+
+---
+
 ## 서버 요구사항
 
 | 항목 | 버전 | 용도 |
