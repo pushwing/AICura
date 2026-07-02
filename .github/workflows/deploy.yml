@@ -42,6 +42,14 @@ jobs:
             git fetch --prune origin main
             git reset --hard origin/main
 
+            # writable/ 은 git 미추적이라 프레시 서버엔 없다.
+            # spark 커맨드(migrate 등)는 WRITEPATH가 없으면 부팅 자체가 실패하므로
+            # 반드시 composer/migrate '이전'에 디렉토리를 만들어 둔다.
+            echo "▶ writable 디렉토리·권한 보정 (아파치 실행 유저가 쓸 수 있도록)"
+            mkdir -p writable/cache writable/logs writable/logs/raw \
+                     writable/session writable/uploads writable/debugbar
+            chmod -R 775 writable
+
             echo "▶ Composer 의존성 설치 (프로덕션 — dev 제외)"
             composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-progress
 
@@ -50,11 +58,6 @@ jobs:
 
             echo "▶ 캐시 정리"
             php spark cache:clear || true
-
-            echo "▶ writable 권한 보정 (아파치 실행 유저가 쓸 수 있도록)"
-            mkdir -p writable/cache writable/logs writable/logs/raw \
-                     writable/session writable/uploads writable/debugbar
-            chmod -R 775 writable
 
             echo "▶ 아파치 리로드 (OPcache 갱신 — 무중단)"
             # 아파치는 PHP 파일을 요청마다 해석하므로 재시작은 불필요하다.
