@@ -1,0 +1,70 @@
+name: Deploy
+
+# main 브랜치 푸시 시 프로덕션 서버로 SSH 배포
+# (워크플로우: dev → main PR(Squash) → main 푸시 = 프로덕션 배포)
+on:
+  push:
+    branches: [main]
+  # 태그 릴리스나 롤백 시 수동 실행도 허용
+  workflow_dispatch:
+
+# 배포는 동시에 하나만 — 진행 중 배포가 끝난 뒤 최신 커밋으로 재배포
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to production (SSH)
+    runs-on: ubuntu-latest
+    # main 에 대한 검증은 CI 워크플로우(ci.yml)가 동일 푸시에서 병렬 수행한다.
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 서버 배포 (SSH)
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          # 명령 중 하나라도 실패하면 즉시 중단 (set -e)
+          script_stop: true
+          script: |
+            set -euo pipefail
+
+            # 배포 경로 (서버의 프로젝트 루트) — 시크릿으로 주입
+            cd "${{ secrets.DEPLOY_PATH }}"
+
+            echo "▶ 최신 코드 가져오기"
+            git fetch --prune origin main
+            git reset --hard origin/main
+
+            echo "▶ Composer 의존성 설치 (프로덕션 — dev 제외)"
+            composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-progress
+
+            echo "▶ DB 마이그레이션"
+            php spark migrate --all -f
+
+            echo "▶ 캐시 정리"
+            php spark cache:clear || true
+
+            echo "▶ writable 권한 보정 (아파치 실행 유저가 쓸 수 있도록)"
+            mkdir -p writable/cache writable/logs writable/logs/raw \
+                     writable/session writable/uploads writable/debugbar
+            chmod -R 775 writable
+
+            echo "▶ 아파치 리로드 (OPcache 갱신 — 무중단)"
+            # 아파치는 PHP 파일을 요청마다 해석하므로 재시작은 불필요하다.
+            # OPcache가 켜져 있으면 캐시된 바이트코드가 남으므로 graceful 리로드로 갱신한다.
+            #
+            #  - mod_php  구성: 아파치 리로드로 OPcache까지 함께 갱신됨 (아래 기본값)
+            #  - PHP-FPM  구성: 아파치 대신 php-fpm 을 리로드해야 OPcache 갱신됨
+            #      예) sudo systemctl reload php8.4-fpm
+            #
+            # 배포판별 아파치 서비스명: Debian/Ubuntu = apache2, RHEL/CentOS = httpd
+            sudo systemctl reload apache2
+
+            echo "✅ 배포 완료: $(git rev-parse --short HEAD)"
