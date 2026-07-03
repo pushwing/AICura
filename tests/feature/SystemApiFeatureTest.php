@@ -89,6 +89,40 @@ final class SystemApiFeatureTest extends CIUnitTestCase
         $this->withBodyFormat('json')->post('api/v1/logs', [])->assertStatus(422);
     }
 
+    /** [S4a] logs — 본문 크기 초과 413 (이슈 #187 디스크·큐 남용 방지) */
+    public function testLogsRejectsOversizedBody(): void
+    {
+        $res = $this->withBodyFormat('json')->post('api/v1/logs', [
+            'level'   => 'info',
+            'event'   => 'flood',
+            'message' => str_repeat('A', 9000), // MAX_LOG_BYTES(8192) 초과
+        ]);
+
+        $res->assertStatus(413);
+        $this->assertSame('PAYLOAD_TOO_LARGE', json_decode($res->getJSON(), true)['code']);
+    }
+
+    /** [S4b] logs — 허용되지 않은 level 422 */
+    public function testLogsRejectsInvalidLevel(): void
+    {
+        $res = $this->withBodyFormat('json')->post('api/v1/logs', ['level' => 'critical', 'event' => 'x']);
+
+        $res->assertStatus(422);
+        $this->assertSame('VALIDATION_ERROR', json_decode($res->getJSON(), true)['code']);
+    }
+
+    /** [S4c] logs — 지나치게 긴 message 422 (크기 상한 이내지만 필드 길이 초과) */
+    public function testLogsRejectsTooLongMessage(): void
+    {
+        $res = $this->withBodyFormat('json')->post('api/v1/logs', [
+            'level'   => 'info',
+            'message' => str_repeat('가', 2100), // max_length[2000] 초과, UTF-8 이라 8192 bytes 이내
+        ]);
+
+        $res->assertStatus(422);
+        $this->assertSame('VALIDATION_ERROR', json_decode($res->getJSON(), true)['code']);
+    }
+
     /** [S5] health */
     public function testHealth(): void
     {

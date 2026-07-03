@@ -57,7 +57,10 @@ final class WebEventPageFeatureTest extends CIUnitTestCase
             'ad_title' => '강남 리프팅 이벤트', 'exposure' => 1, 'region' => '서울 강남',
             'discount_cost' => 10000, 'general_cost' => 20000,
             'ad_start_date' => $yesterday, 'ad_end_date' => $tomorrow,
-            't1_image_name' => 'w1.jpg', 'ad_detail_info' => '<p>리프팅 상세 설명</p><script>alert(1)</script>',
+            't1_image_name' => 'w1.jpg',
+            // script + 속성 기반 XSS(strip_tags 가 놓치던 onerror/javascript:)를 함께 심어 정화를 검증한다.
+            'ad_detail_info' => '<p>리프팅 상세 설명</p><script>alert(1)</script>'
+                . '<img src="x" onerror="alert(document.cookie)">',
         ]);
         // 비노출: exposure=2 (병원상세 전용)
         $this->hiddenId = $this->insertCampaign(['ad_title' => '비노출이벤트', 'exposure' => 2]);
@@ -131,6 +134,9 @@ final class WebEventPageFeatureTest extends CIUnitTestCase
         // 리치 본문의 허용 태그는 유지, script 는 화이트리스트로 제거
         $this->assertStringContainsString('리프팅 상세 설명', $body);
         $this->assertStringNotContainsString('<script>alert(1)</script>', $raw);
+        // 이슈 #187: 허용 태그(img)의 위험 속성도 제거되어야 한다.
+        $this->assertStringNotContainsString('onerror', $raw);
+        $this->assertStringNotContainsString('alert(document.cookie)', $raw);
     }
 
     /** [W4] 상세 — 비노출 건은 404(PageNotFoundException) */

@@ -64,5 +64,7 @@
         <env name="database.tests.database" value=":memory:"/>
         <!-- CSRF: session 방식으로 전환해 withSession() 으로 토큰 주입 가능하게 함 -->
         <server name="security.csrfProtection" value="session"/>
+        <!-- JWT: 테스트용 시크릿(32자 이상). 빈 시크릿 가드(이슈 #187) 통과에 필요 -->
+        <env name="JWT_SECRET" value="test-jwt-secret-please-change-32chars-minimum"/>
     </php>
 </phpunit>

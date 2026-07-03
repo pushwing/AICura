@@ -390,15 +390,12 @@ class CampaignController extends BaseAdminController
     // ──────────────────────────────────────────────
 
     /**
-     * 리치 텍스트 HTML 정화 — 허용 태그만 남기고 모든 속성 제거 (XSS 방지).
+     * 리치 텍스트 HTML 정화 — 허용 태그만 남기고 위험 속성·스킴 제거 (XSS 방지, 이슈 #187).
      * Tiptap 에디터가 제출하는 상세문구·상태변경 메모를 저장 전에 화이트리스트 필터한다.
      */
     private function sanitizeDetailHtml(string $html): string
     {
-        $stripped = strip_tags($html, '<p><br><strong><em><s><ul><ol><li><h3><h4><blockquote>');
-        $clean    = preg_replace('/<(\w+)[^>]*>/', '<$1>', $stripped);
-
-        return trim($clean ?? $stripped);
+        return clean_html($html, ['p', 'br', 'strong', 'em', 's', 'ul', 'ol', 'li', 'h3', 'h4', 'blockquote']);
     }
 
     /**

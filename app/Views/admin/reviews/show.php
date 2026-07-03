@@ -307,14 +307,14 @@ $detailChanged = isChanged($detailBefore, $detailAfter);
             <div>
                 <div style="font-size:12px;color:var(--color-text-muted);margin-bottom:6px;">현재 (승인됨)</div>
                 <div style="border:1px solid var(--color-border,#e5e7eb);border-radius:6px;padding:12px;font-size:13px;line-height:1.6;">
-                    <?= $detailBefore !== '' ? $detailBefore : '<span style="color:#9ca3af;">없음</span>' ?>
+                    <?= $detailBefore !== '' ? clean_html($detailBefore) : '<span style="color:#9ca3af;">없음</span>' ?>
                 </div>
             </div>
             <?php endif; ?>
             <div>
                 <div style="font-size:12px;color:var(--color-text-muted);margin-bottom:6px;"><?= $isCreate ? '등록 요청' : '변경 요청' ?></div>
                 <div style="border:2px solid <?= (!$isCreate && $detailChanged) ? '#10b981' : 'var(--color-border,#e5e7eb)' ?>;border-radius:6px;padding:12px;font-size:13px;line-height:1.6;">
-                    <?= $detailAfter !== '' ? $detailAfter : '<span style="color:#9ca3af;">없음</span>' ?>
+                    <?= $detailAfter !== '' ? clean_html($detailAfter) : '<span style="color:#9ca3af;">없음</span>' ?>
                 </div>
             </div>
         </div>

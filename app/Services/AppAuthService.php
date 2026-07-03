@@ -6,6 +6,7 @@ use RuntimeException;
 use Throwable;
 use App\Exceptions\AuthException;
 use App\Libraries\JwtLibrary;
+use App\Libraries\Social\SocialVerifierInterface;
 use App\Models\UserModel;
 
 /**
@@ -29,15 +30,18 @@ class AppAuthService
     private readonly UserModel $users;
     private readonly JwtLibrary $jwt;
     private readonly HealthPointService $points;
+    private readonly SocialVerifierInterface $socialVerifier;
 
     public function __construct(
         ?UserModel $users = null,
         ?JwtLibrary $jwt = null,
         ?HealthPointService $points = null,
+        ?SocialVerifierInterface $socialVerifier = null,
     ) {
-        $this->users  = $users  ?? model(UserModel::class);
-        $this->jwt    = $jwt    ?? new JwtLibrary();
-        $this->points = $points ?? service('healthPointService');
+        $this->users          = $users  ?? model(UserModel::class);
+        $this->jwt            = $jwt    ?? new JwtLibrary();
+        $this->points         = $points ?? service('healthPointService');
+        $this->socialVerifier = $socialVerifier ?? service('socialTokenVerifier');
     }
 
     /**
@@ -89,22 +93,24 @@ class AppAuthService
     }
 
     /**
-     * 소셜 로그인 — provider+uid 로 식별, 미가입 시 자동 가입
+     * 소셜 로그인 — access_token 서버 검증으로 uid 확보 후 식별, 미가입 시 자동 가입
      *
+     * 보안(이슈 #187): 클라이언트가 보낸 uid 를 신뢰하지 않는다. access_token 을
+     * 제공자(Kakao/Naver) API 로 검증해 제공자가 보증한 uid 만 계정 매칭 기준으로 쓴다.
      * 이메일 미동의 케이스를 고려해 계정 식별은 provider+uid 로만 하고,
      * email 컬럼(UNIQUE·NOT NULL)에는 충돌 없는 안정적 합성 주소를 저장한다.
      *
-     * @param array<string, mixed> $input provider('naver'|'kakao')·uid·username·picture·where_from
+     * @param array<string, mixed> $input provider('naver'|'kakao')·access_token·where_from
      * @return array<string, mixed> 토큰 번들
      */
     public function socialLogin(array $input): array
     {
-        $provider = $this->normalizeProvider((string) $input['provider']);
-        $uid      = trim((string) $input['uid']);
+        $providerKey = strtolower(trim((string) $input['provider']));
+        $provider    = $this->normalizeProvider($providerKey);
 
-        if ($uid === '') {
-            throw AuthException::unsupportedProvider();
-        }
+        // 제공자 토큰 검증 — 실패 시 AuthException(SOCIAL_AUTH_FAILED) 이 던져진다.
+        $profile = $this->socialVerifier->verify($providerKey, (string) ($input['access_token'] ?? ''));
+        $uid     = $profile->uid;
 
         $user = $this->users->findAppUserByProviderUid($provider, $uid);
 
@@ -118,8 +124,9 @@ class AppAuthService
 
         $userId = $this->createUser([
             'email'      => sprintf('social_%d_%s@aicura.app', $provider, $uid),
-            'username'   => $this->nullableString($input['username'] ?? null),
-            'picture'    => $this->nullableString($input['picture'] ?? null),
+            // 프로필 값은 제공자 검증 결과를 우선 사용한다.
+            'username'   => $profile->username,
+            'picture'    => $profile->picture,
             'where_from' => $this->normalizeWhereFrom($input['where_from'] ?? null),
             'provider'   => $provider,
             'uid'        => $uid,
