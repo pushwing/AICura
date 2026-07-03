@@ -1,9 +1,13 @@
 <?php
 
+use App\Libraries\Social\SocialProfile;
+use App\Libraries\Social\SocialVerifierInterface;
 use App\Models\UserModel;
+use App\Services\AppAuthService;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use CodeIgniter\Test\FeatureTestTrait;
+use Config\Services;
 
 /**
  * 헬스포인트 적립/차감 트리거 피처 테스트 (이슈 #114, SQLite3 인메모리 DB)
@@ -75,11 +79,20 @@ final class HealthPointFeatureTest extends CIUnitTestCase
         $this->seeInDatabase('health_point_logs', ['type' => 'signup', 'amount' => 500, 'balance_after' => 500]);
     }
 
-    /** [H2] 소셜 가입 적립 */
+    /** [H2] 소셜 가입 적립 (이슈 #187: access_token 서버 검증 — 검증기는 uid 777111 반환하도록 주입) */
     public function testSocialSignupAwardsPoints(): void
     {
+        $fake = new class implements SocialVerifierInterface {
+            public function verify(string $provider, string $accessToken): SocialProfile
+            {
+                return new SocialProfile(uid: '777111', username: '카카오');
+            }
+        };
+        Services::injectMock('socialTokenVerifier', $fake);
+        Services::injectMock('appAuthService', new AppAuthService(socialVerifier: $fake));
+
         $res = $this->withBodyFormat('json')->post('api/v1/auth/social', [
-            'provider' => 'kakao', 'uid' => '777111', 'username' => '카카오', 'where_from' => 3,
+            'provider' => 'kakao', 'access_token' => 'valid-token', 'where_from' => 3,
         ]);
         $this->assertContains($res->response()->getStatusCode(), [200, 201]);
 
