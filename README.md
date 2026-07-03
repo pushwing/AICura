@@ -475,11 +475,30 @@ git remote set-url origin git@github.com:pushwing/AICura.git
 echo '<DEPLOY_USER> ALL=(ALL) NOPASSWD: /usr/bin/systemctl reload apache2' \
   | sudo tee /etc/sudoers.d/aicura-deploy
 sudo chmod 440 /etc/sudoers.d/aicura-deploy && sudo visudo -c
+
+# 4) writable/ 를 배포계정·아파치(www-data) 공용 그룹 + setgid 로 구성 (권장)
+#    없어도 배포는 되지만(chmod best-effort), 구성해두면 소유권 충돌이 사라진다.
+sudo chown -R <DEPLOY_USER>:www-data <DEPLOY_PATH>/writable
+sudo chmod -R 2775 <DEPLOY_PATH>/writable   # 2xxx = setgid: 새 파일이 www-data 그룹 상속
 ```
 
 > **참고**: 아파치 `DocumentRoot` 는 프로젝트 루트가 아니라 `public/` 을 가리켜야 하며,
 > `writable/` 는 아파치 실행 유저(`www-data`)가 쓸 수 있어야 한다.
 > PHP-FPM 구성이면 리로드 대상을 `apache2` 대신 `php8.4-fpm` 으로 바꾼다.
+
+> **writable 소유권 주의**: 런타임에 아파치(`www-data`)가 `writable/cache`·`session` 에
+> 파일을 만들면 배포 계정이 소유하지 않아 `chmod` 가 실패할 수 있다. 배포 워크플로우는
+> 이 `chmod` 를 best-effort(실패 무시)로 처리하므로 배포가 중단되지는 않지만,
+> 위 4) 의 setgid 구성으로 근본적으로 해소하는 것을 권장한다.
+
+### 배포 후 — 기본 관리자 계정 생성 (최초 1회)
+
+배포에는 마이그레이션만 포함되고 **시더는 자동 실행되지 않는다.** 최초 배포 후 관리자
+계정이 없으면 서버에서 한 번 실행한다(재실행 안전 — 이미 있으면 건너뜀).
+
+```bash
+cd <DEPLOY_PATH> && php spark db:seed AdminUserSeeder
+```
 
 ---
 

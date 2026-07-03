@@ -559,6 +559,8 @@ composer check   # = analyse + test (백엔드)
 
 > **spark migrate 함정**: DB 연결 실패·마이그레이션 예외가 나도 종료코드 0 을 반환한다. `set -e` 로 못 잡으므로 출력을 캡처해 예외 패턴(`[...Exception]`·`Unable to connect`·`Access denied`)을 직접 검사하고 실패 시 배포를 중단한다.
 
+> **writable chmod 함정**: 런타임에 아파치(`www-data`)가 만든 `writable/cache`·`session` 파일은 배포 계정 소유가 아니라 `chmod -R 775 writable` 가 `Operation not permitted` 로 실패한다. `set -e` 로 배포가 중단되지 않도록 이 `chmod` 는 best-effort(`2>/dev/null || echo …`)로 처리한다. 근본 해결은 아래 서버 준비의 setgid 구성이다.
+
 ### 필요한 GitHub Secrets (`production` 환경)
 
 `DEPLOY_HOST` · `DEPLOY_USER` · `DEPLOY_SSH_KEY` · `DEPLOY_PORT` · `DEPLOY_PATH`
@@ -569,6 +571,19 @@ composer check   # = analyse + test (백엔드)
 - **프로덕션 `.env`** 에 실제 DB 접속정보 (없으면 migrate 시 `Access denied`)
 - **비밀번호 없는 sudo**: `/etc/sudoers.d/aicura-deploy` 에 `<DEPLOY_USER> ALL=(ALL) NOPASSWD: /usr/bin/systemctl reload apache2` (없으면 `sudo: a password is required` 로 실패)
 - 아파치 `DocumentRoot` 는 `public/`, `writable/` 는 아파치 유저(`www-data`) 쓰기 가능
+- **writable setgid 구성(권장)** — 소유권 충돌로 인한 chmod 실패를 근본 제거:
+  ```bash
+  sudo chown -R <DEPLOY_USER>:www-data <DEPLOY_PATH>/writable
+  sudo chmod -R 2775 <DEPLOY_PATH>/writable   # setgid: 새 파일이 www-data 그룹 상속
+  ```
+
+### 배포 후 — 기본 관리자 계정 (최초 1회)
+
+배포에는 마이그레이션만 포함되고 **시더는 자동 실행되지 않는다.** 관리자 계정(`admin@aicura.com` / `user_type=401`)이 없으면 서버에서 한 번 실행한다(재실행 안전).
+
+```bash
+cd <DEPLOY_PATH> && php spark db:seed AdminUserSeeder
+```
 
 ### 브랜치 삭제 방지
 
