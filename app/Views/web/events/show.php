@@ -5,10 +5,11 @@
  * @var array<string, mixed> $event
  */
 // ad_detail_info 는 어드민/대행사 작성 리치 HTML.
-// 골격 단계에서는 허용 태그 화이트리스트로 1차 필터링한다.
-// TODO(#137 Phase 2): 속성 단위 새니타이즈(HTMLPurifier 등) 도입 — strip_tags 는 속성을 거르지 못함.
-$allowedTags = '<p><br><strong><em><b><i><ul><ol><li><h2><h3><h4><img>';
-$detailHtml  = strip_tags((string) ($event['ad_detail_info'] ?? ''), $allowedTags);
+// clean_html 이 허용 태그 + 허용 속성만 남기고 href/src 스킴까지 검증한다(이슈 #187 저장형 XSS 방지).
+$detailHtml = clean_html(
+    (string) ($event['ad_detail_info'] ?? ''),
+    ['p', 'br', 'strong', 'em', 'b', 'i', 'ul', 'ol', 'li', 'h2', 'h3', 'h4', 'img'],
+);
 ?>
 <article class="web-detail">
     <nav class="web-breadcrumb">

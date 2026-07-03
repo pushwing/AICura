@@ -2,6 +2,7 @@
 
 namespace Config;
 
+use App\Libraries\Html\HtmlSanitizer;
 use App\Libraries\RedisQueue;
 use App\Libraries\Social\SocialTokenVerifier;
 use App\Libraries\Social\SocialVerifierInterface;
@@ -65,6 +66,21 @@ class Services extends BaseService
         }
 
         return new SocialTokenVerifier();
+    }
+
+    /**
+     * 화이트리스트 HTML 새니타이저 (이슈 #187)
+     *
+     * 사용자 작성 리치 HTML(이벤트 상세문구·가이드 본문 등)을 출력 전 정화한다.
+     * 뷰에서는 `clean_html()` 헬퍼를 통해 사용한다.
+     */
+    public static function htmlSanitizer(bool $getShared = true): HtmlSanitizer
+    {
+        if ($getShared) {
+            return static::getSharedInstance('htmlSanitizer');
+        }
+
+        return new HtmlSanitizer();
     }
 
     /**
