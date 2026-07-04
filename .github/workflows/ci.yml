@@ -121,3 +121,47 @@ jobs:
 
       - name: 테스트
         run: flutter test
+
+  # ───────────────────────────── Slack 알림 (CI 실패 시) ─────────────────────────────
+  # dev·main 푸시에서 백엔드/앱 잡이 하나라도 실패하면 Slack 으로 통지한다.
+  # PR 실행은 담당자가 PR 화면에서 바로 확인하므로 알림 대상에서 제외(소음 방지).
+  notify:
+    name: Slack 알림 (CI 실패)
+    needs: [backend, app]
+    if: failure() && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Slack CI 실패 알림
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          REF: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          BACKEND_RESULT: ${{ needs.backend.result }}
+          APP_RESULT: ${{ needs.app.result }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "SLACK_WEBHOOK_URL 미설정 — Slack 알림 건너뜀"; exit 0
+          fi
+          # 커밋 메시지는 임의 문자열 → jq --arg 로 안전하게 JSON 이스케이프 (인젝션 차단)
+          COMMIT_MSG="$(git log -1 --pretty=%s)"
+          SHORT_SHA="$(git rev-parse --short HEAD)"
+          PAYLOAD="$(jq -n \
+            --arg head "❌ CI 실패 — $REF" \
+            --arg fields "*커밋* \`$SHORT_SHA\` — $COMMIT_MSG"$'\n'"*푸시* $ACTOR"$'\n'"*백엔드* $BACKEND_RESULT · *앱* $APP_RESULT" \
+            --arg run "$RUN_URL" \
+            '{
+              text: $head,
+              blocks: [
+                { type: "section", text: { type: "mrkdwn", text: ("*" + $head + "*") } },
+                { type: "section", text: { type: "mrkdwn", text: $fields } },
+                { type: "actions", elements: [
+                  { type: "button", text: { type: "plain_text", text: "실행 로그 보기" }, url: $run }
+                ]}
+              ]
+            }')"
+          curl -sf -X POST -H 'Content-type: application/json' --data "$PAYLOAD" "$SLACK_WEBHOOK_URL" \
+            && echo "Slack 알림 전송 완료" \
+            || echo "Slack 알림 전송 실패"
