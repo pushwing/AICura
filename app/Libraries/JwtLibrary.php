@@ -6,13 +6,26 @@ use App\Exceptions\TokenException;
 
 class JwtLibrary
 {
+    /** JWT_SECRET 최소 길이 — 무차별 대입에 견디는 하한(문서·CI 기준 32자) */
+    private const int MIN_SECRET_LENGTH = 32;
+
     private readonly string $secret;
     private int $accessTtl  = 3600;      // 1시간
     private int $refreshTtl = 2592000;   // 30일
 
     public function __construct()
     {
-        $this->secret = env('JWT_SECRET', '');
+        $secret = (string) env('JWT_SECRET', '');
+
+        // 시크릿이 비었거나 너무 짧으면 토큰 위조가 가능하므로 즉시 실패한다(fail-closed).
+        // 조용히 빈 키로 서명하면 누구나 토큰을 위조할 수 있어 인증 전체가 무력화된다.
+        if (strlen($secret) < self::MIN_SECRET_LENGTH) {
+            throw new \RuntimeException(
+                'JWT_SECRET 이 설정되지 않았거나 너무 짧습니다(최소 ' . self::MIN_SECRET_LENGTH . '자). .env 를 확인하세요.',
+            );
+        }
+
+        $this->secret = $secret;
     }
 
     public function generateAccessToken(int $userId): string

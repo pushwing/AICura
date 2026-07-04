@@ -2,7 +2,10 @@
 
 namespace Config;
 
+use App\Libraries\Html\HtmlSanitizer;
 use App\Libraries\RedisQueue;
+use App\Libraries\Social\SocialTokenVerifier;
+use App\Libraries\Social\SocialVerifierInterface;
 use App\Services\AppAuthService;
 use App\Services\AppLogStatService;
 use App\Services\BoardService;
@@ -47,6 +50,37 @@ class Services extends BaseService
         }
 
         return new AppAuthService();
+    }
+
+    /**
+     * 소셜 로그인 토큰 검증기 (이슈 #187)
+     *
+     * 클라이언트 access_token 을 제공자(Kakao/Naver) API 로 검증한다.
+     * 테스트에서는 `Services::injectMock('socialTokenVerifier', $fake)` 로 대체해
+     * 실제 HTTP 호출 없이 소셜 로그인 흐름을 검증할 수 있다.
+     */
+    public static function socialTokenVerifier(bool $getShared = true): SocialVerifierInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('socialTokenVerifier');
+        }
+
+        return new SocialTokenVerifier();
+    }
+
+    /**
+     * 화이트리스트 HTML 새니타이저 (이슈 #187)
+     *
+     * 사용자 작성 리치 HTML(이벤트 상세문구·가이드 본문 등)을 출력 전 정화한다.
+     * 뷰에서는 `clean_html()` 헬퍼를 통해 사용한다.
+     */
+    public static function htmlSanitizer(bool $getShared = true): HtmlSanitizer
+    {
+        if ($getShared) {
+            return static::getSharedInstance('htmlSanitizer');
+        }
+
+        return new HtmlSanitizer();
     }
 
     /**

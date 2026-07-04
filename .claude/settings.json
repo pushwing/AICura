@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./vendor/bin/phpunit)",
+      "Bash(./vendor/bin/phpunit *)",
+      "Bash(vendor/bin/phpunit)",
+      "Bash(vendor/bin/phpunit *)",
+      "Bash(php vendor/bin/phpunit)",
+      "Bash(php vendor/bin/phpunit *)",
+      "Bash(composer analyse)",
+      "Bash(composer analyse *)",
+      "Bash(composer test)",
+      "Bash(composer test *)",
+      "Bash(composer check)",
+      "Bash(composer check *)",
+      "Bash(php spark routes)",
+      "Bash(php spark routes *)",
+      "Bash(php spark db:table *)",
+      "Bash(php -l *)",
+      "Bash(flutter analyze)",
+      "Bash(flutter analyze *)",
+      "mcp__Claude_Preview__preview_screenshot"
+    ]
+  }
+}

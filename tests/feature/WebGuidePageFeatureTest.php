@@ -36,7 +36,10 @@ final class WebGuidePageFeatureTest extends CIUnitTestCase
 
         $db->table('guides')->insert([
             'title' => '쌍꺼풀 수술 가이드', 'slug' => 'double-eyelid', 'summary' => '쌍꺼풀 정보 요약',
-            'content' => '<p>쌍꺼풀 본문<script>bad()</script></p>', 'procedure_name' => '쌍꺼풀 수술',
+            // script + 속성 기반 XSS(javascript: 링크)를 함께 심어 정화를 검증한다.
+            'content' => '<p>쌍꺼풀 본문<script>bad()</script></p>'
+                . '<a href="javascript:alert(1)">위험링크</a>',
+            'procedure_name' => '쌍꺼풀 수술',
             'faq_json' => json_encode([['q' => '비용은?', 'a' => '병원마다 다릅니다']], JSON_UNESCAPED_UNICODE),
             'status' => 'published', 'published_at' => $now, 'created_at' => $now, 'updated_at' => $now,
         ]);
@@ -88,6 +91,9 @@ final class WebGuidePageFeatureTest extends CIUnitTestCase
         $this->assertStringContainsString('비용은?', $body);       // FAQ 질문
         $this->assertStringContainsString('병원마다 다릅니다', $body); // FAQ 답변
         $this->assertStringNotContainsString('<script>bad()', $raw); // 화이트리스트 제거
+        // 이슈 #187: 허용 태그(a)의 javascript: 스킴은 제거되고 링크 텍스트는 보존된다.
+        $this->assertStringNotContainsString('javascript:', $raw);
+        $this->assertStringContainsString('위험링크', $body);
     }
 
     /** [G3] 상세 — Article(MedicalWebPage) + FAQPage JSON-LD */

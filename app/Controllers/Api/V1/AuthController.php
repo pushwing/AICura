@@ -104,28 +104,27 @@ class AuthController extends BaseApiController
         return $this->success($tokens, [], 201);
     }
 
-    #[OA\Post(path: '/auth/social', summary: '소셜 로그인 (Naver/Kakao) — 미가입 시 자동 가입', requestBody: new OA\RequestBody(
+    #[OA\Post(path: '/auth/social', summary: '소셜 로그인 (Naver/Kakao) — access_token 서버 검증, 미가입 시 자동 가입', requestBody: new OA\RequestBody(
         required: true,
         content: new OA\JsonContent(
-            required: ['provider', 'uid'],
+            required: ['provider', 'access_token'],
             properties: [
-                new OA\Property(property: 'provider',   type: 'string', example: 'kakao', enum: ['naver', 'kakao']),
-                new OA\Property(property: 'uid', description: '소셜 제공자 고유 ID', type: 'string', example: '1234567890'),
-                new OA\Property(property: 'username',   type: 'string', example: '홍길동'),
-                new OA\Property(property: 'picture',    type: 'string', example: 'https://...'),
-                new OA\Property(property: 'where_from', description: '2 iOS · 3 Android', type: 'integer', example: 3),
+                new OA\Property(property: 'provider',     type: 'string', example: 'kakao', enum: ['naver', 'kakao']),
+                new OA\Property(property: 'access_token', description: '소셜 제공자 발급 액세스 토큰 (서버가 검증)', type: 'string', example: 'AAAA...'),
+                new OA\Property(property: 'where_from',   description: '2 iOS · 3 Android', type: 'integer', example: 3),
             ]
         )
     ), tags: ['Auth'], responses: [
         new OA\Response(response: 200, description: '로그인 성공'),
+        new OA\Response(response: 401, description: '소셜 토큰 검증 실패 (SOCIAL_AUTH_FAILED)'),
         new OA\Response(response: 403, description: '이용이 제한된 계정'),
         new OA\Response(response: 422, description: '유효성 검사 실패'),
     ])]
     public function social(): ResponseInterface
     {
         $rules = [
-            'provider' => 'required|in_list[naver,kakao]',
-            'uid'      => 'required|max_length[255]',
+            'provider'     => 'required|in_list[naver,kakao]',
+            'access_token' => 'required|max_length[4096]',
         ];
 
         if (!$this->validate($rules)) {

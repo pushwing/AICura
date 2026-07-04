@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/storage/token_storage.dart';
 import 'auth_repository.dart';
+import 'models/auth_tokens.dart';
 
 /// 앱 인증 상태.
 enum AuthStatus { unknown, authenticated, unauthenticated }
@@ -42,16 +43,8 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> login(String email, String password) async {
-    await _run(() async {
-      final tokens = await _repo.login(email: email, password: password);
-      await _storage.save(
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-      );
-      _status = AuthStatus.authenticated;
-    });
-  }
+  Future<void> login(String email, String password) =>
+      _authenticate(() => _repo.login(email: email, password: password));
 
   Future<void> register({
     required String email,
@@ -60,16 +53,32 @@ class AuthProvider extends ChangeNotifier {
     String? phone,
     int? age,
     String? sex,
-  }) async {
-    await _run(() async {
-      final tokens = await _repo.register(
-        email: email,
-        password: password,
-        username: username,
-        phone: phone,
-        age: age,
-        sex: sex,
+  }) =>
+      _authenticate(() => _repo.register(
+            email: email,
+            password: password,
+            username: username,
+            phone: phone,
+            age: age,
+            sex: sex,
+          ));
+
+  /// 소셜 로그인 — 카카오/네이버 SDK 에서 받은 access_token 을 서버에 전달한다.
+  ///
+  /// 서버 검증 실패 시 [ApiException] (code: `SOCIAL_AUTH_FAILED`) 이
+  /// 호출부로 전달된다.
+  Future<void> socialLogin({
+    required SocialProvider provider,
+    required String accessToken,
+  }) =>
+      _authenticate(
+        () => _repo.social(provider: provider, accessToken: accessToken),
       );
+
+  /// 공통 인증 처리 — 토큰을 발급받아 저장하고 인증 상태로 전환한다.
+  Future<void> _authenticate(Future<AuthTokens> Function() issueTokens) async {
+    await _run(() async {
+      final tokens = await issueTokens();
       await _storage.save(
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,

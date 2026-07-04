@@ -24,6 +24,50 @@ final class JwtLibraryTest extends CIUnitTestCase
         $this->jwt = new JwtLibrary();
     }
 
+    /** 시크릿이 비어 있으면 생성자에서 즉시 실패한다 (이슈 #187 fail-closed) */
+    public function testEmptySecretThrows(): void
+    {
+        $prev = getenv('JWT_SECRET');
+        putenv('JWT_SECRET=');
+        $_ENV['JWT_SECRET'] = '';
+
+        try {
+            $this->expectException(\RuntimeException::class);
+            $this->expectExceptionMessageMatches('/JWT_SECRET/');
+            new JwtLibrary();
+        } finally {
+            // 다른 테스트에 영향이 없도록 원복
+            if ($prev === false) {
+                putenv('JWT_SECRET');
+                unset($_ENV['JWT_SECRET']);
+            } else {
+                putenv('JWT_SECRET=' . $prev);
+                $_ENV['JWT_SECRET'] = $prev;
+            }
+        }
+    }
+
+    /** 32자 미만 시크릿도 거부한다 */
+    public function testShortSecretThrows(): void
+    {
+        $prev = getenv('JWT_SECRET');
+        putenv('JWT_SECRET=tooshort');
+        $_ENV['JWT_SECRET'] = 'tooshort';
+
+        try {
+            $this->expectException(\RuntimeException::class);
+            new JwtLibrary();
+        } finally {
+            if ($prev === false) {
+                putenv('JWT_SECRET');
+                unset($_ENV['JWT_SECRET']);
+            } else {
+                putenv('JWT_SECRET=' . $prev);
+                $_ENV['JWT_SECRET'] = $prev;
+            }
+        }
+    }
+
     public function testValidAccessTokenReturnsPayload(): void
     {
         $token   = $this->jwt->generateAccessToken(42);

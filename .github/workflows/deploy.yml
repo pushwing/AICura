@@ -101,3 +101,43 @@ jobs:
             sudo -n systemctl reload apache2
 
             echo "✅ 배포 완료: $(git rev-parse --short HEAD)"
+
+      # 배포 성공·실패를 Slack 채널로 통지 (Webhook 미설정 시 조용히 건너뜀).
+      # if: always() 로 실패한 배포도 반드시 알린다.
+      - name: Slack 배포 결과 알림
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          JOB_STATUS: ${{ job.status }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "SLACK_WEBHOOK_URL 미설정 — Slack 알림 건너뜀"; exit 0
+          fi
+          case "$JOB_STATUS" in
+            success) HEAD="✅ 프로덕션 배포 성공";;
+            failure) HEAD="❌ 프로덕션 배포 실패";;
+            *)       HEAD="⚠️ 프로덕션 배포 $JOB_STATUS";;
+          esac
+          # 커밋 메시지는 임의 문자열 → jq --arg 로 안전하게 JSON 이스케이프 (인젝션 차단)
+          COMMIT_MSG="$(git log -1 --pretty=%s)"
+          SHORT_SHA="$(git rev-parse --short HEAD)"
+          PAYLOAD="$(jq -n \
+            --arg head "$HEAD" \
+            --arg fields "*커밋* \`$SHORT_SHA\` — $COMMIT_MSG"$'\n'"*배포자* $ACTOR" \
+            --arg run "$RUN_URL" \
+            '{
+              text: $head,
+              blocks: [
+                { type: "section", text: { type: "mrkdwn", text: ("*" + $head + "*") } },
+                { type: "section", text: { type: "mrkdwn", text: $fields } },
+                { type: "actions", elements: [
+                  { type: "button", text: { type: "plain_text", text: "실행 로그 보기" }, url: $run }
+                ]}
+              ]
+            }')"
+          # Slack 전송 실패가 배포 결과(이미 완료)를 뒤집지 않도록 실패는 삼킨다.
+          curl -sf -X POST -H 'Content-type: application/json' --data "$PAYLOAD" "$SLACK_WEBHOOK_URL" \
+            && echo "Slack 알림 전송 완료" \
+            || echo "Slack 알림 전송 실패 (배포 결과에는 영향 없음)"

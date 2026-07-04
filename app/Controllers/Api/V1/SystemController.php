@@ -17,6 +17,12 @@ use Throwable;
 #[OA\Tag(name: 'System', description: '공통·운영 — 소비자 앱')]
 class SystemController extends BaseApiController
 {
+    /** 로그 본문 최대 크기(bytes) — 비인증 엔드포인트 디스크·큐 남용 방지 (이슈 #187) */
+    private const int MAX_LOG_BYTES = 8192;
+
+    /** 허용 로그 레벨 */
+    private const string ALLOWED_LEVELS = 'debug,info,warn,error';
+
     #[OA\Get(
         path: '/settings',
         summary: '앱 설정·최소버전·약관 링크',
@@ -54,13 +60,28 @@ class SystemController extends BaseApiController
         ])
     ), tags: ['System'], responses: [
         new OA\Response(response: 202, description: '수집 접수'),
+        new OA\Response(response: 413, description: '본문 크기 초과'),
         new OA\Response(response: 422, description: '본문 형식 오류'),
     ])]
     public function logs(): ResponseInterface
     {
+        // 비인증·익명 엔드포인트이므로 디코드 전에 원시 본문 크기부터 제한한다(디스크·큐 남용 방지).
+        if (strlen((string) $this->request->getBody()) > self::MAX_LOG_BYTES) {
+            return $this->error('PAYLOAD_TOO_LARGE', '로그 본문이 너무 큽니다.', 413);
+        }
+
         $payload = $this->request->getJSON(true);
         if (!is_array($payload) || $payload === []) {
             return $this->error('VALIDATION_ERROR', '로그 본문(JSON 객체)이 필요합니다.', 422);
+        }
+
+        // 알려진 필드는 형식·길이를 제한한다(그 외 컨텍스트 키는 크기 상한으로만 통제).
+        if (!$this->validate([
+            'level'   => 'permit_empty|in_list[' . self::ALLOWED_LEVELS . ']',
+            'event'   => 'permit_empty|max_length[100]',
+            'message' => 'permit_empty|max_length[2000]',
+        ])) {
+            return $this->error('VALIDATION_ERROR', implode(' ', $this->validator->getErrors()), 422);
         }
 
         service('logIngestService')->ingest($payload);
