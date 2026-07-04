@@ -78,6 +78,27 @@ class AuthProvider extends ChangeNotifier {
     });
   }
 
+  /// 소셜 로그인 — 카카오/네이버 SDK 에서 받은 access_token 을 서버에 전달한다.
+  ///
+  /// [provider] 는 'naver' | 'kakao'. 서버 검증 실패 시 [ApiException]
+  /// (code: `SOCIAL_AUTH_FAILED`) 이 호출부로 전달된다.
+  Future<void> socialLogin({
+    required String provider,
+    required String accessToken,
+  }) async {
+    await _run(() async {
+      final tokens = await _repo.social(
+        provider: provider,
+        accessToken: accessToken,
+      );
+      await _storage.save(
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      );
+      _status = AuthStatus.authenticated;
+    });
+  }
+
   Future<bool> checkEmail(String email) => _repo.isEmailAvailable(email);
 
   Future<void> logout() async {
