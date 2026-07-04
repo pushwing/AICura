@@ -111,6 +111,7 @@ jobs:
           JOB_STATUS: ${{ job.status }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           ACTOR: ${{ github.actor }}
+          REPO: ${{ github.repository }}
         run: |
           if [ -z "$SLACK_WEBHOOK_URL" ]; then
             echo "SLACK_WEBHOOK_URL 미설정 — Slack 알림 건너뜀"; exit 0
@@ -125,7 +126,7 @@ jobs:
           SHORT_SHA="$(git rev-parse --short HEAD)"
           PAYLOAD="$(jq -n \
             --arg head "$HEAD" \
-            --arg fields "*커밋* \`$SHORT_SHA\` — $COMMIT_MSG"$'\n'"*배포자* $ACTOR" \
+            --arg fields "*저장소* \`$REPO\`"$'\n'"*커밋* \`$SHORT_SHA\` — $COMMIT_MSG"$'\n'"*배포자* $ACTOR" \
             --arg run "$RUN_URL" \
             '{
               text: $head,
