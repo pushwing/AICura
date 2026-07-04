@@ -49,13 +49,17 @@ class AuthRepository {
   }
 
   /// 소셜 로그인 (미가입 시 자동 가입)
+  ///
+  /// 보안(이슈 #187): 서버는 클라이언트가 보낸 uid 를 더 이상 신뢰하지 않는다.
+  /// 소셜 SDK(카카오/네이버) 로그인으로 발급받은 [accessToken] 을 전송하면
+  /// 서버가 제공자 API 로 검증해 계정을 식별한다. 검증 실패 시 401 `SOCIAL_AUTH_FAILED`.
   Future<AuthTokens> social({
     required String provider,
-    required String uid,
+    required String accessToken,
   }) async {
     final res = await _api.post(
       '/auth/social',
-      body: {'provider': provider, 'uid': uid},
+      body: {'provider': provider, 'access_token': accessToken},
     );
     return AuthTokens.fromJson(res.dataAsMap);
   }
