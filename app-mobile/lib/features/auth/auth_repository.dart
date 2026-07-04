@@ -1,6 +1,9 @@
 import '../../core/network/api_client.dart';
 import 'models/auth_tokens.dart';
 
+/// 소셜 로그인 제공자 — 서버 전송 시 [Enum.name] 값('naver'|'kakao')을 그대로 사용한다.
+enum SocialProvider { naver, kakao }
+
 /// 인증 관련 API 호출 모음.
 class AuthRepository {
   AuthRepository(this._api);
@@ -54,12 +57,12 @@ class AuthRepository {
   /// 소셜 SDK(카카오/네이버) 로그인으로 발급받은 [accessToken] 을 전송하면
   /// 서버가 제공자 API 로 검증해 계정을 식별한다. 검증 실패 시 401 `SOCIAL_AUTH_FAILED`.
   Future<AuthTokens> social({
-    required String provider,
+    required SocialProvider provider,
     required String accessToken,
   }) async {
     final res = await _api.post(
       '/auth/social',
-      body: {'provider': provider, 'access_token': accessToken},
+      body: {'provider': provider.name, 'access_token': accessToken},
     );
     return AuthTokens.fromJson(res.dataAsMap);
   }
