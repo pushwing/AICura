@@ -112,6 +112,8 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           ACTOR: ${{ github.actor }}
           REPO: ${{ github.repository }}
+          TARGET_REF: ${{ github.ref_name }}
+          BEFORE_SHA: ${{ github.event.before }}
         run: |
           if [ -z "$SLACK_WEBHOOK_URL" ]; then
             echo "SLACK_WEBHOOK_URL 미설정 — Slack 알림 건너뜀"; exit 0
@@ -124,19 +126,49 @@ jobs:
           # 커밋 메시지는 임의 문자열 → jq --arg 로 안전하게 JSON 이스케이프 (인젝션 차단)
           COMMIT_MSG="$(git log -1 --pretty=%s)"
           SHORT_SHA="$(git rev-parse --short HEAD)"
+
+          # 브랜치 흐름: 병합 커밋 제목("Merge pull request #N from owner/src")에서 소스 브랜치 추출.
+          # 파싱 실패(수동 배포·비병합 푸시)하면 대상 브랜치만 표기한다.
+          SRC_BRANCH="$(printf '%s' "$COMMIT_MSG" | sed -n 's#.*from [^/]*/\([^ ]\{1,\}\).*#\1#p')"
+          if [ -n "$SRC_BRANCH" ]; then
+            FLOW="\`$SRC_BRANCH\` → \`$TARGET_REF\` → 프로덕션"
+          else
+            FLOW="\`$TARGET_REF\` → 프로덕션"
+          fi
+
+          # 이번 배포에 새로 포함된 커밋 목록 (이전 배포 시점 이후). 병합 커밋은 제외해
+          # 실제 작업 단위(PR 스쿼시 커밋)만 노출한다. 최대 10줄로 제한.
+          BEFORE="$BEFORE_SHA"
+          if [ -z "$BEFORE" ] || printf '%s' "$BEFORE" | grep -qE '^0+$'; then
+            BEFORE="$(git rev-parse HEAD~1 2>/dev/null || true)"
+          fi
+          CHANGES=""
+          RANGE="\`$SHORT_SHA\`"
+          if [ -n "$BEFORE" ] && git cat-file -e "$BEFORE" 2>/dev/null; then
+            RANGE="\`$(git rev-parse --short "$BEFORE")\` → \`$SHORT_SHA\`"
+            COUNT="$(git rev-list --count --no-merges "$BEFORE..HEAD" 2>/dev/null || echo 0)"
+            [ "$COUNT" != "0" ] && RANGE="$RANGE · ${COUNT}개 커밋"
+            CHANGES="$(git log "$BEFORE..HEAD" --no-merges --pretty=format:'• %s' | head -10)"
+          fi
+
+          FIELDS="*저장소* \`$REPO\`"$'\n'"*브랜치* $FLOW"$'\n'"*배포* $RANGE"$'\n'"*배포자* $ACTOR"
+          [ -n "$CHANGES" ] && CHANGES="*포함된 변경*"$'\n'"$CHANGES"
+
           PAYLOAD="$(jq -n \
             --arg head "$HEAD" \
-            --arg fields "*저장소* \`$REPO\`"$'\n'"*커밋* \`$SHORT_SHA\` — $COMMIT_MSG"$'\n'"*배포자* $ACTOR" \
+            --arg fields "$FIELDS" \
+            --arg changes "$CHANGES" \
             --arg run "$RUN_URL" \
             '{
               text: $head,
-              blocks: [
+              blocks: ([
                 { type: "section", text: { type: "mrkdwn", text: ("*" + $head + "*") } },
-                { type: "section", text: { type: "mrkdwn", text: $fields } },
-                { type: "actions", elements: [
-                  { type: "button", text: { type: "plain_text", text: "실행 로그 보기" }, url: $run }
-                ]}
+                { type: "section", text: { type: "mrkdwn", text: $fields } }
               ]
+              + (if $changes == "" then [] else [ { type: "section", text: { type: "mrkdwn", text: $changes } } ] end)
+              + [ { type: "actions", elements: [
+                  { type: "button", text: { type: "plain_text", text: "실행 로그 보기" }, url: $run }
+                ]} ])
             }')"
           # Slack 전송 실패가 배포 결과(이미 완료)를 뒤집지 않도록 실패는 삼킨다.
           curl -sf -X POST -H 'Content-type: application/json' --data "$PAYLOAD" "$SLACK_WEBHOOK_URL" \
