@@ -139,6 +139,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           REF: ${{ github.ref_name }}
           ACTOR: ${{ github.actor }}
+          REPO: ${{ github.repository }}
           BACKEND_RESULT: ${{ needs.backend.result }}
           APP_RESULT: ${{ needs.app.result }}
         run: |
@@ -149,8 +150,8 @@ jobs:
           COMMIT_MSG="$(git log -1 --pretty=%s)"
           SHORT_SHA="$(git rev-parse --short HEAD)"
           PAYLOAD="$(jq -n \
-            --arg head "❌ CI 실패 — $REF" \
-            --arg fields "*커밋* \`$SHORT_SHA\` — $COMMIT_MSG"$'\n'"*푸시* $ACTOR"$'\n'"*백엔드* $BACKEND_RESULT · *앱* $APP_RESULT" \
+            --arg head "❌ CI 실패 — $REPO ($REF)" \
+            --arg fields "*저장소* \`$REPO\`"$'\n'"*커밋* \`$SHORT_SHA\` — $COMMIT_MSG"$'\n'"*푸시* $ACTOR"$'\n'"*백엔드* $BACKEND_RESULT · *앱* $APP_RESULT" \
             --arg run "$RUN_URL" \
             '{
               text: $head,
