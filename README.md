@@ -11,7 +11,7 @@ AI 기반 성형·토탈 광고 솔루션 — 앱/웹용 REST API + 관리자 �
 | **스택** | PHP 8.4+ · CodeIgniter 4 · FrankenPHP |
 | **Admin** | CI4 MVC · 세션 인증 · DB 직접 접근 |
 | **API** | REST · JWT 인증 · JSON 응답 |
-| **문서** | Swagger UI (`/api/docs`) |
+| **문서** | RapiDoc (`/api/docs`) |
 
 ---
 
@@ -92,20 +92,24 @@ php spark db:seed AdminUserSeeder
 |------|------|------|
 | `/admin/login` | 관리자 로그인 | 없음 |
 | `/admin/*` | 관리자 패널 | 세션 |
-| `/api/docs` | Swagger UI | 없음 |
+| `/api/docs` | RapiDoc API 문서 | 없음 |
 | `/api/docs/spec` | OpenAPI JSON | 없음 |
 | `/api/v1/auth/*` | JWT 발급·갱신 | 없음 |
 | `/api/v1/*` | REST API | JWT Bearer |
 
 ---
 
-## API 문서 (Swagger)
+## API 문서 (RapiDoc)
 
+OpenAPI 스펙은 `zircote/swagger-php`로 생성하고, **RapiDoc**이 이를 렌더링합니다.
 개발 서버 실행 후 브라우저에서 확인합니다.
 
 ```
 http://localhost:8300/api/docs
 ```
+
+- `/api/docs` — RapiDoc UI (`app/Views/api/rapidoc.php`)
+- `/api/docs/spec` — OpenAPI JSON (개발: 동적 생성 / 운영: `public/swagger.json` 서빙)
 
 ### 정적 스펙 파일 생성 (운영 배포 시)
 
@@ -184,7 +188,7 @@ AICura/
 │   ├── Controllers/
 │   │   ├── Admin/          — 관리자 컨트롤러 (세션 인증)
 │   │   └── Api/
-│   │       ├── DocsController.php   — Swagger UI & 스펙 엔드포인트
+│   │       ├── DocsController.php   — RapiDoc & 스펙 엔드포인트
 │   │       └── V1/         — REST API 컨트롤러 (JWT 인증)
 │   ├── Models/             — Admin·API 공유 모델
 │   ├── Filters/
@@ -196,7 +200,7 @@ AICura/
 │   │   └── SwaggerGenerate.php   — php spark swagger:generate
 │   ├── Views/
 │   │   ├── admin/
-│   │   └── api/swagger_ui.php
+│   │   └── api/rapidoc.php
 │   └── Config/
 │       ├── Routes.php
 │       └── Filters.php

@@ -18,11 +18,11 @@ use OpenApi\Generator;
 class DocsController extends Controller
 {
     /**
-     * Swagger UI 페이지
+     * RapiDoc API 문서 페이지
      */
     public function index(): string
     {
-        return view('api/swagger_ui');
+        return view('api/rapidoc');
     }
 
     /**

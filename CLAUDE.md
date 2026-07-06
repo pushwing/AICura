@@ -16,7 +16,7 @@ AI 기반 성형·토탈 광고 솔루션. CodeIgniter 4 기반 Admin + REST API
 - **웹 서버**: FrankenPHP v1.12 — `make serve` (포트 8300, 권장) / CI4 내장 — `make serve-spark`
 - **프레임워크**: CodeIgniter 4
 - **인증**: 세션(Admin) / JWT Bearer(API) — JWT는 외부 라이브러리 없이 `JwtLibrary`(HMAC-SHA256)로 직접 구현
-- **API 문서**: Swagger UI (`/api/docs`) — `zircote/swagger-php`
+- **API 문서**: RapiDoc (`/api/docs`) — OpenAPI 스펙은 `zircote/swagger-php` 로 생성
 
 > **PHP 버전 구분**  
 > - 웹 요청 처리: FrankenPHP 내장 PHP 8.5.7  
@@ -320,9 +320,9 @@ $this->success($items, [
 | 유효성 검사 실패 | 422 |
 | 서버 오류 | 500 |
 
-## Swagger 어트리뷰트 규칙
+## OpenAPI 어트리뷰트 규칙
 
-새 API 엔드포인트마다 PHP 어트리뷰트 추가 필수.
+새 API 엔드포인트마다 PHP 어트리뷰트 추가 필수. `zircote/swagger-php` 가 이 어트리뷰트를 스캔해 OpenAPI 스펙(`/api/docs/spec`)을 만들고, RapiDoc(`/api/docs`)이 이를 렌더링한다.
 
 ```php
 use OpenApi\Attributes as OA;
