@@ -8,7 +8,7 @@ use CodeIgniter\Router\RouteCollection;
 // ── 루트 진입 → 관리자 로그인 리다이렉트 ──────────────────
 $routes->get('/', static fn (): RedirectResponse => redirect()->to('/admin/login'));
 
-// ── API Docs (Swagger UI) ────────────────────────────────
+// ── API Docs (RapiDoc) ────────────────────────────────
 $routes->get('api/docs',      'Api\DocsController::index');
 $routes->get('api/docs/spec', 'Api\DocsController::spec');
 
