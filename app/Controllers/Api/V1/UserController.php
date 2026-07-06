@@ -48,8 +48,8 @@ class UserController extends BaseApiController
             properties: [
                 new OA\Property(property: 'username', type: 'string', example: '홍길동'),
                 new OA\Property(property: 'phone', type: 'string', example: '01012345678'),
-                new OA\Property(property: 'age', type: 'integer', example: 29),
-                new OA\Property(property: 'sex', type: 'string', example: 'F'),
+                new OA\Property(property: 'age', type: 'integer', maximum: 127, example: 29),
+                new OA\Property(property: 'sex', type: 'string', enum: ['M', 'F'], example: 'F'),
                 new OA\Property(property: 'job', type: 'string', example: '회사원'),
                 new OA\Property(property: 'picture', type: 'string', example: 'https://...'),
             ]
@@ -63,8 +63,8 @@ class UserController extends BaseApiController
         $rules = [
             'username' => 'permit_empty|max_length[100]',
             'phone'    => 'permit_empty|max_length[30]',
-            'age'      => 'permit_empty|is_natural_no_zero|less_than[150]',
-            'sex'      => 'permit_empty|max_length[10]',
+            'age'      => 'permit_empty|is_natural_no_zero|less_than[128]',
+            'sex'      => 'permit_empty|in_list[M,F]',
             'job'      => 'permit_empty|max_length[100]',
             'picture'  => 'permit_empty|max_length[500]',
         ];
