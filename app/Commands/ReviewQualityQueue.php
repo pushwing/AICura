@@ -25,16 +25,6 @@ use Throwable;
  */
 class ReviewQualityQueue extends BaseCommand
 {
-    protected $group       = 'AICura';
-    protected $name        = 'reviews:analyze';
-    protected $description = '대기 중인 후기를 AI로 분석해 감성·신뢰점수·플래그를 채웁니다.';
-    protected $usage       = 'reviews:analyze [options]';
-
-    /** @var array<string, string> */
-    protected $options = [
-        '--limit' => '한 번에 처리할 최대 건수 (기본값: 50)',
-    ];
-
     private const int DEFAULT_LIMIT = 50;
 
     /**
@@ -43,7 +33,21 @@ class ReviewQualityQueue extends BaseCommand
      */
     private const int THROTTLE_SECONDS = 10;
 
-    /** @param array<int|string, string|null> $params */
+    protected $group       = 'AICura';
+    protected $name        = 'reviews:analyze';
+    protected $description = '대기 중인 후기를 AI로 분석해 감성·신뢰점수·플래그를 채웁니다.';
+    protected $usage       = 'reviews:analyze [options]';
+
+    /**
+     * @var array<string, string>
+     */
+    protected $options = [
+        '--limit' => '한 번에 처리할 최대 건수 (기본값: 50)',
+    ];
+
+    /**
+     * @param array<int|string, string|null> $params
+     */
     public function run(array $params): void
     {
         // 기능 토글 — settings에서 꺼져 있으면 대기 건을 건드리지 않고 종료
@@ -79,6 +83,7 @@ class ReviewQualityQueue extends BaseCommand
             }
 
             $id = (int) $row['id'];
+
             try {
                 $service->analyze($id);
                 $ok++;

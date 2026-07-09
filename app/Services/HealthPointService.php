@@ -27,7 +27,7 @@ class HealthPointService
     public function __construct(?UserModel $users = null, ?HealthPointLogModel $logs = null)
     {
         $this->users = $users ?? model(UserModel::class);
-        $this->logs  = $logs  ?? model(HealthPointLogModel::class);
+        $this->logs  = $logs ?? model(HealthPointLogModel::class);
     }
 
     /**
@@ -84,6 +84,7 @@ class HealthPointService
      * 포인트 차감(사용) — 잔액 부족 시 PointException.
      *
      * @return int 차감 후 잔액
+     *
      * @throws PointException 금액이 0 이하이거나 잔액 부족
      */
     public function redeem(int $userId, int $amount, ?string $memo = null): int
@@ -102,6 +103,7 @@ class HealthPointService
      * 결과 잔액이 음수가 되면 차감을 거부한다.
      *
      * @return int 변동 후 잔액
+     *
      * @throws PointException 잔액 부족
      */
     private function apply(int $userId, int $amount, PointReason $reason, ?int $refId, ?string $memo = null): int

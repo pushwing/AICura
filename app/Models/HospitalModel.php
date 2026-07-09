@@ -6,11 +6,29 @@ use CodeIgniter\Model;
 
 class HospitalModel extends Model
 {
-    protected $table      = 'hospitals';
-    protected $primaryKey = 'id';
+    // ──────────────────────────────────────────────
+    // 외부(소비자) 앱 — 병원 조회 (이슈 #99)
+    // ──────────────────────────────────────────────
+
+    /**
+     * boards.type — 병원 후기 (별점 요약 조인용)
+     */
+    private const int REVIEW_TYPE_HOSPITAL = 2;
+
+    /**
+     * 소비자 캐시(목록·상세) 무효화용 버전 토큰 캐시 키
+     */
+    public const CONSUMER_CACHE_VERSION_KEY = 'hospitals_consumer_cache_ver';
+
+    /**
+     * 버전 토큰 TTL (초) — 1일. 쓰기 발생 시 즉시 삭제되어 무효화된다.
+     */
+    private const int CONSUMER_CACHE_VERSION_TTL = 86400;
+
+    protected $table         = 'hospitals';
+    protected $primaryKey    = 'id';
     protected $useTimestamps = true;
     protected $returnType    = 'array';
-
     protected $allowedFields = [
         'name',
         'type',
@@ -25,7 +43,9 @@ class HospitalModel extends Model
     protected $afterUpdate = ['clearActiveListCache'];
     protected $afterDelete = ['clearActiveListCache'];
 
-    /** @var array<string, string> */
+    /**
+     * @var array<string, string>
+     */
     protected $validationRules = [
         'name'   => 'required|max_length[255]',
         'type'   => 'required|in_list[1,2,3]',
@@ -34,6 +54,7 @@ class HospitalModel extends Model
 
     /**
      * @param array<string, mixed> $params
+     *
      * @return array{list: list<array<string, mixed>>, total: int}
      */
     public function getList(array $params): array
@@ -42,10 +63,10 @@ class HospitalModel extends Model
             ->select('id, name, type, phone, status, created_at')
             ->where('is_deleted', 0);
 
-        if (!empty($params['name'])) {
+        if (! empty($params['name'])) {
             $builder->like('name', $params['name']);
         }
-        if (!empty($params['status'])) {
+        if (! empty($params['status'])) {
             $builder->where('status', $params['status']);
         }
 
@@ -96,27 +117,16 @@ class HospitalModel extends Model
      * 캐시 키에 포함되는 버전 토큰을 삭제해 한 번에 무효화한다(다음 조회 시 새 토큰 발급).
      *
      * @param array<string, mixed> $data
+     *
      * @return array<string, mixed>
      */
     protected function clearActiveListCache(array $data): array
     {
         cache()->delete('hospitals_active_list');
         cache()->delete(self::CONSUMER_CACHE_VERSION_KEY);
+
         return $data;
     }
-
-    // ──────────────────────────────────────────────
-    // 외부(소비자) 앱 — 병원 조회 (이슈 #99)
-    // ──────────────────────────────────────────────
-
-    /** boards.type — 병원 후기 (별점 요약 조인용) */
-    private const int REVIEW_TYPE_HOSPITAL = 2;
-
-    /** 소비자 캐시(목록·상세) 무효화용 버전 토큰 캐시 키 */
-    public const CONSUMER_CACHE_VERSION_KEY = 'hospitals_consumer_cache_ver';
-
-    /** 버전 토큰 TTL (초) — 1일. 쓰기 발생 시 즉시 삭제되어 무효화된다. */
-    private const int CONSUMER_CACHE_VERSION_TTL = 86400;
 
     /**
      * 소비자 캐시 키에 끼워 넣는 버전 토큰.
@@ -128,7 +138,7 @@ class HospitalModel extends Model
     {
         /** @var string|null $ver */
         $ver = cache(self::CONSUMER_CACHE_VERSION_KEY);
-        if (!is_string($ver)) {
+        if (! is_string($ver)) {
             $ver = bin2hex(random_bytes(4));
             cache()->save(self::CONSUMER_CACHE_VERSION_KEY, $ver, self::CONSUMER_CACHE_VERSION_TTL);
         }
@@ -143,6 +153,7 @@ class HospitalModel extends Model
      * 단일 진료과 코드로만 필터링하므로 INNER JOIN 시 병원 행 중복은 발생하지 않는다.
      *
      * @param array<string, mixed> $params keyword·region·type·department·page·limit
+     *
      * @return array{list: array<int, array<string, mixed>>, total: int}
      */
     public function getConsumerList(array $params): array
@@ -153,21 +164,21 @@ class HospitalModel extends Model
             ->join(
                 'board_summaries bs',
                 'bs.target_id = h.id AND bs.type = ' . self::REVIEW_TYPE_HOSPITAL,
-                'left'
+                'left',
             )
             ->where('h.is_deleted', 0)
             ->where('h.status', 'active');
 
-        if (!empty($params['keyword'])) {
+        if (! empty($params['keyword'])) {
             $builder->like('h.name', (string) $params['keyword']);
         }
-        if (!empty($params['region'])) {
+        if (! empty($params['region'])) {
             $builder->like('h.address', (string) $params['region']);
         }
-        if (!empty($params['type'])) {
+        if (! empty($params['type'])) {
             $builder->where('h.type', (int) $params['type']);
         }
-        if (!empty($params['department'])) {
+        if (! empty($params['department'])) {
             $builder->join('department_hospital dh', 'dh.hospital_id = h.id', 'inner')
                 ->join('departments d', 'd.id = dh.department_id', 'inner')
                 ->where('d.code', (string) $params['department'])
@@ -202,7 +213,7 @@ class HospitalModel extends Model
             ->join(
                 'board_summaries bs',
                 'bs.target_id = h.id AND bs.type = ' . self::REVIEW_TYPE_HOSPITAL,
-                'left'
+                'left',
             )
             ->where('h.id', $id)
             ->where('h.is_deleted', 0)

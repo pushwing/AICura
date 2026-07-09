@@ -2,12 +2,12 @@
 
 namespace App\Controllers\Portal;
 
-use Override;
-use CodeIgniter\HTTP\RequestInterface;
-use CodeIgniter\HTTP\ResponseInterface;
-use Psr\Log\LoggerInterface;
 use App\Models\AdvertiserOwnerInviteModel;
 use CodeIgniter\HTTP\RedirectResponse;
+use CodeIgniter\HTTP\RequestInterface;
+use CodeIgniter\HTTP\ResponseInterface;
+use Override;
+use Psr\Log\LoggerInterface;
 
 /**
  * 광고주 owner 연결 초대 응답 (이슈 #38)
@@ -23,7 +23,7 @@ class InviteController extends BasePortalController
     public function initController(
         RequestInterface $request,
         ResponseInterface $response,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ): void {
         parent::initController($request, $response, $logger);
         $this->inviteModel = model(AdvertiserOwnerInviteModel::class);
@@ -35,7 +35,7 @@ class InviteController extends BasePortalController
 
         $result = $this->inviteModel->acceptInvite($id, $this->userId());
 
-        if (!$result['ok']) {
+        if (! $result['ok']) {
             $message = $result['reason'] === 'already_linked'
                 ? '이미 다른 계정이 해당 광고주에 연결되어 초대를 수락할 수 없습니다.'
                 : '유효하지 않거나 만료된 초대입니다.';

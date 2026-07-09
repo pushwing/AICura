@@ -2,8 +2,8 @@
 
 namespace App\Controllers\Api\V1;
 
-use CodeIgniter\HTTP\ResponseInterface;
 use App\Libraries\Auth;
+use CodeIgniter\HTTP\ResponseInterface;
 use CodeIgniter\RESTful\ResourceController;
 
 abstract class BaseApiController extends ResourceController
@@ -15,7 +15,9 @@ abstract class BaseApiController extends ResourceController
         return Auth::userId();
     }
 
-    /** @param array<string, mixed> $meta */
+    /**
+     * @param array<string, mixed> $meta
+     */
     protected function success(mixed $data, array $meta = [], int $status = 200): ResponseInterface
     {
         $body = ['status' => 'success', 'data' => $data];

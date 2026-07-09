@@ -24,7 +24,7 @@ class AddUniqueIndexToBoardEstimations extends Migration
         // 기존 테이블이므로 forge 가 아닌 직접 인덱스 생성 (MySQL·SQLite 공통 문법)
         $this->db->query(
             'CREATE UNIQUE INDEX ' . self::INDEX_NAME
-            . ' ON board_estimations (type, board_id, user_id)'
+            . ' ON board_estimations (type, board_id, user_id)',
         );
     }
 

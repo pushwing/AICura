@@ -10,15 +10,17 @@ use CodeIgniter\Test\CIUnitTestCase;
  */
 final class JsonLdBuilderTest extends CIUnitTestCase
 {
-    /** 이벤트 → Offer + MedicalProcedure + MedicalClinic seller */
+    /**
+     * 이벤트 → Offer + MedicalProcedure + MedicalClinic seller
+     */
     public function testEventSchema(): void
     {
         $schema = JsonLdBuilder::event([
-            'id' => 7, 'ad_title' => '강남 리프팅', 'category_title' => '리프팅',
-            'discount_cost' => 10000, 'general_cost' => 20000, 'region' => '서울',
+            'id'             => 7, 'ad_title' => '강남 리프팅', 'category_title' => '리프팅',
+            'discount_cost'  => 10000, 'general_cost' => 20000, 'region' => '서울',
             'ad_detail_info' => '<p>상세</p>', 'thumbnail_url' => 'https://x/t.jpg',
-            'ad_start_date' => '2026-06-01', 'ad_end_date' => '2026-07-01',
-            'hospital_name' => '강남병원', 'hospital_address' => '서울 강남', 'hospital_phone' => '02-1',
+            'ad_start_date'  => '2026-06-01', 'ad_end_date' => '2026-07-01',
+            'hospital_name'  => '강남병원', 'hospital_address' => '서울 강남', 'hospital_phone' => '02-1',
         ], 'https://aicura.test/events/7');
 
         $this->assertSame('Offer', $schema['@type']);
@@ -30,7 +32,9 @@ final class JsonLdBuilderTest extends CIUnitTestCase
         $this->assertSame('서울 강남', $schema['seller']['address']);
     }
 
-    /** 할인가 0이면 정상가를 price 로 사용 */
+    /**
+     * 할인가 0이면 정상가를 price 로 사용
+     */
     public function testEventFallsBackToGeneralCost(): void
     {
         $schema = JsonLdBuilder::event([
@@ -40,12 +44,14 @@ final class JsonLdBuilderTest extends CIUnitTestCase
         $this->assertSame(5000, $schema['price']);
     }
 
-    /** 병원 → MedicalClinic + AggregateRating(평점·건수 있을 때만) */
+    /**
+     * 병원 → MedicalClinic + AggregateRating(평점·건수 있을 때만)
+     */
     public function testHospitalSchemaWithRating(): void
     {
         $schema = JsonLdBuilder::hospital([
-            'name' => '강남병원', 'phone' => '02-1', 'address' => '서울 강남',
-            'departments' => ['성형외과', '피부과'],
+            'name'           => '강남병원', 'phone' => '02-1', 'address' => '서울 강남',
+            'departments'    => ['성형외과', '피부과'],
             'review_summary' => ['rating' => 4.5, 'count' => 12],
         ], 'https://aicura.test/hospitals/3');
 
@@ -57,7 +63,9 @@ final class JsonLdBuilderTest extends CIUnitTestCase
         $this->assertSame(12, $schema['aggregateRating']['reviewCount']);
     }
 
-    /** 평점·건수 없으면 aggregateRating 미포함 (Google 요구사항) */
+    /**
+     * 평점·건수 없으면 aggregateRating 미포함 (Google 요구사항)
+     */
     public function testHospitalWithoutRatingOmitsAggregate(): void
     {
         $schema = JsonLdBuilder::hospital([
@@ -67,12 +75,14 @@ final class JsonLdBuilderTest extends CIUnitTestCase
         $this->assertArrayNotHasKey('aggregateRating', $schema);
     }
 
-    /** 후기 → Review + Rating + itemReviewed(대상명 있을 때) */
+    /**
+     * 후기 → Review + Rating + itemReviewed(대상명 있을 때)
+     */
     public function testReviewSchema(): void
     {
         $schema = JsonLdBuilder::review([
             'subject' => '만족', 'contents' => '시술 좋았어요', 'author' => '홍*동',
-            'rating' => 5, 'created_at' => '2026-06-01 10:00:00', 'type' => 2,
+            'rating'  => 5, 'created_at' => '2026-06-01 10:00:00', 'type' => 2,
         ], 'https://aicura.test/reviews/4', '강남병원');
 
         $this->assertSame('Review', $schema['@type']);
@@ -82,7 +92,9 @@ final class JsonLdBuilderTest extends CIUnitTestCase
         $this->assertSame('강남병원', $schema['itemReviewed']['name']);
     }
 
-    /** 대상명 없으면 itemReviewed 생략 */
+    /**
+     * 대상명 없으면 itemReviewed 생략
+     */
     public function testReviewWithoutTargetOmitsItemReviewed(): void
     {
         $schema = JsonLdBuilder::review([
@@ -93,7 +105,9 @@ final class JsonLdBuilderTest extends CIUnitTestCase
         $this->assertArrayNotHasKey('reviewRating', $schema); // rating 0 → 미포함
     }
 
-    /** render() — script 블록 + </script> 탈출 방지(JSON_HEX_TAG) */
+    /**
+     * render() — script 블록 + </script> 탈출 방지(JSON_HEX_TAG)
+     */
     public function testRenderEscapesScriptInjection(): void
     {
         $html = JsonLdBuilder::render([
@@ -107,19 +121,23 @@ final class JsonLdBuilderTest extends CIUnitTestCase
         $this->assertSame(1, substr_count($html, '</script>'));
     }
 
-    /** render([]) — 빈 입력은 빈 문자열 */
+    /**
+     * render([]) — 빈 입력은 빈 문자열
+     */
     public function testRenderEmpty(): void
     {
         $this->assertSame('', JsonLdBuilder::render([]));
     }
 
-    /** 가이드 → MedicalWebPage + about MedicalProcedure (#146) */
+    /**
+     * 가이드 → MedicalWebPage + about MedicalProcedure (#146)
+     */
     public function testGuideSchema(): void
     {
         $schema = JsonLdBuilder::guide([
-            'title' => '쌍꺼풀 가이드', 'summary' => '요약', 'content' => '<p>본문</p>',
+            'title'          => '쌍꺼풀 가이드', 'summary' => '요약', 'content' => '<p>본문</p>',
             'procedure_name' => '쌍꺼풀 수술', 'published_at' => '2026-06-01 10:00:00',
-            'updated_at' => '2026-06-02 10:00:00',
+            'updated_at'     => '2026-06-02 10:00:00',
         ], 'https://aicura.test/guides/x');
 
         $this->assertSame('MedicalWebPage', $schema['@type']);
@@ -130,14 +148,18 @@ final class JsonLdBuilderTest extends CIUnitTestCase
         $this->assertSame('쌍꺼풀 수술', $schema['about']['name']);
     }
 
-    /** 시술명 없으면 about 생략 */
+    /**
+     * 시술명 없으면 about 생략
+     */
     public function testGuideWithoutProcedureOmitsAbout(): void
     {
         $schema = JsonLdBuilder::guide(['title' => 't'], 'https://aicura.test/guides/y');
         $this->assertArrayNotHasKey('about', $schema);
     }
 
-    /** FAQ → FAQPage */
+    /**
+     * FAQ → FAQPage
+     */
     public function testFaqPageSchema(): void
     {
         $schema = JsonLdBuilder::faqPage([
@@ -152,7 +174,9 @@ final class JsonLdBuilderTest extends CIUnitTestCase
         $this->assertSame('병원마다 다릅니다', $schema['mainEntity'][0]['acceptedAnswer']['text']);
     }
 
-    /** FAQ 비면 빈 배열(render 에서 무시) */
+    /**
+     * FAQ 비면 빈 배열(render 에서 무시)
+     */
     public function testFaqPageEmpty(): void
     {
         $this->assertSame([], JsonLdBuilder::faqPage([], 'https://aicura.test/guides/z'));

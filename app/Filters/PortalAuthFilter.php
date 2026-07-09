@@ -2,9 +2,9 @@
 
 namespace App\Filters;
 
+use CodeIgniter\Filters\FilterInterface;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
-use CodeIgniter\Filters\FilterInterface;
 
 /**
  * 광고주·광고대행사 포털 세션 인증 (이슈 #32)
@@ -15,7 +15,7 @@ class PortalAuthFilter implements FilterInterface
 {
     public function before(RequestInterface $request, $arguments = null): mixed
     {
-        if (!session()->get('portal_user')) {
+        if (! session()->get('portal_user')) {
             return redirect()->to('/portal/login');
         }
 

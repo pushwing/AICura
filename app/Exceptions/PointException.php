@@ -28,13 +28,17 @@ final class PointException extends DomainException
         return $this->apiCode;
     }
 
-    /** 차감 요청 금액이 0 이하 */
+    /**
+     * 차감 요청 금액이 0 이하
+     */
     public static function invalidAmount(): self
     {
         return new self(422, 'VALIDATION_ERROR', '차감 금액은 1 이상이어야 합니다.');
     }
 
-    /** 보유 잔액보다 큰 차감 요청 */
+    /**
+     * 보유 잔액보다 큰 차감 요청
+     */
     public static function insufficientBalance(): self
     {
         return new self(422, 'INSUFFICIENT_POINT', '보유한 헬스포인트가 부족합니다.');

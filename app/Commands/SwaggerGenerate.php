@@ -2,10 +2,10 @@
 
 namespace App\Commands;
 
-use Throwable;
 use CodeIgniter\CLI\BaseCommand;
 use CodeIgniter\CLI\CLI;
 use OpenApi\Generator;
+use Throwable;
 
 class SwaggerGenerate extends BaseCommand
 {
@@ -24,7 +24,7 @@ class SwaggerGenerate extends BaseCommand
         CLI::write('OpenAPI 스펙 생성 중...', 'yellow');
 
         try {
-            $openapi = new Generator()->generate([APPPATH . 'Controllers/Api']);
+            $openapi = (new Generator())->generate([APPPATH . 'Controllers/Api']);
             $json    = $openapi->toJson();
 
             file_put_contents($output, $json);

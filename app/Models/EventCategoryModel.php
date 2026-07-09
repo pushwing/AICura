@@ -10,7 +10,6 @@ class EventCategoryModel extends Model
     protected $primaryKey    = 'id';
     protected $useTimestamps = true;
     protected $returnType    = 'array';
-
     protected $allowedFields = [
         'parent_id',
         'title',

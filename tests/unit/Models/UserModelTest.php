@@ -72,8 +72,8 @@ final class UserModelTest extends CIUnitTestCase
 
     public function testUserTypeConstantsAreDefined(): void
     {
-        $this->assertSame(1,   UserModel::TYPE_USER);
-        $this->assertSame(2,   UserModel::TYPE_OPERATOR);
+        $this->assertSame(1, UserModel::TYPE_USER);
+        $this->assertSame(2, UserModel::TYPE_OPERATOR);
         $this->assertSame(201, UserModel::TYPE_HOSPITAL_AD);
         $this->assertSame(202, UserModel::TYPE_HOSPITAL_GENE);
         $this->assertSame(203, UserModel::TYPE_HOSPITAL_RECV);

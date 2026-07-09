@@ -2,16 +2,15 @@
 
 namespace App\Models;
 
-use Throwable;
 use CodeIgniter\Model;
+use Throwable;
 
 class AdvertiserModel extends Model
 {
-    protected $table      = 'advertisers';
-    protected $primaryKey = 'id';
+    protected $table         = 'advertisers';
+    protected $primaryKey    = 'id';
     protected $useTimestamps = true;
     protected $returnType    = 'array';
-
     protected $allowedFields = [
         'hospital_id',
         'hospital_name',
@@ -31,7 +30,9 @@ class AdvertiserModel extends Model
     protected $afterInsert = ['clearKpiCache'];
     protected $afterUpdate = ['clearKpiCache'];
 
-    /** @var array<string, string> */
+    /**
+     * @var array<string, string>
+     */
     protected $validationRules = [
         'hospital_id'   => 'required|integer|greater_than[0]',
         'hospital_name' => 'required|max_length[255]',
@@ -44,6 +45,7 @@ class AdvertiserModel extends Model
 
     /**
      * @param array<string, mixed> $params
+     *
      * @return array{list: list<array<string, mixed>>, total: int}
      */
     public function getList(array $params): array
@@ -54,7 +56,7 @@ class AdvertiserModel extends Model
             ->select('pa.hospital_name AS parent_name', false)
             ->join('advertisers pa', 'pa.id = a.network_parent_id', 'left');
 
-        if (!empty($params['hospital_name'])) {
+        if (! empty($params['hospital_name'])) {
             $builder->like('a.hospital_name', $params['hospital_name']);
         }
         if (isset($params['status']) && $params['status'] !== '') {
@@ -104,7 +106,7 @@ class AdvertiserModel extends Model
                 ->getResultArray();
         }
 
-        if ($isNetwork === 2 && !empty($advertiser['network_parent_id'])) {
+        if ($isNetwork === 2 && ! empty($advertiser['network_parent_id'])) {
             $advertiser['parent'] = $this->db->table('advertisers')
                 ->select('id, hospital_name, status')
                 ->where('id', (int) $advertiser['network_parent_id'])
@@ -177,6 +179,7 @@ class AdvertiserModel extends Model
      * afterInsert/afterUpdate 콜백 — KPI 캐시 무효화
      *
      * @param array<string, mixed> $data
+     *
      * @return array<string, mixed>
      */
     protected function clearKpiCache(array $data): array
@@ -185,7 +188,7 @@ class AdvertiserModel extends Model
 
         /** @var array<string, mixed> $payload */
         $payload = is_array($data['data'] ?? null) ? $data['data'] : [];
-        if (!empty($payload['hospital_id'])) {
+        if (! empty($payload['hospital_id'])) {
             $hospitalId = (int) $payload['hospital_id'];
         } else {
             $rawId = $data['id'] ?? null;
@@ -216,6 +219,7 @@ class AdvertiserModel extends Model
      * 특정 대행사가 소유한 광고주 목록 (검색·페이징)
      *
      * @param array<string, mixed> $params
+     *
      * @return array{list: list<array<string, mixed>>, total: int}
      */
     public function getListByAgency(int $agencyUserId, array $params): array
@@ -224,7 +228,7 @@ class AdvertiserModel extends Model
             ->select('a.id, a.hospital_id, a.hospital_name, a.contact_name, a.contact_phone, a.status, a.contract_agreed_at, a.created_at')
             ->where('a.agency_user_id', $agencyUserId);
 
-        if (!empty($params['hospital_name'])) {
+        if (! empty($params['hospital_name'])) {
             $builder->like('a.hospital_name', $params['hospital_name']);
         }
         if (isset($params['status']) && $params['status'] !== '') {
@@ -253,6 +257,7 @@ class AdvertiserModel extends Model
      * 받아 단일 쿼리로 집계하여 N+1을 방지한다.
      *
      * @param list<int> $agencyUserIds
+     *
      * @return array<int, array{advertiser_count: int, order_count: int, total_price: int}>
      */
     public function getAgencyStats(array $agencyUserIds): array
@@ -275,6 +280,7 @@ class AdvertiserModel extends Model
             ->getResultArray();
 
         $stats = [];
+
         foreach ($rows as $row) {
             $stats[(int) $row['agency_user_id']] = [
                 'advertiser_count' => (int) $row['advertiser_count'],
@@ -308,7 +314,7 @@ class AdvertiserModel extends Model
         /** @var list<int> $hospitalIds */
         $hospitalIds = array_values(array_unique(array_map(
             static fn (array $a): int => (int) $a['hospital_id'],
-            $advertisers
+            $advertisers,
         )));
 
         $contractModel = model(ContractModel::class);
@@ -321,7 +327,8 @@ class AdvertiserModel extends Model
             $a['order_count'] = $s['order_count'];
             $a['total_price'] = $s['total_price'];
             $a['orders']      = $ordersByHosp[$hospitalId] ?? [];
-            $a['agreed']      = !empty($a['contract_agreed_at']);
+            $a['agreed']      = ! empty($a['contract_agreed_at']);
+
             return $a;
         }, $advertisers);
     }
@@ -386,7 +393,7 @@ class AdvertiserModel extends Model
                 ->where('hospital_id', $hospitalId)
                 ->countAllResults() > 0;
 
-            if (!$hasContract) {
+            if (! $hasContract) {
                 $db->table('contracts')->insert([
                     'hospital_id'   => $hospitalId,
                     'hospital_name' => $hospitalName,
@@ -402,6 +409,7 @@ class AdvertiserModel extends Model
             return true;
         } catch (Throwable $e) {
             $db->transRollback();
+
             throw $e;
         }
     }

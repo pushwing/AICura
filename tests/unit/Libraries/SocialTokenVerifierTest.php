@@ -26,7 +26,9 @@ final class SocialTokenVerifierTest extends CIUnitTestCase
         Services::reset(true);
     }
 
-    /** curlrequest 서비스를 지정한 상태코드·본문을 반환하는 목으로 교체 */
+    /**
+     * curlrequest 서비스를 지정한 상태코드·본문을 반환하는 목으로 교체
+     */
     private function mockCurl(int $status, string $body): void
     {
         $config = new App();
@@ -40,7 +42,9 @@ final class SocialTokenVerifierTest extends CIUnitTestCase
         Services::injectMock('curlrequest', $mock);
     }
 
-    /** Kakao 정상 응답 → id 를 uid(문자열)로, 프로필 필드를 매핑 */
+    /**
+     * Kakao 정상 응답 → id 를 uid(문자열)로, 프로필 필드를 매핑
+     */
     public function testKakaoSuccessParsesUid(): void
     {
         $this->mockCurl(200, json_encode([
@@ -55,7 +59,9 @@ final class SocialTokenVerifierTest extends CIUnitTestCase
         $this->assertSame('https://img/k.png', $profile->picture);
     }
 
-    /** Naver 정상 응답 → response.id 를 uid 로 */
+    /**
+     * Naver 정상 응답 → response.id 를 uid 로
+     */
     public function testNaverSuccessParsesUid(): void
     {
         $this->mockCurl(200, json_encode([
@@ -70,7 +76,9 @@ final class SocialTokenVerifierTest extends CIUnitTestCase
         $this->assertSame('네이버', $profile->username);
     }
 
-    /** 제공자가 401(만료·위조) 반환 → 검증 실패 예외 */
+    /**
+     * 제공자가 401(만료·위조) 반환 → 검증 실패 예외
+     */
     public function testRejectsNon2xx(): void
     {
         $this->mockCurl(401, json_encode(['msg' => 'invalid token', 'code' => -401]));
@@ -84,7 +92,9 @@ final class SocialTokenVerifierTest extends CIUnitTestCase
         }
     }
 
-    /** 2xx 이지만 id 가 없는 응답 → 검증 실패 (uid 없이는 신뢰 불가) */
+    /**
+     * 2xx 이지만 id 가 없는 응답 → 검증 실패 (uid 없이는 신뢰 불가)
+     */
     public function testRejectsResponseWithoutId(): void
     {
         $this->mockCurl(200, json_encode(['kakao_account' => ['profile' => ['nickname' => 'noid']]]));
@@ -93,7 +103,9 @@ final class SocialTokenVerifierTest extends CIUnitTestCase
         (new SocialTokenVerifier())->verify('kakao', 'valid-token');
     }
 
-    /** JSON 이 아닌 본문 → 검증 실패 */
+    /**
+     * JSON 이 아닌 본문 → 검증 실패
+     */
     public function testRejectsNonJsonBody(): void
     {
         $this->mockCurl(200, '<html>error</html>');
@@ -102,7 +114,9 @@ final class SocialTokenVerifierTest extends CIUnitTestCase
         (new SocialTokenVerifier())->verify('naver', 'valid-token');
     }
 
-    /** 지원하지 않는 제공자 → VALIDATION_ERROR */
+    /**
+     * 지원하지 않는 제공자 → VALIDATION_ERROR
+     */
     public function testRejectsUnsupportedProvider(): void
     {
         try {
@@ -113,7 +127,9 @@ final class SocialTokenVerifierTest extends CIUnitTestCase
         }
     }
 
-    /** 빈 access_token → 검증 실패 (HTTP 호출 없이 즉시 거부) */
+    /**
+     * 빈 access_token → 검증 실패 (HTTP 호출 없이 즉시 거부)
+     */
     public function testRejectsEmptyToken(): void
     {
         try {

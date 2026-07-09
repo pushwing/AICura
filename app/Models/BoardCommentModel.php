@@ -9,11 +9,13 @@ use CodeIgniter\Model;
  */
 class BoardCommentModel extends Model
 {
-    protected $table      = 'board_comments';
-    protected $primaryKey = 'id';
+    public const DELETE_NONE = 0;
+    public const DELETE_DONE = 1;
+
+    protected $table         = 'board_comments';
+    protected $primaryKey    = 'id';
     protected $useTimestamps = true;
     protected $returnType    = 'array';
-
     protected $allowedFields = [
         'board_id',
         'user_id',
@@ -23,9 +25,6 @@ class BoardCommentModel extends Model
         'is_list',
         'is_delete',
     ];
-
-    public const DELETE_NONE = 0;
-    public const DELETE_DONE = 1;
 
     /**
      * 후기의 공개 댓글 목록 (오래된 순, 페이징)

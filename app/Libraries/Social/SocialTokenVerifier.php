@@ -21,13 +21,17 @@ use Throwable;
  */
 class SocialTokenVerifier implements SocialVerifierInterface
 {
-    /** 제공자 → 사용자정보 엔드포인트 */
+    /**
+     * 제공자 → 사용자정보 엔드포인트
+     */
     private const array ENDPOINTS = [
         'kakao' => 'https://kapi.kakao.com/v2/user/me',
         'naver' => 'https://openapi.naver.com/v1/nid/me',
     ];
 
-    /** 외부 API 호출 타임아웃(초) — CLAUDE.md 외부 호출 기본 5초 */
+    /**
+     * 외부 API 호출 타임아웃(초) — CLAUDE.md 외부 호출 기본 5초
+     */
     private const int TIMEOUT = 5;
 
     public function verify(string $provider, string $accessToken): SocialProfile

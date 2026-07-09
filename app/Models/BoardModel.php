@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use RuntimeException;
-use InvalidArgumentException;
 use CodeIgniter\Model;
+use InvalidArgumentException;
+use RuntimeException;
 
 /**
  * 후기/게시판 (boards)
@@ -16,42 +16,18 @@ use CodeIgniter\Model;
  */
 class BoardModel extends Model
 {
-    protected $table      = 'boards';
-    protected $primaryKey = 'id';
-    protected $useTimestamps = true;
-    protected $returnType    = 'array';
-
-    protected $allowedFields = [
-        'subject',
-        'contents',
-        'is_notice',
-        'is_list',
-        'is_delete',
-        'delete_memo',
-        'delete_date',
-        'ai_sentiment',
-        'ai_trust_score',
-        'ai_flags',
-        'ai_reason',
-        'ai_status',
-        // 외부 앱 후기 작성 필드 (이슈 #102)
-        'user_id',
-        'user_name',
-        'type',
-        'target_id',
-        'rate_sum',
-        'files_count',
-        'is_secret',
-    ];
-
-    /** @var array<int, string> 후기 유형 */
+    /**
+     * @var array<int, string> 후기 유형
+     */
     public const TYPES = [
         1 => '이벤트',
         2 => '병원',
         3 => '접수',
     ];
 
-    /** @var array<int, string> 삭제 상태 */
+    /**
+     * @var array<int, string> 삭제 상태
+     */
     public const DELETE_STATES = [
         0 => '정상',
         1 => '임시삭제',
@@ -77,19 +53,77 @@ class BoardModel extends Model
     public const AI_STATUS_DONE    = 2; // 완료
     public const AI_STATUS_FAILED  = 3; // 실패
 
-    /** 신뢰점수가 이 값 미만이면 '의심 후기'로 본다 */
+    /**
+     * 신뢰점수가 이 값 미만이면 '의심 후기'로 본다
+     */
     public const SUSPICIOUS_SCORE = 40;
 
-    /** @var array<int, string> 감성 허용 값 */
+    /**
+     * @var array<int, string> 감성 허용 값
+     */
     public const SENTIMENTS = ['positive', 'neutral', 'negative'];
 
-    /** @var array<int, string> 플래그 허용 값 — AI가 임의 라벨을 만들지 못하도록 화이트리스트로 제한 */
+    /**
+     * @var array<int, string> 플래그 허용 값 — AI가 임의 라벨을 만들지 못하도록 화이트리스트로 제한
+     */
     public const FLAGS = ['spam', 'fake', 'exaggeration', 'medical_overclaim', 'advertisement', 'duplicate'];
+
+    // ──────────────────────────────────────────────
+    // 외부(소비자) 앱 — 후기 조회 (이슈 #99)
+    // ──────────────────────────────────────────────
+
+    /**
+     * boards.type — 1 이벤트 · 2 병원 · 3 접수
+     */
+    public const TYPE_EVENT = 1;
+
+    public const TYPE_HOSPITAL = 2;
+
+    // ──────────────────────────────────────────────
+    // 외부(소비자) 앱 — 후기 작성/관리 (이슈 #102)
+    // ──────────────────────────────────────────────
+
+    /**
+     * 후기 정렬 컬럼 화이트리스트 (sort → ORDER BY)
+     */
+    private const array SORT_COLUMNS = [
+        'latest' => 'id',
+        'rating' => 'rate_sum',
+        'likes'  => 'like_count',
+    ];
+
+    protected $table         = 'boards';
+    protected $primaryKey    = 'id';
+    protected $useTimestamps = true;
+    protected $returnType    = 'array';
+    protected $allowedFields = [
+        'subject',
+        'contents',
+        'is_notice',
+        'is_list',
+        'is_delete',
+        'delete_memo',
+        'delete_date',
+        'ai_sentiment',
+        'ai_trust_score',
+        'ai_flags',
+        'ai_reason',
+        'ai_status',
+        // 외부 앱 후기 작성 필드 (이슈 #102)
+        'user_id',
+        'user_name',
+        'type',
+        'target_id',
+        'rate_sum',
+        'files_count',
+        'is_secret',
+    ];
 
     /**
      * 후기 목록 (유형·삭제상태·신고 필터, 페이징)
      *
      * @param array<string, mixed> $params
+     *
      * @return array{list: array<int, array<string, mixed>>, total: int}
      */
     public function getList(array $params): array
@@ -106,15 +140,15 @@ class BoardModel extends Model
             $builder->where('is_delete', (int) $params['is_delete']);
         }
         // 신고만 보기
-        if (!empty($params['reported'])) {
+        if (! empty($params['reported'])) {
             $builder->where('complain_count >', 0);
         }
         // 의심 후기만 보기 — 분석 완료(DONE) 중 신뢰점수 낮거나 플래그가 있는 건
-        if (!empty($params['suspicious'])) {
+        if (! empty($params['suspicious'])) {
             $builder->where('ai_status', self::AI_STATUS_DONE)
                 ->groupStart()
-                    ->where('ai_trust_score <', self::SUSPICIOUS_SCORE)
-                    ->orWhere('JSON_LENGTH(ai_flags) >', 0)
+                ->where('ai_trust_score <', self::SUSPICIOUS_SCORE)
+                ->orWhere('JSON_LENGTH(ai_flags) >', 0)
                 ->groupEnd();
         }
         if (($params['keyword'] ?? '') !== '') {
@@ -149,6 +183,7 @@ class BoardModel extends Model
      *
      * @param bool $onlyActive 삭제(임시·완전) 후기를 제외할지 여부. 소비자 노출(#97)은 true,
      *                         어드민 상세는 삭제 상태까지 보여주므로 false(기본).
+     *
      * @return array{list: array<int, array<string, mixed>>, total: int}
      */
     public function getByUser(int $userId, int $limit, int $offset, bool $onlyActive = false): array
@@ -206,7 +241,7 @@ class BoardModel extends Model
      */
     public function markDeleted(int $id, int $state, string $memo): void
     {
-        if (!in_array($state, [self::DELETE_TEMP, self::DELETE_FULL], true)) {
+        if (! in_array($state, [self::DELETE_TEMP, self::DELETE_FULL], true)) {
             throw new RuntimeException('유효하지 않은 삭제 유형입니다.');
         }
         if ($this->find($id) === null) {
@@ -304,14 +339,6 @@ class BoardModel extends Model
         $this->update($id, ['ai_status' => self::AI_STATUS_FAILED]);
     }
 
-    // ──────────────────────────────────────────────
-    // 외부(소비자) 앱 — 후기 조회 (이슈 #99)
-    // ──────────────────────────────────────────────
-
-    /** boards.type — 1 이벤트 · 2 병원 · 3 접수 */
-    public const TYPE_EVENT    = 1;
-    public const TYPE_HOSPITAL = 2;
-
     /**
      * 대상(type+target_id)의 공개 후기 목록 — 비밀글·삭제글 제외, 최신순, 페이징.
      *
@@ -351,21 +378,11 @@ class BoardModel extends Model
             ->countAllResults();
     }
 
-    // ──────────────────────────────────────────────
-    // 외부(소비자) 앱 — 후기 작성/관리 (이슈 #102)
-    // ──────────────────────────────────────────────
-
-    /** 후기 정렬 컬럼 화이트리스트 (sort → ORDER BY) */
-    private const array SORT_COLUMNS = [
-        'latest' => 'id',
-        'rating' => 'rate_sum',
-        'likes'  => 'like_count',
-    ];
-
     /**
      * 후기 목록 — type·target 필터, 정렬(latest/rating/likes), 페이징. 공개글만.
      *
      * @param array<string, mixed> $params type·target_id·sort·page·limit
+     *
      * @return array{list: array<int, array<string, mixed>>, total: int}
      */
     public function getConsumerList(array $params): array
@@ -377,10 +394,10 @@ class BoardModel extends Model
             ->where('is_secret', 0)
             ->where('is_list', 1);
 
-        if (!empty($params['type'])) {
+        if (! empty($params['type'])) {
             $builder->where('type', (int) $params['type']);
         }
-        if (!empty($params['target_id'])) {
+        if (! empty($params['target_id'])) {
             $builder->where('target_id', (int) $params['target_id']);
         }
 
@@ -469,8 +486,8 @@ class BoardModel extends Model
             ->where('is_list', 1)
             ->where('complain_count', 0)
             ->groupStart()
-                ->where('ai_status !=', self::AI_STATUS_DONE)
-                ->orWhere('ai_trust_score >=', self::SUSPICIOUS_SCORE)
+            ->where('ai_status !=', self::AI_STATUS_DONE)
+            ->orWhere('ai_trust_score >=', self::SUSPICIOUS_SCORE)
             ->groupEnd()
             ->orderBy('id', 'DESC')
             ->limit($limit)
@@ -538,7 +555,7 @@ class BoardModel extends Model
      */
     public function adjustCounter(int $id, string $column, int $delta): void
     {
-        if (!in_array($column, ['like_count', 'comment_count', 'complain_count'], true)) {
+        if (! in_array($column, ['like_count', 'comment_count', 'complain_count'], true)) {
             throw new InvalidArgumentException('허용되지 않은 카운터 컬럼: ' . $column);
         }
 

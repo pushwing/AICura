@@ -25,14 +25,13 @@ final class HospitalApiFeatureTest extends CIUnitTestCase
     use DatabaseTestTrait;
     use FeatureTestTrait;
 
-    protected $migrate   = true;
-    protected $refresh   = true;
-    protected $namespace = null;
-
-    private int $userId = 0;
-    private string $token = '';
-    private int $h1 = 0; // 활성 (서울)
-    private int $h2 = 0; // 활성 (부산)
+    protected $migrate = true;
+    protected $refresh = true;
+    protected $namespace;
+    private int $userId    = 0;
+    private string $token  = '';
+    private int $h1        = 0; // 활성 (서울)
+    private int $h2        = 0; // 활성 (부산)
     private int $hInactive = 0;
 
     protected function setUp(): void
@@ -44,7 +43,7 @@ final class HospitalApiFeatureTest extends CIUnitTestCase
         $now = date('Y-m-d H:i:s');
 
         $db->table('users')->insert([
-            'email' => 'huser@aicura.test', 'user_type' => UserModel::TYPE_USER, 'is_active' => 1,
+            'email'      => 'huser@aicura.test', 'user_type' => UserModel::TYPE_USER, 'is_active' => 1,
             'created_at' => $now, 'updated_at' => $now,
         ]);
         $this->userId = (int) $db->insertID();
@@ -75,7 +74,7 @@ final class HospitalApiFeatureTest extends CIUnitTestCase
         $this->insertReview($this->h1, '비밀후기', 1);
         // 이벤트 후기(type=1)는 병원 후기에 섞이면 안 됨
         $db->table('boards')->insert([
-            'user_id' => $this->userId, 'type' => 1, 'target_id' => $this->h1, 'subject' => '이벤트후기',
+            'user_id'   => $this->userId, 'type' => 1, 'target_id' => $this->h1, 'subject' => '이벤트후기',
             'is_delete' => 0, 'is_secret' => 0, 'is_list' => 1, 'created_at' => $now, 'updated_at' => $now,
         ]);
     }
@@ -85,7 +84,7 @@ final class HospitalApiFeatureTest extends CIUnitTestCase
         $db  = db_connect();
         $now = date('Y-m-d H:i:s');
         $db->table('hospitals')->insert([
-            'name' => $name, 'type' => 1, 'address' => $address, 'phone' => '02-000-0000',
+            'name'   => $name, 'type' => 1, 'address' => $address, 'phone' => '02-000-0000',
             'status' => $status, 'is_deleted' => 0, 'created_at' => $now, 'updated_at' => $now,
         ]);
 
@@ -97,7 +96,7 @@ final class HospitalApiFeatureTest extends CIUnitTestCase
         $db  = db_connect();
         $now = date('Y-m-d H:i:s');
         $db->table('departments')->insert([
-            'code' => $code, 'name' => $name, 'sort' => 0, 'is_active' => 1,
+            'code'       => $code, 'name' => $name, 'sort' => 0, 'is_active' => 1,
             'created_at' => $now, 'updated_at' => $now,
         ]);
 
@@ -116,10 +115,10 @@ final class HospitalApiFeatureTest extends CIUnitTestCase
         $db  = db_connect();
         $now = date('Y-m-d H:i:s');
         $db->table('campaigns')->insert([
-            'ad_title' => $title, 'hospital_id' => $hospitalId, 'status' => 'active',
+            'ad_title'      => $title, 'hospital_id' => $hospitalId, 'status' => 'active',
             'review_status' => 'approved', // 검수완료 — 노출 조건 (이슈 #137)
-            'exposure' => 1, 'is_deleted' => 0, 'ad_type' => 1, 'cost_type' => 1,
-            'created_at' => $now, 'updated_at' => $now,
+            'exposure'      => 1, 'is_deleted' => 0, 'ad_type' => 1, 'cost_type' => 1,
+            'created_at'    => $now, 'updated_at' => $now,
         ]);
 
         return (int) $db->insertID();
@@ -130,13 +129,15 @@ final class HospitalApiFeatureTest extends CIUnitTestCase
         $db  = db_connect();
         $now = date('Y-m-d H:i:s');
         $db->table('boards')->insert([
-            'user_id' => $this->userId, 'type' => 2, 'target_id' => $hospitalId, 'subject' => $subject,
-            'contents' => '후기 내용', 'rate_sum' => 4.5, 'like_count' => 3,
+            'user_id'   => $this->userId, 'type' => 2, 'target_id' => $hospitalId, 'subject' => $subject,
+            'contents'  => '후기 내용', 'rate_sum' => 4.5, 'like_count' => 3,
             'is_delete' => 0, 'is_secret' => $secret, 'is_list' => 1, 'created_at' => $now, 'updated_at' => $now,
         ]);
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * @return array<string, mixed>
+     */
     private function authGet(string $uri): array
     {
         $result = $this->withHeaders(['Authorization' => 'Bearer ' . $this->token])->get($uri);
@@ -145,13 +146,16 @@ final class HospitalApiFeatureTest extends CIUnitTestCase
         return json_decode($result->getJSON(), true);
     }
 
-    /** [H1] 목록 */
+    /**
+     * [H1] 목록
+     */
     public function testListReturnsActiveHospitals(): void
     {
         $body = $this->authGet('api/v1/hospitals');
 
         $this->assertSame(2, $body['meta']['total']); // 비활성 제외
         $byId = [];
+
         foreach ($body['data'] as $h) {
             $byId[$h['id']] = $h;
         }
@@ -161,7 +165,9 @@ final class HospitalApiFeatureTest extends CIUnitTestCase
         $this->assertArrayNotHasKey('is_deleted', $byId[$this->h1]);
     }
 
-    /** [H2] 지역 필터 */
+    /**
+     * [H2] 지역 필터
+     */
     public function testListFilterByRegion(): void
     {
         $body = $this->authGet('api/v1/hospitals?filter[region]=부산');
@@ -170,7 +176,9 @@ final class HospitalApiFeatureTest extends CIUnitTestCase
         $this->assertSame($this->h2, $body['data'][0]['id']);
     }
 
-    /** [H8] 진료과 필터 + 응답 departments 배열 */
+    /**
+     * [H8] 진료과 필터 + 응답 departments 배열
+     */
     public function testListFilterByDepartment(): void
     {
         // 성형외과 → h1 만 (다진료과 병원도 단일 코드로 매칭, 행 중복 없음)
@@ -184,6 +192,7 @@ final class HospitalApiFeatureTest extends CIUnitTestCase
 
         // 응답에 병원별 진료과 배열 포함 (h1 = 2개)
         $byId = [];
+
         foreach ($body['data'] as $h) {
             $byId[$h['id']] = $h;
         }
@@ -196,7 +205,9 @@ final class HospitalApiFeatureTest extends CIUnitTestCase
         $this->assertSame(0, $body['meta']['total']);
     }
 
-    /** [H3] 상세 */
+    /**
+     * [H3] 상세
+     */
     public function testDetail(): void
     {
         $body = $this->authGet('api/v1/hospitals/' . $this->h1);
@@ -215,7 +226,9 @@ final class HospitalApiFeatureTest extends CIUnitTestCase
             ->assertStatus(404);
     }
 
-    /** [H4] 소속 이벤트 */
+    /**
+     * [H4] 소속 이벤트
+     */
     public function testHospitalCampaigns(): void
     {
         $body = $this->authGet('api/v1/hospitals/' . $this->h1 . '/campaigns');
@@ -225,7 +238,9 @@ final class HospitalApiFeatureTest extends CIUnitTestCase
         $this->assertSame($this->h1, $body['data'][0]['hospital_id']);
     }
 
-    /** [H5] 후기 — 병원 공개 후기만 */
+    /**
+     * [H5] 후기 — 병원 공개 후기만
+     */
     public function testHospitalReviews(): void
     {
         $body = $this->authGet('api/v1/hospitals/' . $this->h1 . '/reviews');
@@ -235,7 +250,9 @@ final class HospitalApiFeatureTest extends CIUnitTestCase
         $this->assertEqualsWithDelta(4.5, $body['data'][0]['rating'], 0.001);
     }
 
-    /** [H6] 찜 토글 + 목록 반영 */
+    /**
+     * [H6] 찜 토글 + 목록 반영
+     */
     public function testLikeToggle(): void
     {
         $first = $this->withHeaders(['Authorization' => 'Bearer ' . $this->token])
@@ -248,8 +265,9 @@ final class HospitalApiFeatureTest extends CIUnitTestCase
         ]);
 
         // 목록 is_liked 반영
-        $body = $this->authGet('api/v1/hospitals');
+        $body  = $this->authGet('api/v1/hospitals');
         $liked = [];
+
         foreach ($body['data'] as $h) {
             $liked[$h['id']] = $h['is_liked'];
         }
@@ -267,7 +285,9 @@ final class HospitalApiFeatureTest extends CIUnitTestCase
             ->assertStatus(404);
     }
 
-    /** [H7] 조회는 비로그인 허용(200), 찜은 로그인 필요(401) */
+    /**
+     * [H7] 조회는 비로그인 허용(200), 찜은 로그인 필요(401)
+     */
     public function testAuthPolicy(): void
     {
         $this->get('api/v1/hospitals')->assertStatus(200);

@@ -19,7 +19,6 @@ class AppLogModel extends Model
     protected $useTimestamps = true;
     protected $updatedField  = ''; // updated_at 없음
     protected $returnType    = 'array';
-
     protected $allowedFields = [
         'user_id',
         'level',

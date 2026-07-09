@@ -11,13 +11,15 @@ use CodeIgniter\Model;
  */
 class GuideModel extends Model
 {
-    protected $table         = 'guides';
-    protected $primaryKey    = 'id';
-    protected $useTimestamps = true;
-    protected $useSoftDeletes = true;
-    protected $returnType    = 'array';
+    public const STATUS_DRAFT     = 'draft';
+    public const STATUS_PUBLISHED = 'published';
 
-    protected $allowedFields = [
+    protected $table          = 'guides';
+    protected $primaryKey     = 'id';
+    protected $useTimestamps  = true;
+    protected $useSoftDeletes = true;
+    protected $returnType     = 'array';
+    protected $allowedFields  = [
         'title',
         'slug',
         'summary',
@@ -28,12 +30,11 @@ class GuideModel extends Model
         'published_at',
     ];
 
-    public const STATUS_DRAFT     = 'draft';
-    public const STATUS_PUBLISHED = 'published';
-
     // 슬러그 유일성은 GuideService::generateUniqueSlug 가 보장한다(모델 is_unique 의 {id}
     // 플레이스홀더가 update 시 자기 자신과 충돌하는 문제를 피하기 위해 모델 규칙에서는 제외).
-    /** @var array<string, string> */
+    /**
+     * @var array<string, string>
+     */
     protected $validationRules = [
         'title'  => 'required|max_length[200]',
         'slug'   => 'required|max_length[220]',
@@ -44,6 +45,7 @@ class GuideModel extends Model
      * 어드민 목록 — 상태·키워드 필터, 페이징(삭제 제외).
      *
      * @param array<string, mixed> $params
+     *
      * @return array{list: list<array<string, mixed>>, total: int}
      */
     public function getAdminList(array $params): array
@@ -77,6 +79,7 @@ class GuideModel extends Model
      * 공개 목록 — 발행 건만, 최신순 페이징.
      *
      * @param array<string, mixed> $params
+     *
      * @return array{list: list<array<string, mixed>>, total: int}
      */
     public function getPublishedList(array $params): array
@@ -147,6 +150,7 @@ class GuideModel extends Model
 
         $candidate = $slug;
         $suffix    = 2;
+
         while ($this->slugExists($candidate, $excludeId)) {
             $candidate = $slug . '-' . $suffix;
             $suffix++;

@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use CodeIgniter\Model;
 use RuntimeException;
 use Throwable;
-use CodeIgniter\Model;
 
 /**
  * 이벤트 신청 DB (call_requests)
@@ -17,11 +17,78 @@ use CodeIgniter\Model;
  */
 class CallRequestModel extends Model
 {
-    protected $table      = 'call_requests';
-    protected $primaryKey = 'id';
+    /**
+     * @var array<int, string> 신청 상태 라벨 (1~9)
+     */
+    public const STATUSES = [
+        1 => '미확인',
+        2 => '부재중',
+        3 => '취소',
+        4 => '기타',
+        5 => '예약',
+        6 => '예약취소',
+        7 => '내원완료',
+        8 => '중복',
+        9 => '결번',
+    ];
+
+    /**
+     * @var array<int, string> 디바이스 라벨
+     */
+    public const DEVICES = [
+        1 => '안드로이드',
+        2 => 'iOS',
+        3 => '웹',
+    ];
+
+    /**
+     * 예약 상태 — 변경 시 예약 일시 입력 필수
+     */
+    public const STATUS_RESERVED = 5;
+
+    /**
+     * @var array<int, string> 환불요청을 유발하는 상태 (중복/결번/취소)
+     *
+     * 광고주가 이 상태로 변경하면 운영자에게 환불요청이 생성되고, 운영자 처리 전까지
+     * 광고주의 추가 상태 변경이 잠긴다. (이슈 #52)
+     */
+    public const REFUND_STATUSES = [
+        3 => '취소',
+        8 => '중복',
+        9 => '결번',
+    ];
+
+    /**
+     * AI 리드 분석 큐 상태 (이슈 #72)
+     *
+     * Redis 등 별도 큐 인프라 없이 ai_status 컬럼을 큐로 사용한다.
+     * 신청·메모 저장 시 PENDING으로 표시하고, leads:analyze 커맨드가 소비한다.
+     */
+    public const AI_STATUS_IDLE = 0; // 미분석
+
+    public const AI_STATUS_PENDING = 1; // 대기 (큐 적재됨)
+    public const AI_STATUS_DONE    = 2; // 완료
+    public const AI_STATUS_FAILED  = 3; // 실패
+
+    /**
+     * 신규 신청 기본 상태 — 미확인
+     */
+    public const STATUS_UNCONFIRMED = 1;
+
+    // ──────────────────────────────────────────────
+    // 외부(소비자) 앱 — 상담 신청 (이슈 #100)
+    // ──────────────────────────────────────────────
+
+    /**
+     * 소비자 상세 노출 컬럼 (AI 분석·과금·핑거프린트 등 내부 필드 제외)
+     */
+    private const string CONSUMER_DETAIL_COLUMNS = 'cr.id, cr.hospital_id, cr.campaign_id, cr.status, '
+        . 'cr.name, cr.phone, cr.content, cr.call_time, cr.reserved_at, cr.created_at';
+
+    protected $table         = 'call_requests';
+    protected $primaryKey    = 'id';
     protected $useTimestamps = true;
     protected $returnType    = 'array';
-
     protected $allowedFields = [
         'hospital_id',
         'campaign_id',
@@ -52,56 +119,11 @@ class CallRequestModel extends Model
         'ai_status',
     ];
 
-    /** @var array<int, string> 신청 상태 라벨 (1~9) */
-    public const STATUSES = [
-        1 => '미확인',
-        2 => '부재중',
-        3 => '취소',
-        4 => '기타',
-        5 => '예약',
-        6 => '예약취소',
-        7 => '내원완료',
-        8 => '중복',
-        9 => '결번',
-    ];
-
-    /** @var array<int, string> 디바이스 라벨 */
-    public const DEVICES = [
-        1 => '안드로이드',
-        2 => 'iOS',
-        3 => '웹',
-    ];
-
-    /** 예약 상태 — 변경 시 예약 일시 입력 필수 */
-    public const STATUS_RESERVED = 5;
-
-    /**
-     * @var array<int, string> 환불요청을 유발하는 상태 (중복/결번/취소)
-     *
-     * 광고주가 이 상태로 변경하면 운영자에게 환불요청이 생성되고, 운영자 처리 전까지
-     * 광고주의 추가 상태 변경이 잠긴다. (이슈 #52)
-     */
-    public const REFUND_STATUSES = [
-        3 => '취소',
-        8 => '중복',
-        9 => '결번',
-    ];
-
-    /**
-     * AI 리드 분석 큐 상태 (이슈 #72)
-     *
-     * Redis 등 별도 큐 인프라 없이 ai_status 컬럼을 큐로 사용한다.
-     * 신청·메모 저장 시 PENDING으로 표시하고, leads:analyze 커맨드가 소비한다.
-     */
-    public const AI_STATUS_IDLE    = 0; // 미분석
-    public const AI_STATUS_PENDING = 1; // 대기 (큐 적재됨)
-    public const AI_STATUS_DONE    = 2; // 완료
-    public const AI_STATUS_FAILED  = 3; // 실패
-
     /**
      * 신청 목록 (병원별·캠페인별·상태별 필터, 페이징)
      *
      * @param array<string, mixed> $params
+     *
      * @return array{list: array<int, array<string, mixed>>, total: int}
      */
     public function getList(array $params): array
@@ -114,16 +136,16 @@ class CallRequestModel extends Model
             ->join('campaigns c', 'c.id = cr.campaign_id', 'left')
             ->where('cr.is_delete', 0);
 
-        if (!empty($params['hospital_id'])) {
+        if (! empty($params['hospital_id'])) {
             $builder->where('cr.hospital_id', (int) $params['hospital_id']);
         }
-        if (!empty($params['campaign_id'])) {
+        if (! empty($params['campaign_id'])) {
             $builder->where('cr.campaign_id', (int) $params['campaign_id']);
         }
-        if (!empty($params['status'])) {
+        if (! empty($params['status'])) {
             $builder->where('cr.status', (int) $params['status']);
         }
-        if (!empty($params['keyword'])) {
+        if (! empty($params['keyword'])) {
             $builder->groupStart()
                 ->like('cr.name', $params['keyword'])
                 ->orLike('cr.phone', $params['keyword'])
@@ -202,21 +224,11 @@ class CallRequestModel extends Model
         return $row;
     }
 
-    /** 신규 신청 기본 상태 — 미확인 */
-    public const STATUS_UNCONFIRMED = 1;
-
-    // ──────────────────────────────────────────────
-    // 외부(소비자) 앱 — 상담 신청 (이슈 #100)
-    // ──────────────────────────────────────────────
-
-    /** 소비자 상세 노출 컬럼 (AI 분석·과금·핑거프린트 등 내부 필드 제외) */
-    private const string CONSUMER_DETAIL_COLUMNS = 'cr.id, cr.hospital_id, cr.campaign_id, cr.status, '
-        . 'cr.name, cr.phone, cr.content, cr.call_time, cr.reserved_at, cr.created_at';
-
     /**
      * 외부 앱 상담 신청 생성 — 입력은 Service에서 정규화해 전달한다.
      *
      * @param array<string, mixed> $data
+     *
      * @return int 생성된 신청 id
      */
     public function createApplication(array $data): int
@@ -281,11 +293,12 @@ class CallRequestModel extends Model
      *
      * @param string|null $reservedAt 예약 일시 (Y-m-d H:i[:s]) — 예약 상태일 때 필수
      * @param int|null    $memoUserId 변경 주체 user id (히스토리 메모 작성자)
+     *
      * @throws RuntimeException 신청 건 없음·유효하지 않은 상태·예약 일시 누락
      */
     public function changeStatus(int $id, int $status, ?string $reservedAt = null, ?int $memoUserId = null): void
     {
-        if (!isset(self::STATUSES[$status])) {
+        if (! isset(self::STATUSES[$status])) {
             throw new RuntimeException('유효하지 않은 상태입니다.');
         }
 
@@ -429,6 +442,7 @@ class CallRequestModel extends Model
             return true;
         } catch (Throwable $e) {
             $db->transRollback();
+
             throw $e;
         }
     }

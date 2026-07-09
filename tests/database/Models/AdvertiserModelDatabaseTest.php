@@ -14,8 +14,7 @@ final class AdvertiserModelDatabaseTest extends CIUnitTestCase
     protected $migrate     = true;
     protected $migrateOnce = true;
     protected $refresh     = false;
-    protected $namespace   = null;
-
+    protected $namespace;
     private int $hospitalId   = 0;
     private int $advertiserId = 0;
 
@@ -93,6 +92,7 @@ final class AdvertiserModelDatabaseTest extends CIUnitTestCase
         ]);
 
         $this->assertGreaterThanOrEqual(1, $result['total']);
+
         foreach ($result['list'] as $row) {
             $this->assertSame(1, (int) $row['status']);
         }
@@ -121,6 +121,7 @@ final class AdvertiserModelDatabaseTest extends CIUnitTestCase
         ]);
 
         $this->assertNotEmpty($result['list']);
+
         foreach ($result['list'] as $row) {
             $this->assertArrayNotHasKey('hospital_id', $row);
         }

@@ -25,7 +25,9 @@ final class BookingException extends DomainException
         return $this->apiCode;
     }
 
-    /** 이미 취소된 예약은 변경·재취소 불가 */
+    /**
+     * 이미 취소된 예약은 변경·재취소 불가
+     */
     public static function alreadyCancelled(): self
     {
         return new self(409, 'ALREADY_CANCELLED', '이미 취소된 예약입니다.');

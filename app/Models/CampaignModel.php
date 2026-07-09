@@ -2,17 +2,91 @@
 
 namespace App\Models;
 
-use RuntimeException;
 use CodeIgniter\Database\BaseBuilder;
 use CodeIgniter\Model;
+use RuntimeException;
 
 class CampaignModel extends Model
 {
-    protected $table      = 'campaigns';
-    protected $primaryKey = 'id';
+    // 상태 전이 허용 맵: 현재 상태 → 가능한 다음 상태
+    public const STATUS_TRANSITIONS = [
+        'pending'  => ['active', 'rejected'],
+        'active'   => ['ended'],
+        'rejected' => ['pending'],
+        'ended'    => [],
+    ];
+    public const AD_TYPES = [
+        1 => 'CPA',
+        2 => 'CPM',
+        3 => '프로모션',
+        4 => 'CPC',
+        5 => '옵션',
+    ];
+
+    /**
+     * 광고 타입별 과금 단가 컬럼 매핑 (이슈 #157).
+     *
+     * CPA는 db_cost(DB 단가), CPM은 cpm_price(1000회 노출당), CPC는 cpc_price(클릭당)를 사용한다.
+     * 프로모션·옵션은 별도 과금 단가가 없다(가격 정보 카드의 text_cost로만 표시).
+     *
+     * @var array<int, string>
+     */
+    public const AD_TYPE_COST_FIELD = [
+        1 => 'db_cost',
+        2 => 'cpm_price',
+        4 => 'cpc_price',
+    ];
+
+    public const CHANNELS = [
+        1 => '굿닥',
+        2 => '굿닥파트너스',
+    ];
+
+    /**
+     * 병원 망 구분 (campaigns.hospital_type)
+     */
+    public const HOSPITAL_TYPES = [
+        1 => '일반',
+        2 => '네트워크 모점',
+        3 => '네트워크 자점',
+    ];
+
+    // ──────────────────────────────────────────────────────────────
+    // 외부(소비자) 앱 — 이벤트 조회 (이슈 #98)
+    // ──────────────────────────────────────────────────────────────
+
+    /**
+     * 목록 응답용 소비자 노출 컬럼 (내부 과금·계약·심의 필드 제외)
+     */
+    private const string LIST_COLUMNS = 'c.id, c.ad_title, c.hospital_id, c.category, c.region, c.ad_type, '
+        . 'c.cost_type, c.general_cost, c.discount_cost, c.text_cost, c.t1_image_name, '
+        . 'c.ad_start_date, c.ad_end_date, c.created_at';
+
+    /**
+     * 상세 응답용 소비자 노출 컬럼
+     */
+    private const string DETAIL_COLUMNS = 'c.id, c.ad_title, c.hospital_id, c.category, c.region, c.ad_type, '
+        . 'c.cost_type, c.general_cost, c.discount_cost, c.text_cost, c.t1_image_name, c.t2_image_name, '
+        . 'c.d_image_json, c.ad_detail_info, c.ad_start_date, c.ad_end_date, c.created_at';
+
+    // ──────────────────────────────────────────────
+    // 외부(소비자) 앱 — 이벤트 캐시 무효화 (이슈 #116)
+    // ──────────────────────────────────────────────
+
+    /**
+     * 소비자 캐시(목록·상세·메인·추천) 무효화용 버전 토큰 캐시 키
+     */
+    public const CONSUMER_CACHE_VERSION_KEY = 'events_consumer_cache_ver';
+
+    /**
+     * 버전 토큰 TTL (초) — 1일. 쓰기 발생 시 즉시 삭제되어 무효화된다.
+     */
+    private const int CONSUMER_CACHE_VERSION_TTL = 86400;
+
+    protected $table         = 'campaigns';
+    protected $primaryKey    = 'id';
     protected $useTimestamps = true;
     protected $returnType    = 'array';
-
     protected $allowedFields = [
         'ad_title',
         'hospital_id',
@@ -61,7 +135,9 @@ class CampaignModel extends Model
         'd_image_json',
     ];
 
-    /** @var array<string, string> */
+    /**
+     * @var array<string, string>
+     */
     protected $validationRules = [
         'hospital_id' => 'required|integer',
         'status'      => 'in_list[pending,active,rejected,ended]',
@@ -73,52 +149,11 @@ class CampaignModel extends Model
     protected $afterUpdate = ['clearConsumerCache'];
     protected $afterDelete = ['clearConsumerCache'];
 
-    // 상태 전이 허용 맵: 현재 상태 → 가능한 다음 상태
-    public const STATUS_TRANSITIONS = [
-        'pending'  => ['active', 'rejected'],
-        'active'   => ['ended'],
-        'rejected' => ['pending'],
-        'ended'    => [],
-    ];
-
-    public const AD_TYPES = [
-        1 => 'CPA',
-        2 => 'CPM',
-        3 => '프로모션',
-        4 => 'CPC',
-        5 => '옵션',
-    ];
-
-    /**
-     * 광고 타입별 과금 단가 컬럼 매핑 (이슈 #157).
-     *
-     * CPA는 db_cost(DB 단가), CPM은 cpm_price(1000회 노출당), CPC는 cpc_price(클릭당)를 사용한다.
-     * 프로모션·옵션은 별도 과금 단가가 없다(가격 정보 카드의 text_cost로만 표시).
-     *
-     * @var array<int, string>
-     */
-    public const AD_TYPE_COST_FIELD = [
-        1 => 'db_cost',
-        2 => 'cpm_price',
-        4 => 'cpc_price',
-    ];
-
-    public const CHANNELS = [
-        1 => '굿닥',
-        2 => '굿닥파트너스',
-    ];
-
-    /** 병원 망 구분 (campaigns.hospital_type) */
-    public const HOSPITAL_TYPES = [
-        1 => '일반',
-        2 => '네트워크 모점',
-        3 => '네트워크 자점',
-    ];
-
     /**
      * 캠페인 목록 (페이징, 검색, 상태 필터)
      *
      * @param array<string, mixed> $params
+     *
      * @return array<string, mixed>
      */
     public function getCampaignList(array $params): array
@@ -141,23 +176,23 @@ class CampaignModel extends Model
                 . ' FROM campaign_review_requests crr_sub'
                 . ' WHERE crr_sub.id = (SELECT MAX(id) FROM campaign_review_requests WHERE campaign_id = crr_sub.campaign_id)) crr',
                 'crr.campaign_id = c.id',
-                'left'
+                'left',
             )
             ->where('c.is_deleted', 0);
 
-        if (!empty($params['status'])) {
+        if (! empty($params['status'])) {
             $builder->where('c.status', $params['status']);
         }
-        if (!empty($params['review_status'])) {
+        if (! empty($params['review_status'])) {
             $builder->where('c.review_status', $params['review_status']);
         }
-        if (!empty($params['ad_type'])) {
+        if (! empty($params['ad_type'])) {
             $builder->where('c.ad_type', (int) $params['ad_type']);
         }
-        if (!empty($params['channel'])) {
+        if (! empty($params['channel'])) {
             $builder->where('c.channel', (int) $params['channel']);
         }
-        if (!empty($params['keyword'])) {
+        if (! empty($params['keyword'])) {
             $builder->groupStart()
                 ->like('c.ad_title', $params['keyword'])
                 ->orLike('h.name', $params['keyword'])
@@ -184,6 +219,7 @@ class CampaignModel extends Model
      * 검수 대기 중인 캠페인은 review request 의 콘텐츠를 COALESCE로 표시한다.
      *
      * @param array<string, mixed> $params
+     *
      * @return array<string, mixed>
      */
     public function getCreativeList(array $params): array
@@ -203,15 +239,15 @@ class CampaignModel extends Model
                 . ' FROM campaign_review_requests crr_sub'
                 . ' WHERE crr_sub.id = (SELECT MAX(id) FROM campaign_review_requests WHERE campaign_id = crr_sub.campaign_id)) crr',
                 'crr.campaign_id = c.id',
-                'left'
+                'left',
             )
             ->where('c.is_deleted', 0);
 
-        if (!empty($params['status'])) {
+        if (! empty($params['status'])) {
             $builder->where('c.status', $params['status']);
         }
 
-        if (!empty($params['keyword'])) {
+        if (! empty($params['keyword'])) {
             $builder->groupStart()
                 ->like('COALESCE(c.ad_title, crr.ad_title)', $params['keyword'], 'both', null, false)
                 ->orLike('h.name', $params['keyword'])
@@ -297,9 +333,9 @@ class CampaignModel extends Model
         };
 
         $allowed = self::STATUS_TRANSITIONS[$currentStatus] ?? [];
-        if (!in_array($nextStatus, $allowed, true)) {
+        if (! in_array($nextStatus, $allowed, true)) {
             throw new RuntimeException(
-                sprintf('"%s" 상태에서 "%s"로 변경할 수 없습니다.', $currentStatus, $nextStatus)
+                sprintf('"%s" 상태에서 "%s"로 변경할 수 없습니다.', $currentStatus, $nextStatus),
             );
         }
 
@@ -312,6 +348,7 @@ class CampaignModel extends Model
      * 히스토리 목록 (campaign_histories 테이블)
      *
      * @param array<string, mixed> $params
+     *
      * @return array<string, mixed>
      */
     public function getHistoryList(int $campaignId, array $params = []): array
@@ -353,20 +390,6 @@ class CampaignModel extends Model
             ->getResultArray();
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // 외부(소비자) 앱 — 이벤트 조회 (이슈 #98)
-    // ──────────────────────────────────────────────────────────────
-
-    /** 목록 응답용 소비자 노출 컬럼 (내부 과금·계약·심의 필드 제외) */
-    private const string LIST_COLUMNS = 'c.id, c.ad_title, c.hospital_id, c.category, c.region, c.ad_type, '
-        . 'c.cost_type, c.general_cost, c.discount_cost, c.text_cost, c.t1_image_name, '
-        . 'c.ad_start_date, c.ad_end_date, c.created_at';
-
-    /** 상세 응답용 소비자 노출 컬럼 */
-    private const string DETAIL_COLUMNS = 'c.id, c.ad_title, c.hospital_id, c.category, c.region, c.ad_type, '
-        . 'c.cost_type, c.general_cost, c.discount_cost, c.text_cost, c.t1_image_name, c.t2_image_name, '
-        . 'c.d_image_json, c.ad_detail_info, c.ad_start_date, c.ad_end_date, c.created_at';
-
     /**
      * 소비자 노출 조건을 빌더에 적용한다.
      *
@@ -385,12 +408,12 @@ class CampaignModel extends Model
             ->where("{$alias}.is_deleted", 0)
             ->whereIn("{$alias}.exposure", [1, 3])
             ->groupStart()
-                ->where("{$alias}.ad_start_date IS NULL", null, false)
-                ->orWhere("{$alias}.ad_start_date <=", $today)
+            ->where("{$alias}.ad_start_date IS NULL", null, false)
+            ->orWhere("{$alias}.ad_start_date <=", $today)
             ->groupEnd()
             ->groupStart()
-                ->where("{$alias}.ad_end_date IS NULL", null, false)
-                ->orWhere("{$alias}.ad_end_date >=", $today)
+            ->where("{$alias}.ad_end_date IS NULL", null, false)
+            ->orWhere("{$alias}.ad_end_date >=", $today)
             ->groupEnd();
     }
 
@@ -398,6 +421,7 @@ class CampaignModel extends Model
      * 이벤트 목록 — 카테고리·지역·검색 필터, 정렬(latest/price_asc/price_desc/popular), 페이징.
      *
      * @param array<string, mixed> $params category·region·keyword·sort·page·limit
+     *
      * @return array{list: array<int, array<string, mixed>>, total: int}
      */
     public function getEventList(array $params): array
@@ -413,16 +437,16 @@ class CampaignModel extends Model
 
         $this->applyConsumerFilters($builder);
 
-        if (!empty($params['hospital_id'])) {
+        if (! empty($params['hospital_id'])) {
             $builder->where('c.hospital_id', (int) $params['hospital_id']);
         }
-        if (!empty($params['category'])) {
+        if (! empty($params['category'])) {
             $builder->where('c.category', (int) $params['category']);
         }
-        if (!empty($params['region'])) {
+        if (! empty($params['region'])) {
             $builder->like('c.region', (string) $params['region']);
         }
-        if (!empty($params['keyword'])) {
+        if (! empty($params['keyword'])) {
             $builder->groupStart()
                 ->like('c.ad_title', (string) $params['keyword'])
                 ->orLike('h.name', (string) $params['keyword'])
@@ -435,7 +459,7 @@ class CampaignModel extends Model
                 ->join(
                     '(SELECT campaign_id, COUNT(*) AS cnt FROM call_requests WHERE is_delete = 0 GROUP BY campaign_id) cr',
                     'cr.campaign_id = c.id',
-                    'left'
+                    'left',
                 );
         }
 
@@ -481,16 +505,6 @@ class CampaignModel extends Model
         return $builder->get()->getRowArray();
     }
 
-    // ──────────────────────────────────────────────
-    // 외부(소비자) 앱 — 이벤트 캐시 무효화 (이슈 #116)
-    // ──────────────────────────────────────────────
-
-    /** 소비자 캐시(목록·상세·메인·추천) 무효화용 버전 토큰 캐시 키 */
-    public const CONSUMER_CACHE_VERSION_KEY = 'events_consumer_cache_ver';
-
-    /** 버전 토큰 TTL (초) — 1일. 쓰기 발생 시 즉시 삭제되어 무효화된다. */
-    private const int CONSUMER_CACHE_VERSION_TTL = 86400;
-
     /**
      * 소비자 캐시 키에 끼워 넣는 버전 토큰.
      *
@@ -501,7 +515,7 @@ class CampaignModel extends Model
     {
         /** @var string|null $ver */
         $ver = cache(self::CONSUMER_CACHE_VERSION_KEY);
-        if (!is_string($ver)) {
+        if (! is_string($ver)) {
             $ver = bin2hex(random_bytes(4));
             cache()->save(self::CONSUMER_CACHE_VERSION_KEY, $ver, self::CONSUMER_CACHE_VERSION_TTL);
         }
@@ -525,6 +539,7 @@ class CampaignModel extends Model
      * 모델 쓰기 콜백 — 버전 토큰을 삭제해 소비자 캐시를 일괄 무효화한다.
      *
      * @param array<string, mixed> $data
+     *
      * @return array<string, mixed>
      */
     protected function clearConsumerCache(array $data): array

@@ -23,19 +23,23 @@ use Throwable;
  */
 class LeadAnalyzeQueue extends BaseCommand
 {
+    private const int DEFAULT_LIMIT = 50;
+
     protected $group       = 'AICura';
     protected $name        = 'leads:analyze';
     protected $description = '대기 중인 이벤트 신청을 AI로 분석해 전환점수·요약·다음액션을 채웁니다.';
     protected $usage       = 'leads:analyze [options]';
 
-    /** @var array<string, string> */
+    /**
+     * @var array<string, string>
+     */
     protected $options = [
         '--limit' => '한 번에 처리할 최대 건수 (기본값: 50)',
     ];
 
-    private const int DEFAULT_LIMIT = 50;
-
-    /** @param array<int|string, string|null> $params */
+    /**
+     * @param array<int|string, string|null> $params
+     */
     public function run(array $params): void
     {
         // 기능 토글 — settings에서 꺼져 있으면 대기 건을 건드리지 않고 종료
@@ -65,6 +69,7 @@ class LeadAnalyzeQueue extends BaseCommand
 
         foreach ($pending as $row) {
             $id = (int) $row['id'];
+
             try {
                 $service->analyze($id);
                 $ok++;

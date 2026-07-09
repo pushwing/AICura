@@ -6,6 +6,7 @@ use App\Models\UserModel;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use CodeIgniter\Test\FeatureTestTrait;
+use CodeIgniter\Test\TestResponse;
 
 /**
  * 외부(소비자) 앱 후기 커뮤니티 API 피처 테스트 (이슈 #102, SQLite3 인메모리 DB)
@@ -31,15 +32,14 @@ final class BoardApiFeatureTest extends CIUnitTestCase
     use DatabaseTestTrait;
     use FeatureTestTrait;
 
-    protected $migrate   = true;
-    protected $refresh   = true;
-    protected $namespace = null;
-
-    private int $userId = 0;
-    private int $otherId = 0;
-    private string $token = '';
+    protected $migrate = true;
+    protected $refresh = true;
+    protected $namespace;
+    private int $userId        = 0;
+    private int $otherId       = 0;
+    private string $token      = '';
     private string $otherToken = '';
-    private int $hospitalId = 0;
+    private int $hospitalId    = 0;
 
     protected function setUp(): void
     {
@@ -49,8 +49,8 @@ final class BoardApiFeatureTest extends CIUnitTestCase
         $db  = db_connect();
         $now = date('Y-m-d H:i:s');
 
-        $this->userId  = $this->insertUser('writer@aicura.test', '작성자');
-        $this->otherId = $this->insertUser('other@aicura.test', '다른이');
+        $this->userId     = $this->insertUser('writer@aicura.test', '작성자');
+        $this->otherId    = $this->insertUser('other@aicura.test', '다른이');
         $this->token      = (new JwtLibrary())->generateAccessToken($this->userId);
         $this->otherToken = (new JwtLibrary())->generateAccessToken($this->otherId);
 
@@ -67,14 +67,18 @@ final class BoardApiFeatureTest extends CIUnitTestCase
         return (int) $db->insertID();
     }
 
-    /** @param array<string, mixed> $body */
-    private function authPost(string $token, string $uri, array $body = []): \CodeIgniter\Test\TestResponse
+    /**
+     * @param array<string, mixed> $body
+     */
+    private function authPost(string $token, string $uri, array $body = []): TestResponse
     {
         return $this->withHeaders(['Authorization' => 'Bearer ' . $token])->withBodyFormat('json')->post($uri, $body);
     }
 
-    /** 후기 1건 작성 후 id 반환 */
-    private function createReview(string $token = null): int
+    /**
+     * 후기 1건 작성 후 id 반환
+     */
+    private function createReview(?string $token = null): int
     {
         $res = $this->authPost($token ?? $this->token, 'api/v1/boards', [
             'type' => 2, 'target_id' => $this->hospitalId, 'subject' => '좋아요', 'contents' => '<b>친절</b>합니다', 'rating' => 4.5,
@@ -84,7 +88,9 @@ final class BoardApiFeatureTest extends CIUnitTestCase
         return (int) json_decode($res->getJSON(), true)['data']['id'];
     }
 
-    /** [B1] 작성 */
+    /**
+     * [B1] 작성
+     */
     public function testCreate(): void
     {
         $res = $this->authPost($this->token, 'api/v1/boards', [
@@ -100,14 +106,18 @@ final class BoardApiFeatureTest extends CIUnitTestCase
         $this->seeInDatabase('board_summaries', ['type' => 2, 'target_id' => $this->hospitalId]);
     }
 
-    /** [B2] 비노출 대상 */
+    /**
+     * [B2] 비노출 대상
+     */
     public function testCreateOnInvalidTarget(): void
     {
         $res = $this->authPost($this->token, 'api/v1/boards', ['type' => 2, 'target_id' => 999999, 'contents' => 'x', 'rating' => 3]);
         $res->assertStatus(404);
     }
 
-    /** [B3] 목록 */
+    /**
+     * [B3] 목록
+     */
     public function testList(): void
     {
         $this->createReview();
@@ -123,7 +133,9 @@ final class BoardApiFeatureTest extends CIUnitTestCase
         $this->assertSame('친절합니다', $body['data'][0]['excerpt']);
     }
 
-    /** [B4] 상세 */
+    /**
+     * [B4] 상세
+     */
     public function testDetail(): void
     {
         $id  = $this->createReview();
@@ -135,7 +147,9 @@ final class BoardApiFeatureTest extends CIUnitTestCase
         $this->assertFalse($data['is_liked']);
     }
 
-    /** [B5] 수정 */
+    /**
+     * [B5] 수정
+     */
     public function testUpdate(): void
     {
         $id = $this->createReview();
@@ -150,7 +164,9 @@ final class BoardApiFeatureTest extends CIUnitTestCase
             ->patch('api/v1/boards/' . $id, ['subject' => '침범'])->assertStatus(404);
     }
 
-    /** [B6] 삭제 */
+    /**
+     * [B6] 삭제
+     */
     public function testDelete(): void
     {
         $id = $this->createReview();
@@ -158,7 +174,9 @@ final class BoardApiFeatureTest extends CIUnitTestCase
         $this->seeInDatabase('boards', ['id' => $id, 'is_delete' => BoardModel::DELETE_FULL]);
     }
 
-    /** [B7] 좋아요 토글 */
+    /**
+     * [B7] 좋아요 토글
+     */
     public function testLikeToggle(): void
     {
         $id = $this->createReview();
@@ -173,7 +191,9 @@ final class BoardApiFeatureTest extends CIUnitTestCase
         $this->seeInDatabase('boards', ['id' => $id, 'like_count' => 0]);
     }
 
-    /** [B8] 신고 멱등 */
+    /**
+     * [B8] 신고 멱등
+     */
     public function testReportIdempotent(): void
     {
         $id = $this->createReview();
@@ -187,7 +207,9 @@ final class BoardApiFeatureTest extends CIUnitTestCase
         $this->seeInDatabase('boards', ['id' => $id, 'complain_count' => 1]); // 증가 안 함
     }
 
-    /** [B9] 댓글 작성/목록/삭제 */
+    /**
+     * [B9] 댓글 작성/목록/삭제
+     */
     public function testComments(): void
     {
         $id = $this->createReview();
@@ -206,7 +228,9 @@ final class BoardApiFeatureTest extends CIUnitTestCase
         $this->seeInDatabase('boards', ['id' => $id, 'comment_count' => 0]);
     }
 
-    /** [B10] 댓글 타인 삭제 404 */
+    /**
+     * [B10] 댓글 타인 삭제 404
+     */
     public function testCommentDeleteByOther(): void
     {
         $id  = $this->createReview();
@@ -217,15 +241,17 @@ final class BoardApiFeatureTest extends CIUnitTestCase
         $this->withHeaders(['Authorization' => 'Bearer ' . $this->token])->delete('api/v1/boards/' . $id . '/comments/' . $cid)->assertStatus(404);
     }
 
-    /** [B11] 이미지 서빙 (공개) */
+    /**
+     * [B11] 이미지 서빙 (공개)
+     */
     public function testServeImage(): void
     {
         $dir = rtrim(WRITEPATH, '/\\') . '/uploads/boards/';
-        if (!is_dir($dir)) {
+        if (! is_dir($dir)) {
             mkdir($dir, 0775, true);
         }
         // 1x1 PNG
-        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M8AAAMBAQDJ/pLvAAAAAElFTkSuQmCC');
+        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M8AAAMBAQDJ/pLvAAAAAElFTkSuQmCC', true);
         file_put_contents($dir . 'serve_test.png', $png);
 
         $res = $this->get('api/v1/uploads/images/serve_test.png');
@@ -238,7 +264,9 @@ final class BoardApiFeatureTest extends CIUnitTestCase
         @unlink($dir . 'serve_test.png');
     }
 
-    /** [B12] 조회는 비로그인 허용(200), 작성은 로그인 필요(401) */
+    /**
+     * [B12] 조회는 비로그인 허용(200), 작성은 로그인 필요(401)
+     */
     public function testAuthPolicy(): void
     {
         $this->get('api/v1/boards')->assertStatus(200);

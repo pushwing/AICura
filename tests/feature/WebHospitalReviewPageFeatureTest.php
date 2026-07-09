@@ -24,11 +24,10 @@ final class WebHospitalReviewPageFeatureTest extends CIUnitTestCase
     use DatabaseTestTrait;
     use FeatureTestTrait;
 
-    protected $migrate   = true;
-    protected $refresh   = true;
-    protected $namespace = null;
-
-    private int $hospitalId = 0;
+    protected $migrate = true;
+    protected $refresh = true;
+    protected $namespace;
+    private int $hospitalId       = 0;
     private int $cleanReviewId    = 0;
     private int $reportedReviewId = 0;
     private int $lowTrustReviewId = 0;
@@ -43,23 +42,23 @@ final class WebHospitalReviewPageFeatureTest extends CIUnitTestCase
         $now = date('Y-m-d H:i:s');
 
         $db->table('hospitals')->insert([
-            'name' => '강남웹병원', 'type' => 1, 'status' => 'active', 'is_deleted' => 0,
+            'name'    => '강남웹병원', 'type' => 1, 'status' => 'active', 'is_deleted' => 0,
             'address' => '서울 강남구', 'phone' => '02-123-4567', 'created_at' => $now, 'updated_at' => $now,
         ]);
         $this->hospitalId = (int) $db->insertID();
 
         // 병원 별점 요약
         $db->table('board_summaries')->insert([
-            'type' => BoardModel::TYPE_HOSPITAL, 'target_id' => $this->hospitalId,
+            'type'     => BoardModel::TYPE_HOSPITAL, 'target_id' => $this->hospitalId,
             'rate_sum' => 4.5, 'rate1' => 4.5, 'rate2' => 4.5, 'rate3' => 4.5,
         ]);
 
         // 병원 진행 이벤트 (검수완료·노출)
         $db->table('campaigns')->insert([
-            'ad_title' => '강남 리프팅', 'hospital_id' => $this->hospitalId, 'status' => 'active',
+            'ad_title'      => '강남 리프팅', 'hospital_id' => $this->hospitalId, 'status' => 'active',
             'review_status' => 'approved', 'exposure' => 1, 'is_deleted' => 0, 'category' => 0,
-            'ad_type' => 1, 'cost_type' => 1, 'discount_cost' => 10000, 'general_cost' => 20000,
-            'created_at' => $now, 'updated_at' => $now,
+            'ad_type'       => 1, 'cost_type' => 1, 'discount_cost' => 10000, 'general_cost' => 20000,
+            'created_at'    => $now, 'updated_at' => $now,
         ]);
 
         $this->cleanReviewId    = $this->insertReview('정상후기', '홍길동', []);
@@ -70,16 +69,18 @@ final class WebHospitalReviewPageFeatureTest extends CIUnitTestCase
         $this->secretReviewId = $this->insertReview('비밀후기', '박비밀', ['is_secret' => 1]);
     }
 
-    /** @param array<string, mixed> $overrides */
+    /**
+     * @param array<string, mixed> $overrides
+     */
     private function insertReview(string $subject, string $userName, array $overrides): int
     {
         $db  = db_connect();
         $now = date('Y-m-d H:i:s');
         $db->table('boards')->insert(array_merge([
-            'user_id' => 1, 'user_name' => $userName, 'type' => BoardModel::TYPE_HOSPITAL,
-            'target_id' => $this->hospitalId, 'subject' => $subject, 'contents' => '시술 만족합니다',
-            'rate_sum' => 5, 'is_secret' => 0, 'is_list' => 1, 'is_delete' => 0,
-            'ai_status' => BoardModel::AI_STATUS_IDLE, 'complain_count' => 0,
+            'user_id'    => 1, 'user_name' => $userName, 'type' => BoardModel::TYPE_HOSPITAL,
+            'target_id'  => $this->hospitalId, 'subject' => $subject, 'contents' => '시술 만족합니다',
+            'rate_sum'   => 5, 'is_secret' => 0, 'is_list' => 1, 'is_delete' => 0,
+            'ai_status'  => BoardModel::AI_STATUS_IDLE, 'complain_count' => 0,
             'created_at' => $now, 'updated_at' => $now,
         ], $overrides));
 
@@ -93,7 +94,9 @@ final class WebHospitalReviewPageFeatureTest extends CIUnitTestCase
 
     // ── 병원 ──────────────────────────────────────────
 
-    /** [H1] 병원 목록 — 200 + 병원 렌더 */
+    /**
+     * [H1] 병원 목록 — 200 + 병원 렌더
+     */
     public function testHospitalIndex(): void
     {
         $result = $this->get('hospitals');
@@ -101,7 +104,9 @@ final class WebHospitalReviewPageFeatureTest extends CIUnitTestCase
         $this->assertStringContainsString('강남웹병원', $this->decode($result->getBody()));
     }
 
-    /** [H2] 병원 상세 — 200 + 이름·진행 이벤트 */
+    /**
+     * [H2] 병원 상세 — 200 + 이름·진행 이벤트
+     */
     public function testHospitalShow(): void
     {
         $result = $this->get('hospitals/' . $this->hospitalId);
@@ -111,7 +116,9 @@ final class WebHospitalReviewPageFeatureTest extends CIUnitTestCase
         $this->assertStringContainsString('강남 리프팅', $body); // 진행 이벤트
     }
 
-    /** [H2] 병원 상세 — 비활성 404 */
+    /**
+     * [H2] 병원 상세 — 비활성 404
+     */
     public function testHospitalShowInactiveReturns404(): void
     {
         db_connect()->table('hospitals')->update(['status' => 'inactive'], ['id' => $this->hospitalId]);
@@ -122,7 +129,9 @@ final class WebHospitalReviewPageFeatureTest extends CIUnitTestCase
 
     // ── 후기 ──────────────────────────────────────────
 
-    /** [R1] 후기 목록 — 작성자 마스킹(실명 미노출) */
+    /**
+     * [R1] 후기 목록 — 작성자 마스킹(실명 미노출)
+     */
     public function testReviewIndexMasksAuthor(): void
     {
         $body = $this->decode($this->get('reviews')->getBody());
@@ -131,7 +140,9 @@ final class WebHospitalReviewPageFeatureTest extends CIUnitTestCase
         $this->assertStringNotContainsString('홍길동', $body); // 실명 미노출
     }
 
-    /** [R2] 후기 상세 — 마스킹 + 정상 후기 index */
+    /**
+     * [R2] 후기 상세 — 마스킹 + 정상 후기 index
+     */
     public function testReviewShowIndexableAndMasked(): void
     {
         $result = $this->get('reviews/' . $this->cleanReviewId);
@@ -144,21 +155,27 @@ final class WebHospitalReviewPageFeatureTest extends CIUnitTestCase
         $this->assertStringContainsString('content="index, follow"', $raw);
     }
 
-    /** [R3] 후기 상세 — 신고 후기 noindex */
+    /**
+     * [R3] 후기 상세 — 신고 후기 noindex
+     */
     public function testReportedReviewIsNoindex(): void
     {
         $raw = $this->get('reviews/' . $this->reportedReviewId)->getBody();
         $this->assertStringContainsString('content="noindex, follow"', $raw);
     }
 
-    /** [R3] 후기 상세 — 저신뢰 후기 noindex */
+    /**
+     * [R3] 후기 상세 — 저신뢰 후기 noindex
+     */
     public function testLowTrustReviewIsNoindex(): void
     {
         $raw = $this->get('reviews/' . $this->lowTrustReviewId)->getBody();
         $this->assertStringContainsString('content="noindex, follow"', $raw);
     }
 
-    /** [R4] 후기 상세 — 비밀글 404 */
+    /**
+     * [R4] 후기 상세 — 비밀글 404
+     */
     public function testSecretReviewReturns404(): void
     {
         $this->expectException(PageNotFoundException::class);

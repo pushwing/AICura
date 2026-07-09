@@ -2,14 +2,14 @@
 
 namespace App\Controllers\Admin;
 
-use Override;
-use CodeIgniter\HTTP\RequestInterface;
-use Psr\Log\LoggerInterface;
-use CodeIgniter\Exceptions\PageNotFoundException;
 use App\Models\AdvertiserModel;
 use App\Models\HospitalModel;
 use App\Models\UserModel;
+use CodeIgniter\Exceptions\PageNotFoundException;
+use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
+use Override;
+use Psr\Log\LoggerInterface;
 
 class AdvertiserController extends BaseAdminController
 {
@@ -21,7 +21,7 @@ class AdvertiserController extends BaseAdminController
     public function initController(
         RequestInterface $request,
         ResponseInterface $response,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ): void {
         parent::initController($request, $response, $logger);
         $this->advertiserModel = model(AdvertiserModel::class);
@@ -48,6 +48,7 @@ class AdvertiserController extends BaseAdminController
         // Fix #6: toKst() 헬퍼로 KST 변환 통합
         $advertisers = array_map(function (array $row): array {
             $row['created_at_kst'] = empty($row['created_at']) ? '-' : $this->toKst($row['created_at']);
+
             return $row;
         }, $result['list']);
 
@@ -71,8 +72,8 @@ class AdvertiserController extends BaseAdminController
 
         // 연결된 광고주 본인 계정 이메일 (있으면)
         $advertiser['owner_email'] = null;
-        if (!empty($advertiser['owner_user_id'])) {
-            $owner = $this->userModel->select('email')->find((int) $advertiser['owner_user_id']);
+        if (! empty($advertiser['owner_user_id'])) {
+            $owner                     = $this->userModel->select('email')->find((int) $advertiser['owner_user_id']);
             $advertiser['owner_email'] = is_array($owner) ? $owner['email'] : null;
         }
 
@@ -80,9 +81,10 @@ class AdvertiserController extends BaseAdminController
         $advertiser['created_at_kst'] = empty($advertiser['created_at']) ? '-' : $this->toKst($advertiser['created_at']);
 
         /** @var list<array<string, mixed>> $contracts */
-        $contracts = is_array($advertiser['contracts'] ?? null) ? $advertiser['contracts'] : [];
+        $contracts               = is_array($advertiser['contracts'] ?? null) ? $advertiser['contracts'] : [];
         $advertiser['contracts'] = array_map(function (array $c): array {
             $c['created_at_kst'] = empty($c['created_at']) ? '-' : $this->toKst($c['created_at']);
+
             return $c;
         }, $contracts);
 
@@ -131,7 +133,7 @@ class AdvertiserController extends BaseAdminController
             $rules['login_password'] = 'required|min_length[8]';
         }
 
-        if (!$this->validate($rules)) {
+        if (! $this->validate($rules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
@@ -177,7 +179,7 @@ class AdvertiserController extends BaseAdminController
                 (string) $this->request->getPost('login_email'),
                 (string) $this->request->getPost('login_password'),
                 $this->request->getPost('contact_name') ?: null,
-                $this->request->getPost('contact_phone') ?: null
+                $this->request->getPost('contact_phone') ?: null,
             );
 
             if ($newUserId === false) {
@@ -250,7 +252,7 @@ class AdvertiserController extends BaseAdminController
 
         // 연결된 광고주 본인 계정 (있으면 수정 폼에 표시)
         $ownerUser = null;
-        if (!empty($advertiser['owner_user_id'])) {
+        if (! empty($advertiser['owner_user_id'])) {
             $ownerUser = $this->userModel
                 ->select('id, email, username')
                 ->find((int) $advertiser['owner_user_id']);
@@ -295,7 +297,7 @@ class AdvertiserController extends BaseAdminController
             $rules['login_password'] = 'required|min_length[8]';
         }
 
-        if (!$this->validate($rules)) {
+        if (! $this->validate($rules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
@@ -336,7 +338,7 @@ class AdvertiserController extends BaseAdminController
                 (string) $this->request->getPost('login_email'),
                 (string) $this->request->getPost('login_password'),
                 $this->request->getPost('contact_name') ?: null,
-                $this->request->getPost('contact_phone') ?: null
+                $this->request->getPost('contact_phone') ?: null,
             );
 
             if ($newUserId === false) {

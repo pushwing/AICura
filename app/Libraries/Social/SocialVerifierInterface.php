@@ -14,8 +14,9 @@ use App\Exceptions\AuthException;
 interface SocialVerifierInterface
 {
     /**
-     * @param string $provider 'naver' | 'kakao'
+     * @param string $provider    'naver' | 'kakao'
      * @param string $accessToken 소셜 제공자 발급 액세스 토큰
+     *
      * @throws AuthException 지원하지 않는 제공자·토큰 검증 실패
      */
     public function verify(string $provider, string $accessToken): SocialProfile;

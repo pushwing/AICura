@@ -2,10 +2,10 @@
 
 namespace App\Controllers\Web;
 
-use Override;
 use App\Controllers\BaseController;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
+use Override;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -17,7 +17,9 @@ use Psr\Log\LoggerInterface;
  */
 abstract class BaseWebController extends BaseController
 {
-    /** 공개 페이지 비로그인 사용자 ID (찜 여부 오버레이용 — 항상 비활성) */
+    /**
+     * 공개 페이지 비로그인 사용자 ID (찜 여부 오버레이용 — 항상 비활성)
+     */
     protected const GUEST_USER_ID = 0;
 
     /**
@@ -41,7 +43,7 @@ abstract class BaseWebController extends BaseController
     public function initController(
         RequestInterface $request,
         ResponseInterface $response,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ): void {
         parent::initController($request, $response, $logger);
     }

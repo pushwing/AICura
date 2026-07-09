@@ -2,8 +2,8 @@
 
 namespace App\Controllers\Api;
 
-use CodeIgniter\HTTP\ResponseInterface;
 use CodeIgniter\Controller;
+use CodeIgniter\HTTP\ResponseInterface;
 use OpenApi\Attributes as OA;
 use OpenApi\Generator;
 
@@ -11,10 +11,10 @@ use OpenApi\Generator;
     version: '1.0.0',
     description: 'AI Cura 광고 솔루션 REST API',
     title: 'AI Cura API',
-    contact: new OA\Contact(email: 'admin@aicura.io')
+    contact: new OA\Contact(email: 'admin@aicura.io'),
 )]
-#[OA\Server(url: '/api/v1', description: 'API v1')]
 #[OA\SecurityScheme(securityScheme: 'bearerAuth', type: 'http', bearerFormat: 'JWT', scheme: 'bearer')]
+#[OA\Server(url: '/api/v1', description: 'API v1')]
 class DocsController extends Controller
 {
     /**
@@ -35,7 +35,7 @@ class DocsController extends Controller
         if (ENVIRONMENT === 'production') {
             $specPath = FCPATH . 'swagger.json';
 
-            if (!is_file($specPath)) {
+            if (! is_file($specPath)) {
                 return $response->setStatusCode(404)
                     ->setJSON(['error' => 'swagger.json not found. Run: php spark swagger:generate']);
             }
@@ -46,7 +46,7 @@ class DocsController extends Controller
         }
 
         // 개발 환경: 매 요청마다 동적 생성
-        $openapi = new Generator()->generate([APPPATH . 'Controllers/Api']);
+        $openapi = (new Generator())->generate([APPPATH . 'Controllers/Api']);
 
         return $response
             ->setHeader('Content-Type', 'application/json')

@@ -17,10 +17,10 @@ class CreateAdvertiserBoardAndBlacklistTables extends Migration
     {
         // ── advertiser_boards (광고주 게시판) ─────────────────────
         $this->forge->addField([
-            'id'             => ['type' => 'BIGINT', 'unsigned' => true, 'auto_increment' => true],
-            'user_id'        => ['type' => 'BIGINT'],
-            'user_name'      => ['type' => 'VARCHAR', 'constraint' => 100, 'null' => true],
-            'board_pid'      => ['type' => 'INT', 'null' => true],
+            'id'        => ['type' => 'BIGINT', 'unsigned' => true, 'auto_increment' => true],
+            'user_id'   => ['type' => 'BIGINT'],
+            'user_name' => ['type' => 'VARCHAR', 'constraint' => 100, 'null' => true],
+            'board_pid' => ['type' => 'INT', 'null' => true],
             // 1 공지사항, 2 1:1문의, 3 FAQ
             'type'           => ['type' => 'TINYINT', 'default' => 1],
             'title'          => ['type' => 'VARCHAR', 'constraint' => 200, 'null' => true],
@@ -37,13 +37,13 @@ class CreateAdvertiserBoardAndBlacklistTables extends Migration
             'ip'             => ['type' => 'VARCHAR', 'constraint' => 45, 'null' => true],
             'is_list'        => ['type' => 'TINYINT', 'default' => 1],
             // 0 미삭제, 1 임시삭제, 2 완전삭제
-            'is_delete'      => ['type' => 'TINYINT', 'default' => 0],
-            'delete_date'    => ['type' => 'DATETIME', 'null' => true],
-            'password'       => ['type' => 'VARCHAR', 'constraint' => 100, 'null' => true],
-            'reply_order'    => ['type' => 'TINYINT', 'default' => 0],
+            'is_delete'       => ['type' => 'TINYINT', 'default' => 0],
+            'delete_date'     => ['type' => 'DATETIME', 'null' => true],
+            'password'        => ['type' => 'VARCHAR', 'constraint' => 100, 'null' => true],
+            'reply_order'     => ['type' => 'TINYINT', 'default' => 0],
             'general_setting' => ['type' => 'TEXT', 'null' => true],
-            'created_at'     => ['type' => 'DATETIME', 'null' => true],
-            'updated_at'     => ['type' => 'DATETIME', 'null' => true],
+            'created_at'      => ['type' => 'DATETIME', 'null' => true],
+            'updated_at'      => ['type' => 'DATETIME', 'null' => true],
         ]);
         $this->forge->addKey('id', true);
         $this->forge->addKey('user_id', false, false, 'idx_advertiser_boards_user_id');
@@ -90,13 +90,13 @@ class CreateAdvertiserBoardAndBlacklistTables extends Migration
 
         // ── black_lists (사용자 블랙리스트) ─────────────────────
         $this->forge->addField([
-            'id'                  => ['type' => 'BIGINT', 'unsigned' => true, 'auto_increment' => true],
-            'users_id'            => ['type' => 'INT'],
-            'advertiser_user_id'  => ['type' => 'INT'],
-            'reg_id'              => ['type' => 'INT', 'null' => true],
-            'is_delete'           => ['type' => 'TINYINT', 'default' => 0],
-            'created_at'          => ['type' => 'DATETIME', 'null' => true],
-            'updated_at'          => ['type' => 'DATETIME', 'null' => true],
+            'id'                 => ['type' => 'BIGINT', 'unsigned' => true, 'auto_increment' => true],
+            'users_id'           => ['type' => 'INT'],
+            'advertiser_user_id' => ['type' => 'INT'],
+            'reg_id'             => ['type' => 'INT', 'null' => true],
+            'is_delete'          => ['type' => 'TINYINT', 'default' => 0],
+            'created_at'         => ['type' => 'DATETIME', 'null' => true],
+            'updated_at'         => ['type' => 'DATETIME', 'null' => true],
         ]);
         $this->forge->addKey('id', true);
         $this->forge->addKey('users_id', false, false, 'idx_black_lists_users_id');

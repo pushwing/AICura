@@ -33,8 +33,9 @@ class BackfillPaymentsFromContractOrders extends Migration
         }
 
         $rows = [];
+
         foreach ($orders as $o) {
-            $paid    = !empty($o['deposit_date']);
+            $paid    = ! empty($o['deposit_date']);
             $created = $o['created_at'] ?: $now;
 
             $rows[] = [

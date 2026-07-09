@@ -30,8 +30,8 @@ class UploadController extends BaseApiController
             mediaType: 'multipart/form-data',
             schema: new OA\Schema(properties: [
                 new OA\Property(property: 'image', type: 'string', format: 'binary'),
-            ])
-        )
+            ]),
+        ),
     ), tags: ['Uploads'], responses: [
         new OA\Response(response: 201, description: '업로드 성공 (file, url)'),
         new OA\Response(response: 422, description: '유효성 검사 실패'),
@@ -42,12 +42,12 @@ class UploadController extends BaseApiController
             'image' => 'uploaded[image]|is_image[image]|max_size[image,5120]|mime_in[image,image/png,image/jpeg,image/webp,image/gif]',
         ];
 
-        if (!$this->validate($rules)) {
+        if (! $this->validate($rules)) {
             return $this->error('VALIDATION_ERROR', implode(' ', $this->validator->getErrors()), 422);
         }
 
         $file = $this->request->getFile('image');
-        if (!$file instanceof UploadedFile || !$file->isValid()) {
+        if (! $file instanceof UploadedFile || ! $file->isValid()) {
             return $this->error('VALIDATION_ERROR', '업로드된 이미지가 올바르지 않습니다.', 422);
         }
 
@@ -62,7 +62,7 @@ class UploadController extends BaseApiController
         responses: [
             new OA\Response(response: 200, description: '이미지 바이너리'),
             new OA\Response(response: 404, description: '존재하지 않는 파일'),
-        ]
+        ],
     )]
     public function serve(?string $name = null): ResponseInterface
     {

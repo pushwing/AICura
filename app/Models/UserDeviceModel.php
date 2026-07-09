@@ -11,11 +11,10 @@ use CodeIgniter\Model;
  */
 class UserDeviceModel extends Model
 {
-    protected $table      = 'user_devices';
-    protected $primaryKey = 'id';
+    protected $table         = 'user_devices';
+    protected $primaryKey    = 'id';
     protected $useTimestamps = true;
     protected $returnType    = 'array';
-
     protected $allowedFields = [
         'user_id',
         'platform',

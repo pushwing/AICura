@@ -33,7 +33,7 @@ class AddScopeToAiReportsTable extends Migration
         ]);
 
         $this->db->query(
-            'CREATE INDEX idx_ai_reports_scope ON ai_reports (scope_type, scope_id, type, report_date)'
+            'CREATE INDEX idx_ai_reports_scope ON ai_reports (scope_type, scope_id, type, report_date)',
         );
     }
 

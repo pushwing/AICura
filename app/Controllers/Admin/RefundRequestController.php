@@ -2,14 +2,14 @@
 
 namespace App\Controllers\Admin;
 
-use Override;
-use CodeIgniter\HTTP\RequestInterface;
-use CodeIgniter\HTTP\ResponseInterface;
-use Psr\Log\LoggerInterface;
 use App\Models\CallRequestModel;
-use RuntimeException;
 use App\Models\RefundRequestModel;
 use CodeIgniter\HTTP\RedirectResponse;
+use CodeIgniter\HTTP\RequestInterface;
+use CodeIgniter\HTTP\ResponseInterface;
+use Override;
+use Psr\Log\LoggerInterface;
+use RuntimeException;
 
 /**
  * 환불요청 관리 (이슈 #52)
@@ -26,7 +26,7 @@ class RefundRequestController extends BaseAdminController
     public function initController(
         RequestInterface $request,
         ResponseInterface $response,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ): void {
         parent::initController($request, $response, $logger);
         $this->refundRequestModel = model(RefundRequestModel::class);
@@ -43,10 +43,10 @@ class RefundRequestController extends BaseAdminController
         $result = $this->refundRequestModel->getList($params);
 
         return $this->render('admin/refund-requests/index', [
-            'requests'       => $result['list'],
-            'total'          => $result['total'],
-            'params'         => $params,
-            'statusLabels'   => RefundRequestModel::STATUS_LABELS,
+            'requests'        => $result['list'],
+            'total'           => $result['total'],
+            'params'          => $params,
+            'statusLabels'    => RefundRequestModel::STATUS_LABELS,
             'requestStatuses' => CallRequestModel::REFUND_STATUSES,
         ]);
     }
@@ -67,7 +67,7 @@ class RefundRequestController extends BaseAdminController
 
     public function reject(int $id): RedirectResponse
     {
-        if (!$this->validate(['reject_reason' => 'required|max_length[500]'])) {
+        if (! $this->validate(['reject_reason' => 'required|max_length[500]'])) {
             return redirect()->back()->with('error', '거부 사유는 1~500자로 입력하세요.');
         }
 

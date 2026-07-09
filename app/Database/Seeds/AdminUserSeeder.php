@@ -22,10 +22,14 @@ use CodeIgniter\Database\Seeder;
  */
 class AdminUserSeeder extends Seeder
 {
-    /** 기본 관리자 이메일 */
+    /**
+     * 기본 관리자 이메일
+     */
     private const ADMIN_EMAIL = 'admin@aicura.com';
 
-    /** 기본 관리자 비밀번호(최초 로그인 후 변경 권장) */
+    /**
+     * 기본 관리자 비밀번호(최초 로그인 후 변경 권장)
+     */
     private const ADMIN_PASSWORD = 'Admin@2026!';
 
     public function run(): void
@@ -36,7 +40,7 @@ class AdminUserSeeder extends Seeder
             ->countAllResults() > 0;
 
         if ($exists) {
-            echo "이미 존재 — 건너뜀: " . self::ADMIN_EMAIL . PHP_EOL;
+            echo '이미 존재 — 건너뜀: ' . self::ADMIN_EMAIL . PHP_EOL;
 
             return;
         }
@@ -57,6 +61,6 @@ class AdminUserSeeder extends Seeder
             'updated_at'        => $now,
         ]);
 
-        echo "생성 완료 — " . self::ADMIN_EMAIL . " (user_type=" . UserModel::TYPE_ADMIN . ")" . PHP_EOL;
+        echo '생성 완료 — ' . self::ADMIN_EMAIL . ' (user_type=' . UserModel::TYPE_ADMIN . ')' . PHP_EOL;
     }
 }

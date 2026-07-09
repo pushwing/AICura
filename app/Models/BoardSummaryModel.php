@@ -11,11 +11,10 @@ use CodeIgniter\Model;
  */
 class BoardSummaryModel extends Model
 {
-    protected $table      = 'board_summaries';
-    protected $primaryKey = 'id';
+    protected $table         = 'board_summaries';
+    protected $primaryKey    = 'id';
     protected $useTimestamps = false;
     protected $returnType    = 'array';
-
     protected $allowedFields = [
         'type',
         'target_id',

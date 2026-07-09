@@ -6,11 +6,10 @@ use CodeIgniter\Model;
 
 class CampaignPackageModel extends Model
 {
-    protected $table      = 'campaign_packages';
-    protected $primaryKey = 'id';
+    protected $table         = 'campaign_packages';
+    protected $primaryKey    = 'id';
     protected $useTimestamps = true;
     protected $returnType    = 'array';
-
     protected $allowedFields = [
         'title',
         'banner_view_type',
@@ -23,10 +22,12 @@ class CampaignPackageModel extends Model
         'is_deleted',
     ];
 
-    /** @var array<string, string> */
+    /**
+     * @var array<string, string>
+     */
     protected $validationRules = [
-        'title'   => 'required|max_length[255]',
-        'status'  => 'in_list[active,inactive,ended]',
+        'title'  => 'required|max_length[255]',
+        'status' => 'in_list[active,inactive,ended]',
     ];
 
     /**
@@ -48,6 +49,7 @@ class CampaignPackageModel extends Model
 
     /**
      * @param array<string, mixed> $params
+     *
      * @return array<string, mixed>
      */
     public function getList(array $params): array
@@ -56,10 +58,10 @@ class CampaignPackageModel extends Model
             ->select('id, title, banner_view_type, view_type, start_date, end_date, status, created_at')
             ->where('is_deleted', 0);
 
-        if (!empty($params['status'])) {
+        if (! empty($params['status'])) {
             $builder->where('status', $params['status']);
         }
-        if (!empty($params['keyword'])) {
+        if (! empty($params['keyword'])) {
             $builder->like('title', $params['keyword']);
         }
 

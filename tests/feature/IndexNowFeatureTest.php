@@ -17,9 +17,9 @@ final class IndexNowFeatureTest extends CIUnitTestCase
     use DatabaseTestTrait;
     use FeatureTestTrait;
 
-    protected $migrate   = true;
-    protected $refresh   = true;
-    protected $namespace = null;
+    protected $migrate = true;
+    protected $refresh = true;
+    protected $namespace;
 
     protected function setUp(): void
     {
@@ -27,14 +27,18 @@ final class IndexNowFeatureTest extends CIUnitTestCase
         cache()->clean();
     }
 
-    /** 키 미설정이면 /indexnow-key.txt 404 */
+    /**
+     * 키 미설정이면 /indexnow-key.txt 404
+     */
     public function testKeyEndpoint404WhenUnset(): void
     {
         $this->expectException(PageNotFoundException::class);
         $this->get('indexnow-key.txt');
     }
 
-    /** 키 설정 시 /indexnow-key.txt 가 키를 평문 반환 */
+    /**
+     * 키 설정 시 /indexnow-key.txt 가 키를 평문 반환
+     */
     public function testKeyEndpointServesKey(): void
     {
         $mock = $this->createMock(IndexNowService::class);
@@ -47,7 +51,9 @@ final class IndexNowFeatureTest extends CIUnitTestCase
         $this->assertSame('testkey123', (string) $result->response()->getBody());
     }
 
-    /** 가이드 발행 시 IndexNow 제출 트리거 */
+    /**
+     * 가이드 발행 시 IndexNow 제출 트리거
+     */
     public function testPublishingGuideTriggersSubmit(): void
     {
         $mock = $this->createMock(IndexNowService::class);
@@ -61,7 +67,9 @@ final class IndexNowFeatureTest extends CIUnitTestCase
         ]);
     }
 
-    /** 임시저장(draft) 가이드는 제출하지 않음 */
+    /**
+     * 임시저장(draft) 가이드는 제출하지 않음
+     */
     public function testDraftGuideDoesNotTriggerSubmit(): void
     {
         $mock = $this->createMock(IndexNowService::class);

@@ -15,7 +15,6 @@ class HourlyEventStatModel extends Model
     protected $primaryKey    = 'id';
     protected $useTimestamps = true;
     protected $returnType    = 'array';
-
     protected $allowedFields = [
         'stat_date',
         'stat_hour',

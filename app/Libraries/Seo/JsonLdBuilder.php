@@ -15,14 +15,18 @@ final class JsonLdBuilder
 {
     public const string CONTEXT = 'https://schema.org';
 
-    /** 평점 척도 */
-    private const int BEST_RATING  = 5;
+    /**
+     * 평점 척도
+     */
+    private const int BEST_RATING = 5;
+
     private const int WORST_RATING = 1;
 
     /**
      * 이벤트(캠페인) → Offer + MedicalProcedure (§4.1)
      *
      * @param array<string, mixed> $event EventService::detail 결과
+     *
      * @return array<string, mixed>
      */
     public static function event(array $event, string $url): array
@@ -49,24 +53,24 @@ final class JsonLdBuilder
         if ($desc !== '') {
             $schema['description'] = mb_substr($desc, 0, 300);
         }
-        if (!empty($event['thumbnail_url'])) {
+        if (! empty($event['thumbnail_url'])) {
             $schema['image'] = (string) $event['thumbnail_url'];
         }
-        if (!empty($event['ad_start_date'])) {
+        if (! empty($event['ad_start_date'])) {
             $schema['availabilityStarts'] = (string) $event['ad_start_date'];
         }
-        if (!empty($event['ad_end_date'])) {
+        if (! empty($event['ad_end_date'])) {
             $schema['availabilityEnds'] = (string) $event['ad_end_date'];
         }
-        if (!empty($event['region'])) {
+        if (! empty($event['region'])) {
             $schema['areaServed'] = (string) $event['region'];
         }
-        if (!empty($event['hospital_name'])) {
+        if (! empty($event['hospital_name'])) {
             $seller = ['@type' => 'MedicalClinic', 'name' => (string) $event['hospital_name']];
-            if (!empty($event['hospital_address'])) {
+            if (! empty($event['hospital_address'])) {
                 $seller['address'] = (string) $event['hospital_address'];
             }
-            if (!empty($event['hospital_phone'])) {
+            if (! empty($event['hospital_phone'])) {
                 $seller['telephone'] = (string) $event['hospital_phone'];
             }
             $schema['seller'] = $seller;
@@ -79,6 +83,7 @@ final class JsonLdBuilder
      * 병원 → MedicalClinic + AggregateRating (§4.2)
      *
      * @param array<string, mixed> $hospital HospitalService::detail 결과
+     *
      * @return array<string, mixed>
      */
     public static function hospital(array $hospital, string $url): array
@@ -90,14 +95,14 @@ final class JsonLdBuilder
             'url'      => $url,
         ];
 
-        if (!empty($hospital['address'])) {
+        if (! empty($hospital['address'])) {
             $schema['address'] = [
                 '@type'          => 'PostalAddress',
                 'streetAddress'  => (string) $hospital['address'],
                 'addressCountry' => 'KR',
             ];
         }
-        if (!empty($hospital['phone'])) {
+        if (! empty($hospital['phone'])) {
             $schema['telephone'] = (string) $hospital['phone'];
         }
 
@@ -129,6 +134,7 @@ final class JsonLdBuilder
      *
      * @param array<string, mixed> $review     BoardService::detail 결과 (author 는 마스킹된 값)
      * @param string|null          $targetName 후기 대상(병원/이벤트) 이름 — itemReviewed 용
+     *
      * @return array<string, mixed>
      */
     public static function review(array $review, string $url, ?string $targetName = null): array
@@ -148,7 +154,7 @@ final class JsonLdBuilder
         if ($body !== '') {
             $schema['reviewBody'] = mb_substr($body, 0, 500);
         }
-        if (!empty($review['created_at'])) {
+        if (! empty($review['created_at'])) {
             $schema['datePublished'] = (string) $review['created_at'];
         }
 
@@ -164,7 +170,7 @@ final class JsonLdBuilder
 
         if ($targetName !== null && $targetName !== '') {
             // 병원(2) 후기는 MedicalClinic, 그 외(이벤트 등)는 MedicalProcedure 로 본다
-            $type = (int) ($review['type'] ?? 0);
+            $type                   = (int) ($review['type'] ?? 0);
             $schema['itemReviewed'] = [
                 '@type' => $type === 2 ? 'MedicalClinic' : 'MedicalProcedure',
                 'name'  => $targetName,
@@ -178,6 +184,7 @@ final class JsonLdBuilder
      * 가이드 → MedicalWebPage(Article) + about MedicalProcedure (§4.4)
      *
      * @param array<string, mixed> $guide GuideService::findPublishedBySlug 결과
+     *
      * @return array<string, mixed>
      */
     public static function guide(array $guide, string $url): array
@@ -199,13 +206,13 @@ final class JsonLdBuilder
         if ($body !== '') {
             $schema['articleBody'] = mb_substr($body, 0, 5000);
         }
-        if (!empty($guide['published_at'])) {
+        if (! empty($guide['published_at'])) {
             $schema['datePublished'] = (string) $guide['published_at'];
         }
-        if (!empty($guide['updated_at'])) {
+        if (! empty($guide['updated_at'])) {
             $schema['dateModified'] = (string) $guide['updated_at'];
         }
-        if (!empty($guide['procedure_name'])) {
+        if (! empty($guide['procedure_name'])) {
             $schema['about'] = [
                 '@type' => 'MedicalProcedure',
                 'name'  => (string) $guide['procedure_name'],
@@ -219,6 +226,7 @@ final class JsonLdBuilder
      * FAQ → FAQPage (§4.4)
      *
      * @param array<int, array{q: string, a: string}> $faq
+     *
      * @return array<string, mixed> FAQ 가 없으면 빈 배열(render 에서 무시)
      */
     public static function faqPage(array $faq, string $url): array
@@ -228,6 +236,7 @@ final class JsonLdBuilder
         }
 
         $entities = [];
+
         foreach ($faq as $item) {
             $q = trim((string) $item['q']);
             $a = trim((string) $item['a']);
@@ -261,6 +270,7 @@ final class JsonLdBuilder
     public static function render(array $schemas): string
     {
         $blocks = [];
+
         foreach ($schemas as $schema) {
             if ($schema === []) {
                 continue;
@@ -274,7 +284,7 @@ final class JsonLdBuilder
             if ($json === false) {
                 continue;
             }
-            $blocks[] = '<script type="application/ld+json">' . "\n" . $json . "\n" . '</script>';
+            $blocks[] = '<script type="application/ld+json">' . "\n" . $json . "\n</script>";
         }
 
         return implode("\n", $blocks);

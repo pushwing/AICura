@@ -8,7 +8,7 @@ use CodeIgniter\HTTP\RedirectResponse;
 
 class AuthController extends BaseController
 {
-    public function login(): string|RedirectResponse
+    public function login(): RedirectResponse|string
     {
         if (session()->get('admin_user')) {
             return redirect()->to('/admin/dashboard');
@@ -28,7 +28,7 @@ class AuthController extends BaseController
             'password' => 'required|min_length[1]',
         ];
 
-        if (!$this->validate($rules)) {
+        if (! $this->validate($rules)) {
             return redirect()->back()->withInput()->with('login_error', '이메일과 비밀번호를 입력해주세요.');
         }
 
@@ -42,7 +42,7 @@ class AuthController extends BaseController
         $hash  = ($user !== null) ? (string) $user['password'] : '$2y$12$invaliddummyhashfortimingXXXXXXXXXXXXXXXXXXXXXXXXXXX';
         $valid = password_verify($password, $hash);
 
-        if ($user === null || !$valid) {
+        if ($user === null || ! $valid) {
             return redirect()->back()->withInput()->with('login_error', '이메일 또는 비밀번호가 올바르지 않습니다.');
         }
 

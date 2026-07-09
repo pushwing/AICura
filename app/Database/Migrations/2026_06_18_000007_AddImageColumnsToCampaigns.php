@@ -24,8 +24,8 @@ class AddImageColumnsToCampaigns extends Migration
                 'after'      => 't1_image_name',
             ],
             'd_image_json' => [
-                'type' => 'TEXT',
-                'null' => true,
+                'type'  => 'TEXT',
+                'null'  => true,
                 'after' => 't2_image_name',
             ],
         ]);

@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use CodeIgniter\Model;
 use RuntimeException;
 use Throwable;
-use CodeIgniter\Model;
 
 /**
  * 환불요청 (refund_requests) — 이슈 #52
@@ -16,11 +16,28 @@ use CodeIgniter\Model;
  */
 class RefundRequestModel extends Model
 {
+    public const STATUS_PENDING  = 1;
+    public const STATUS_APPROVED = 2;
+    public const STATUS_REJECTED = 3;
+
+    /**
+     * @var array<int, string>
+     */
+    public const STATUS_LABELS = [
+        1 => '대기',
+        2 => '승인',
+        3 => '거부',
+    ];
+
+    /**
+     * deposits 환불 복원 거래 상태 (기타충전 +)
+     */
+    private const int DEPOSIT_RESTORE_STATUS = 4;
+
     protected $table         = 'refund_requests';
     protected $primaryKey    = 'id';
     protected $useTimestamps = true;
     protected $returnType    = 'array';
-
     protected $allowedFields = [
         'call_request_id',
         'hospital_id',
@@ -33,20 +50,6 @@ class RefundRequestModel extends Model
         'processed_by',
         'processed_at',
     ];
-
-    public const STATUS_PENDING  = 1;
-    public const STATUS_APPROVED = 2;
-    public const STATUS_REJECTED = 3;
-
-    /** @var array<int, string> */
-    public const STATUS_LABELS = [
-        1 => '대기',
-        2 => '승인',
-        3 => '거부',
-    ];
-
-    /** deposits 환불 복원 거래 상태 (기타충전 +) */
-    private const int DEPOSIT_RESTORE_STATUS = 4;
 
     /**
      * 신청 건이 환불요청으로 잠겨 있는지 — 대기(1) 또는 승인(2) 건이 존재하면 true.
@@ -99,6 +102,7 @@ class RefundRequestModel extends Model
      * 운영자 환불요청 목록 (신청자·캠페인·병원명 조인, 상태 필터·페이징)
      *
      * @param array<string, mixed> $params
+     *
      * @return array{list: list<array<string, mixed>>, total: int}
      */
     public function getList(array $params): array
@@ -170,7 +174,7 @@ class RefundRequestModel extends Model
                     ->get()
                     ->getRowArray();
 
-                if ($campaign !== null && !empty($campaign['contract_id']) && !empty($campaign['contract_order_id'])) {
+                if ($campaign !== null && ! empty($campaign['contract_id']) && ! empty($campaign['contract_order_id'])) {
                     $db->table('deposits')->insert([
                         'status'            => self::DEPOSIT_RESTORE_STATUS, // 기타충전 (+)
                         'is_minus'          => 0,
@@ -205,6 +209,7 @@ class RefundRequestModel extends Model
             $db->transCommit();
         } catch (Throwable $e) {
             $db->transRollback();
+
             throw $e;
         }
     }

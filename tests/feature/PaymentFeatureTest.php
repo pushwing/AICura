@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\PaymentModel;
+use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use CodeIgniter\Test\FeatureTestTrait;
@@ -30,12 +30,12 @@ final class PaymentFeatureTest extends CIUnitTestCase
     use DatabaseTestTrait;
     use FeatureTestTrait;
 
-    protected $seed      = PaymentSeeder::class;
-    protected $migrate   = true;
-    protected $refresh   = true;
-    protected $namespace = null;
-
     private const ADMIN_SESSION = ['admin_user' => ['id' => 1, 'email' => 'admin@test.com', 'username' => 'admin']];
+
+    protected $seed    = PaymentSeeder::class;
+    protected $migrate = true;
+    protected $refresh = true;
+    protected $namespace;
 
     // ── [F1] 미인증 목록 접근 ─────────────────────────
 
@@ -51,7 +51,7 @@ final class PaymentFeatureTest extends CIUnitTestCase
     public function testIndexReturns200WithAuth(): void
     {
         $result = $this->withSession(self::ADMIN_SESSION)
-                       ->get('/admin/payments');
+            ->get('/admin/payments');
 
         $result->assertStatus(200);
         $result->assertSee('결제 관리');
@@ -61,7 +61,7 @@ final class PaymentFeatureTest extends CIUnitTestCase
     public function testIndexContainsSeededPaymentInRowData(): void
     {
         $result = $this->withSession(self::ADMIN_SESSION)
-                       ->get('/admin/payments');
+            ->get('/admin/payments');
 
         $result->assertStatus(200);
         $result->assertSee('TRANS001');
@@ -72,7 +72,7 @@ final class PaymentFeatureTest extends CIUnitTestCase
     public function testIndexFilterByStatus(): void
     {
         $result = $this->withSession(self::ADMIN_SESSION)
-                       ->get('/admin/payments?status=paid');
+            ->get('/admin/payments?status=paid');
 
         $result->assertStatus(200);
         $result->assertSee('TRANS001');
@@ -82,7 +82,7 @@ final class PaymentFeatureTest extends CIUnitTestCase
     public function testIndexFilterByStatusPending(): void
     {
         $result = $this->withSession(self::ADMIN_SESSION)
-                       ->get('/admin/payments?status=pending');
+            ->get('/admin/payments?status=pending');
 
         $result->assertStatus(200);
         $result->assertSee('TRANS003');
@@ -94,7 +94,7 @@ final class PaymentFeatureTest extends CIUnitTestCase
     public function testIndexFilterByHospitalName(): void
     {
         $result = $this->withSession(self::ADMIN_SESSION)
-                       ->get('/admin/payments?hospital_name=강남');
+            ->get('/admin/payments?hospital_name=강남');
 
         $result->assertStatus(200);
         $result->assertSee('TRANS001');
@@ -103,7 +103,7 @@ final class PaymentFeatureTest extends CIUnitTestCase
     public function testIndexFilterByHospitalNameNoMatch(): void
     {
         $result = $this->withSession(self::ADMIN_SESSION)
-                       ->get('/admin/payments?hospital_name=존재하지않는병원');
+            ->get('/admin/payments?hospital_name=존재하지않는병원');
 
         $result->assertStatus(200);
         $result->assertDontSee('TRANS001');
@@ -113,10 +113,10 @@ final class PaymentFeatureTest extends CIUnitTestCase
 
     public function testShowReturns404ForNonExistent(): void
     {
-        $this->expectException(\CodeIgniter\Exceptions\PageNotFoundException::class);
+        $this->expectException(PageNotFoundException::class);
 
         $this->withSession(self::ADMIN_SESSION)
-             ->get('/admin/payments/9999');
+            ->get('/admin/payments/9999');
     }
 
     // ── [F6] 상세 결제 정보 표시 ──────────────────────
@@ -124,7 +124,7 @@ final class PaymentFeatureTest extends CIUnitTestCase
     public function testShowDisplaysPaymentInfo(): void
     {
         $result = $this->withSession(self::ADMIN_SESSION)
-                       ->get('/admin/payments/1');
+            ->get('/admin/payments/1');
 
         $result->assertStatus(200);
         $result->assertSee('결제 #1');
@@ -138,7 +138,7 @@ final class PaymentFeatureTest extends CIUnitTestCase
     public function testShowDisplaysRefundButton(): void
     {
         $result = $this->withSession(self::ADMIN_SESSION)
-                       ->get('/admin/payments/1');
+            ->get('/admin/payments/1');
 
         $result->assertStatus(200);
         $result->assertSee('환불 처리');
@@ -149,11 +149,11 @@ final class PaymentFeatureTest extends CIUnitTestCase
     public function testRefundBlocksAlreadyRefunded(): void
     {
         $result = $this->withSession(self::ADMIN_SESSION)
-                       ->post('/admin/payments/2/refund', [
-                           csrf_token()     => csrf_hash(),
-                           'refund_type'   => '2',
-                           'refund_amount' => '100000',
-                       ]);
+            ->post('/admin/payments/2/refund', [
+                csrf_token()    => csrf_hash(),
+                'refund_type'   => '2',
+                'refund_amount' => '100000',
+            ]);
 
         $result->assertRedirect();
         $this->assertSame('이미 전액 환불된 결제입니다.', session('error'));
@@ -164,11 +164,11 @@ final class PaymentFeatureTest extends CIUnitTestCase
     public function testRefundValidationFailsWithoutType(): void
     {
         $result = $this->withSession(self::ADMIN_SESSION)
-                       ->post('/admin/payments/1/refund', [
-                           csrf_token()     => csrf_hash(),
-                           'refund_amount' => '100000',
-                           // refund_type 누락
-                       ]);
+            ->post('/admin/payments/1/refund', [
+                csrf_token()    => csrf_hash(),
+                'refund_amount' => '100000',
+                // refund_type 누락
+            ]);
 
         $result->assertRedirect();
     }
@@ -176,11 +176,11 @@ final class PaymentFeatureTest extends CIUnitTestCase
     public function testRefundValidationFailsWithoutAmount(): void
     {
         $result = $this->withSession(self::ADMIN_SESSION)
-                       ->post('/admin/payments/1/refund', [
-                           csrf_token()    => csrf_hash(),
-                           'refund_type'  => '2',
-                           // refund_amount 누락
-                       ]);
+            ->post('/admin/payments/1/refund', [
+                csrf_token()  => csrf_hash(),
+                'refund_type' => '2',
+                // refund_amount 누락
+            ]);
 
         $result->assertRedirect();
     }
@@ -190,11 +190,11 @@ final class PaymentFeatureTest extends CIUnitTestCase
     public function testRefundFailsWhenAmountExceedsPayment(): void
     {
         $result = $this->withSession(self::ADMIN_SESSION)
-                       ->post('/admin/payments/1/refund', [
-                           csrf_token()     => csrf_hash(),
-                           'refund_type'   => '2',
-                           'refund_amount' => '9999999', // 1100000 초과
-                       ]);
+            ->post('/admin/payments/1/refund', [
+                csrf_token()    => csrf_hash(),
+                'refund_type'   => '2',
+                'refund_amount' => '9999999', // 1100000 초과
+            ]);
 
         $result->assertRedirect();
         $this->assertSame('환불 금액이 잔여 환불 가능액(1,100,000원)을 초과할 수 없습니다.', session('error'));
@@ -205,11 +205,11 @@ final class PaymentFeatureTest extends CIUnitTestCase
     public function testRefundProcessesHappyPath(): void
     {
         $result = $this->withSession(self::ADMIN_SESSION)
-                       ->post('/admin/payments/1/refund', [
-                           csrf_token()     => csrf_hash(),
-                           'refund_type'   => '2',   // 발행환불
-                           'refund_amount' => '500000',
-                       ]);
+            ->post('/admin/payments/1/refund', [
+                csrf_token()    => csrf_hash(),
+                'refund_type'   => '2',   // 발행환불
+                'refund_amount' => '500000',
+            ]);
 
         $result->assertRedirectTo('/admin/payments/1');
 
@@ -234,11 +234,11 @@ final class PaymentFeatureTest extends CIUnitTestCase
     public function testRefundProcessesKeiyakuRefund(): void
     {
         $result = $this->withSession(self::ADMIN_SESSION)
-                       ->post('/admin/payments/1/refund', [
-                           csrf_token()     => csrf_hash(),
-                           'refund_type'   => '5',   // 계약환불
-                           'refund_amount' => '1100000',
-                       ]);
+            ->post('/admin/payments/1/refund', [
+                csrf_token()    => csrf_hash(),
+                'refund_type'   => '5',   // 계약환불
+                'refund_amount' => '1100000',
+            ]);
 
         $result->assertRedirectTo('/admin/payments/1');
 
@@ -258,14 +258,14 @@ final class PaymentFeatureTest extends CIUnitTestCase
     public function testRefundThrowsPageNotFoundForNonExistentPayment(): void
     {
         // CI4 FeatureTestTrait는 PageNotFoundException을 HTTP 응답으로 변환하지 않고 전파
-        $this->expectException(\CodeIgniter\Exceptions\PageNotFoundException::class);
+        $this->expectException(PageNotFoundException::class);
 
         $this->withSession(self::ADMIN_SESSION)
-             ->post('/admin/payments/9999/refund', [
-                 csrf_token()     => csrf_hash(),
-                 'refund_type'   => '2',
-                 'refund_amount' => '100000',
-             ]);
+            ->post('/admin/payments/9999/refund', [
+                csrf_token()    => csrf_hash(),
+                'refund_type'   => '2',
+                'refund_amount' => '100000',
+            ]);
     }
 
     // ── [F14] date_from 날짜 필터 ─────────────────────
@@ -275,7 +275,7 @@ final class PaymentFeatureTest extends CIUnitTestCase
         // 시더 데이터는 오늘 날짜로 생성되므로 today 기준으로 필터하면 포함
         $today  = date('Y-m-d');
         $result = $this->withSession(self::ADMIN_SESSION)
-                       ->get('/admin/payments?date_from=' . $today);
+            ->get('/admin/payments?date_from=' . $today);
 
         $result->assertStatus(200);
         $result->assertSee('TRANS001');
@@ -286,7 +286,7 @@ final class PaymentFeatureTest extends CIUnitTestCase
         // date_to를 어제로 설정하면 오늘 생성된 시더 데이터가 제외됨
         $yesterday = date('Y-m-d', strtotime('-1 day'));
         $result    = $this->withSession(self::ADMIN_SESSION)
-                          ->get('/admin/payments?date_to=' . $yesterday);
+            ->get('/admin/payments?date_to=' . $yesterday);
 
         $result->assertStatus(200);
         $result->assertDontSee('TRANS001');
@@ -298,11 +298,11 @@ final class PaymentFeatureTest extends CIUnitTestCase
     {
         // in_list[2,5] 위반 — 유효하지 않은 type 값
         $result = $this->withSession(self::ADMIN_SESSION)
-                       ->post('/admin/payments/1/refund', [
-                           csrf_token()     => csrf_hash(),
-                           'refund_type'   => '3',
-                           'refund_amount' => '100000',
-                       ]);
+            ->post('/admin/payments/1/refund', [
+                csrf_token()    => csrf_hash(),
+                'refund_type'   => '3',
+                'refund_amount' => '100000',
+            ]);
 
         $result->assertRedirect();
         // payments.status는 변경되지 않아야 함

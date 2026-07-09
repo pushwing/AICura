@@ -33,11 +33,13 @@ final class AppAuthFeatureTest extends CIUnitTestCase
     use DatabaseTestTrait;
     use FeatureTestTrait;
 
-    protected $migrate   = true;
-    protected $refresh   = true;
-    protected $namespace = null;
+    protected $migrate = true;
+    protected $refresh = true;
+    protected $namespace;
 
-    /** [A1] 회원가입 성공 */
+    /**
+     * [A1] 회원가입 성공
+     */
     public function testRegisterSucceeds(): void
     {
         $result = $this->withBodyFormat('json')->post('api/v1/auth/register', [
@@ -60,7 +62,9 @@ final class AppAuthFeatureTest extends CIUnitTestCase
         ]);
     }
 
-    /** [A2] 중복 이메일 가입 차단 */
+    /**
+     * [A2] 중복 이메일 가입 차단
+     */
     public function testRegisterDuplicateEmailFails(): void
     {
         $payload = ['email' => 'dup@aicura.test', 'password' => 'password1234'];
@@ -71,7 +75,9 @@ final class AppAuthFeatureTest extends CIUnitTestCase
         $this->assertSame('ALREADY_EXISTS', json_decode($result->getJSON(), true)['code']);
     }
 
-    /** [A3] 유효성 검사 실패 */
+    /**
+     * [A3] 유효성 검사 실패
+     */
     public function testRegisterInvalidEmailFails(): void
     {
         $result = $this->withBodyFormat('json')->post('api/v1/auth/register', [
@@ -82,7 +88,9 @@ final class AppAuthFeatureTest extends CIUnitTestCase
         $this->assertSame('VALIDATION_ERROR', json_decode($result->getJSON(), true)['code']);
     }
 
-    /** [A4] 로그인 성공 */
+    /**
+     * [A4] 로그인 성공
+     */
     public function testLoginSucceeds(): void
     {
         $this->withBodyFormat('json')->post('api/v1/auth/register', [
@@ -98,7 +106,9 @@ final class AppAuthFeatureTest extends CIUnitTestCase
         $this->assertArrayHasKey('access_token', json_decode($result->getJSON(), true)['data']);
     }
 
-    /** [A5] 비밀번호 불일치 */
+    /**
+     * [A5] 비밀번호 불일치
+     */
     public function testLoginWrongPasswordFails(): void
     {
         $this->withBodyFormat('json')->post('api/v1/auth/register', [
@@ -114,7 +124,9 @@ final class AppAuthFeatureTest extends CIUnitTestCase
         $this->assertSame('INVALID_CREDENTIALS', json_decode($result->getJSON(), true)['code']);
     }
 
-    /** [A6] 비소비자(운영자) 계정은 앱 로그인 불가 */
+    /**
+     * [A6] 비소비자(운영자) 계정은 앱 로그인 불가
+     */
     public function testNonConsumerCannotLogin(): void
     {
         model(UserModel::class)->insert([
@@ -132,7 +144,9 @@ final class AppAuthFeatureTest extends CIUnitTestCase
         $this->assertSame('INVALID_CREDENTIALS', json_decode($result->getJSON(), true)['code']);
     }
 
-    /** [A7][A8] 소셜 로그인 신규 생성 + 재로그인 중복 없음 (검증기는 uid 999888 반환하도록 주입) */
+    /**
+     * [A7][A8] 소셜 로그인 신규 생성 + 재로그인 중복 없음 (검증기는 uid 999888 반환하도록 주입)
+     */
     public function testSocialLoginCreatesThenReuses(): void
     {
         $payload = ['provider' => 'kakao', 'access_token' => 'valid-kakao-token', 'where_from' => 3];
@@ -153,7 +167,9 @@ final class AppAuthFeatureTest extends CIUnitTestCase
         $this->assertSame(1, $count);
     }
 
-    /** [A11] 소셜 토큰 검증 실패 시 401 + 계정 미생성 (이슈 #187 인증 우회 차단) */
+    /**
+     * [A11] 소셜 토큰 검증 실패 시 401 + 계정 미생성 (이슈 #187 인증 우회 차단)
+     */
     public function testSocialLoginRejectsInvalidToken(): void
     {
         // 검증기가 실패를 던지도록 주입 — 위조·만료 토큰을 흉내낸다.
@@ -174,7 +190,9 @@ final class AppAuthFeatureTest extends CIUnitTestCase
         $this->assertSame($before, $after);
     }
 
-    /** [A12] access_token 누락 → 422 (uid 만으로는 로그인 불가) */
+    /**
+     * [A12] access_token 누락 → 422 (uid 만으로는 로그인 불가)
+     */
     public function testSocialLoginRequiresAccessToken(): void
     {
         $result = $this->withBodyFormat('json')->post('api/v1/auth/social', [
@@ -214,7 +232,9 @@ final class AppAuthFeatureTest extends CIUnitTestCase
         Services::injectMock('appAuthService', new AppAuthService(socialVerifier: $fake));
     }
 
-    /** [A10] 대소문자가 다른 이메일로도 로그인 성공 — 가입·로그인 정규화 일치 */
+    /**
+     * [A10] 대소문자가 다른 이메일로도 로그인 성공 — 가입·로그인 정규화 일치
+     */
     public function testLoginIsCaseInsensitiveForEmail(): void
     {
         $this->withBodyFormat('json')->post('api/v1/auth/register', [
@@ -230,7 +250,9 @@ final class AppAuthFeatureTest extends CIUnitTestCase
         $this->assertArrayHasKey('access_token', json_decode($result->getJSON(), true)['data']);
     }
 
-    /** [A9] 이메일 중복 확인 */
+    /**
+     * [A9] 이메일 중복 확인
+     */
     public function testCheckEmailAvailability(): void
     {
         $this->withBodyFormat('json')->post('api/v1/auth/register', [

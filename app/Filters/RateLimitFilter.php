@@ -18,10 +18,14 @@ use CodeIgniter\HTTP\ResponseInterface;
  */
 class RateLimitFilter implements FilterInterface
 {
-    /** 기본 허용 횟수 */
+    /**
+     * 기본 허용 횟수
+     */
     private const int DEFAULT_CAPACITY = 60;
 
-    /** 기본 시간창(초) */
+    /**
+     * 기본 시간창(초)
+     */
     private const int DEFAULT_SECONDS = 60;
 
     public function before(RequestInterface $request, $arguments = null): mixed
@@ -56,6 +60,7 @@ class RateLimitFilter implements FilterInterface
      * 필터 인자에서 [허용횟수, 시간창초]를 해석한다.
      *
      * @param list<string>|null $arguments
+     *
      * @return array{0: int, 1: int}
      */
     private function limits(?array $arguments): array

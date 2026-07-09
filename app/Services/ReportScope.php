@@ -14,7 +14,7 @@ use App\Models\AiReportModel;
 final readonly class ReportScope
 {
     /**
-     * @param 'global'|'hospital'|'agency' $type
+     * @param 'agency'|'global'|'hospital' $type
      * @param list<int>|null               $hospitalIds
      */
     private function __construct(

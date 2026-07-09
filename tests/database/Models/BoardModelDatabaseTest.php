@@ -15,8 +15,7 @@ final class BoardModelDatabaseTest extends CIUnitTestCase
     protected $migrate     = true;
     protected $migrateOnce = true;
     protected $refresh     = false;
-    protected $namespace   = null;
-
+    protected $namespace;
     private int $boardId  = 0;
     private int $targetId = 7777;
 
@@ -93,7 +92,7 @@ final class BoardModelDatabaseTest extends CIUnitTestCase
 
     public function testMarkDeletedRejectsInvalidState(): void
     {
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         model(BoardModel::class)->markDeleted($this->boardId, 0, '');
     }
 

@@ -48,13 +48,17 @@ final class AuthException extends DomainException
         return new self(422, 'VALIDATION_ERROR', '지원하지 않는 소셜 로그인 제공자입니다.');
     }
 
-    /** 소셜 제공자 토큰 검증 실패 — 만료·위조·네트워크 오류를 클라이언트에는 통일된 401 로 응답 */
+    /**
+     * 소셜 제공자 토큰 검증 실패 — 만료·위조·네트워크 오류를 클라이언트에는 통일된 401 로 응답
+     */
     public static function socialVerificationFailed(): self
     {
         return new self(401, 'SOCIAL_AUTH_FAILED', '소셜 로그인 인증에 실패했습니다. 다시 시도해 주세요.');
     }
 
-    /** 사전 검사를 통과했으나 계정 생성(insert)이 실패한 예외적 상황 — 상세는 서버 로그로만 남긴다 */
+    /**
+     * 사전 검사를 통과했으나 계정 생성(insert)이 실패한 예외적 상황 — 상세는 서버 로그로만 남긴다
+     */
     public static function registrationFailed(): self
     {
         return new self(500, 'INTERNAL_ERROR', '계정 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.');

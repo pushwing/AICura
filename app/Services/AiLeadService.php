@@ -23,14 +23,21 @@ use RuntimeException;
  */
 class AiLeadService
 {
-    /** 점수 허용 범위 */
+    /**
+     * 점수 허용 범위
+     */
     private const int SCORE_MIN = 0;
+
     private const int SCORE_MAX = 100;
 
-    /** 요약·다음액션 저장 컬럼 길이(VARCHAR 255)에 맞춘 절단 길이 */
+    /**
+     * 요약·다음액션 저장 컬럼 길이(VARCHAR 255)에 맞춘 절단 길이
+     */
     private const int TEXT_MAX = 255;
 
-    /** @var array<int, string> 성별 라벨 (0 미지정 / 1 남 / 2 여) */
+    /**
+     * @var array<int, string> 성별 라벨 (0 미지정 / 1 남 / 2 여)
+     */
     private const array SEX_LABELS = [0 => '미지정', 1 => '남성', 2 => '여성'];
 
     private readonly AiClientInterface $ai;
@@ -43,9 +50,9 @@ class AiLeadService
         ?CallMemoModel $callMemos = null,
     ) {
         // 공급자는 Groq 고정 — 사전검사(AiComplianceService)와 동일 정책
-        $this->ai           = $ai           ?? AiClientFactory::make('groq');
+        $this->ai           = $ai ?? AiClientFactory::make('groq');
         $this->callRequests = $callRequests ?? model(CallRequestModel::class);
-        $this->callMemos    = $callMemos    ?? model(CallMemoModel::class);
+        $this->callMemos    = $callMemos ?? model(CallMemoModel::class);
     }
 
     /**
@@ -66,7 +73,7 @@ class AiLeadService
 
         $memos  = $this->callMemos->getMemosForAnalysis($callRequestId);
         $result = $this->normalize(
-            $this->ai->completeJson($this->systemPrompt(), $this->userPrompt($request, $memos))
+            $this->ai->completeJson($this->systemPrompt(), $this->userPrompt($request, $memos)),
         );
 
         $this->callRequests->saveAnalysis($callRequestId, $result);
@@ -91,7 +98,9 @@ class AiLeadService
         ];
     }
 
-    /** 한 줄 텍스트로 정리 — 개행 제거 후 255자 절단 */
+    /**
+     * 한 줄 텍스트로 정리 — 개행 제거 후 255자 절단
+     */
     private function clip(mixed $value): string
     {
         $text = trim(preg_replace('/\s+/u', ' ', is_string($value) ? $value : '') ?? '');
@@ -130,7 +139,7 @@ class AiLeadService
      * 분석 입력 프롬프트 — PII(name·phone) 제외, content·메모·funnel·age·sex 만 전달.
      *
      * @param array{content?: string|null, funnel?: string|null, age?: int|string|null, sex?: int|string|null} $request
-     * @param array<int, string> $memos
+     * @param array<int, string>                                                                               $memos
      */
     private function userPrompt(array $request, array $memos): string
     {
@@ -140,11 +149,11 @@ class AiLeadService
         $sex     = (int) ($request['sex'] ?? 0);
 
         $payload = json_encode([
-            '신청내용'   => $content !== '' ? $content : '(없음)',
-            '유입경로'   => $funnel !== '' ? $funnel : '(미지정)',
-            '연령'       => ($age !== null && $age !== '') ? (int) $age . '세' : '(미지정)',
-            '성별'       => self::SEX_LABELS[$sex] ?? '미지정',
-            '상담메모'   => $memos !== [] ? $memos : ['(없음)'],
+            '신청내용' => $content !== '' ? $content : '(없음)',
+            '유입경로' => $funnel !== '' ? $funnel : '(미지정)',
+            '연령'     => ($age !== null && $age !== '') ? (int) $age . '세' : '(미지정)',
+            '성별'     => self::SEX_LABELS[$sex] ?? '미지정',
+            '상담메모' => $memos !== [] ? $memos : ['(없음)'],
         ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 
         return "다음 리드를 분석해 전환 가능성을 평가하세요.\n\n{$payload}";

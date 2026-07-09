@@ -2,14 +2,14 @@
 
 namespace App\Controllers\Admin;
 
-use Override;
-use CodeIgniter\HTTP\RequestInterface;
-use Psr\Log\LoggerInterface;
 use App\Models\GuideModel;
 use App\Services\GuideService;
 use CodeIgniter\Exceptions\PageNotFoundException;
+use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
+use Override;
+use Psr\Log\LoggerInterface;
 
 /**
  * Admin 시술 가이드 관리 (이슈 #146)
@@ -18,15 +18,15 @@ use Config\Services;
  */
 class GuideController extends BaseAdminController
 {
-    private GuideService $guideService;
-
     private const int PER_PAGE = 20;
+
+    private GuideService $guideService;
 
     #[Override]
     public function initController(
         RequestInterface $request,
         ResponseInterface $response,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ): void {
         parent::initController($request, $response, $logger);
         $this->guideService = Services::guideService();
@@ -64,7 +64,7 @@ class GuideController extends BaseAdminController
 
     public function create(): ResponseInterface
     {
-        if (!$this->validate($this->rules())) {
+        if (! $this->validate($this->rules())) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
@@ -78,7 +78,7 @@ class GuideController extends BaseAdminController
         if ($this->guideService->find($id) === null) {
             throw PageNotFoundException::forPageNotFound('가이드를 찾을 수 없습니다.');
         }
-        if (!$this->validate($this->rules())) {
+        if (! $this->validate($this->rules())) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 

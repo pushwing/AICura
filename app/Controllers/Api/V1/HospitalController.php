@@ -2,12 +2,12 @@
 
 namespace App\Controllers\Api\V1;
 
-use Override;
 use App\Exceptions\DomainException;
 use App\Services\HospitalService;
 use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
 use OpenApi\Attributes as OA;
+use Override;
 
 /**
  * 외부(소비자) 앱 병원 컨트롤러 (이슈 #99)
@@ -41,7 +41,7 @@ class HospitalController extends BaseApiController
         responses: [
             new OA\Response(response: 200, description: '병원 목록'),
             new OA\Response(response: 401, description: '인증 필요'),
-        ]
+        ],
     )]
     #[Override]
     public function index(): ResponseInterface
@@ -61,7 +61,7 @@ class HospitalController extends BaseApiController
         responses: [
             new OA\Response(response: 200, description: '병원 상세'),
             new OA\Response(response: 404, description: '존재하지 않는 병원'),
-        ]
+        ],
     )]
     #[Override]
     public function show($id = null): ResponseInterface
@@ -88,7 +88,7 @@ class HospitalController extends BaseApiController
         responses: [
             new OA\Response(response: 200, description: '병원 이벤트 목록'),
             new OA\Response(response: 404, description: '존재하지 않는 병원'),
-        ]
+        ],
     )]
     public function campaigns(?string $id = null): ResponseInterface
     {
@@ -116,7 +116,7 @@ class HospitalController extends BaseApiController
         responses: [
             new OA\Response(response: 200, description: '병원 후기 목록'),
             new OA\Response(response: 404, description: '존재하지 않는 병원'),
-        ]
+        ],
     )]
     public function reviews(?string $id = null): ResponseInterface
     {
@@ -140,7 +140,7 @@ class HospitalController extends BaseApiController
         responses: [
             new OA\Response(response: 200, description: '토글 결과 (liked: 찜 여부)'),
             new OA\Response(response: 404, description: '존재하지 않는 병원'),
-        ]
+        ],
     )]
     public function like(?string $id = null): ResponseInterface
     {
@@ -190,6 +190,7 @@ class HospitalController extends BaseApiController
      * 페이지네이션 meta 표준 4필드
      *
      * @param array<string, mixed> $params
+     *
      * @return array<string, int>
      */
     private function meta(array $params, int $total): array

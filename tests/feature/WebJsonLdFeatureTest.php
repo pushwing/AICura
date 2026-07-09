@@ -18,10 +18,9 @@ final class WebJsonLdFeatureTest extends CIUnitTestCase
     use DatabaseTestTrait;
     use FeatureTestTrait;
 
-    protected $migrate   = true;
-    protected $refresh   = true;
-    protected $namespace = null;
-
+    protected $migrate = true;
+    protected $refresh = true;
+    protected $namespace;
     private int $hospitalId = 0;
     private int $eventId    = 0;
     private int $reviewId   = 0;
@@ -35,29 +34,29 @@ final class WebJsonLdFeatureTest extends CIUnitTestCase
         $now = date('Y-m-d H:i:s');
 
         $db->table('hospitals')->insert([
-            'name' => '강남웹병원', 'type' => 1, 'status' => 'active', 'is_deleted' => 0,
+            'name'    => '강남웹병원', 'type' => 1, 'status' => 'active', 'is_deleted' => 0,
             'address' => '서울 강남구', 'phone' => '02-123-4567', 'created_at' => $now, 'updated_at' => $now,
         ]);
         $this->hospitalId = (int) $db->insertID();
 
         $db->table('board_summaries')->insert([
-            'type' => BoardModel::TYPE_HOSPITAL, 'target_id' => $this->hospitalId,
+            'type'     => BoardModel::TYPE_HOSPITAL, 'target_id' => $this->hospitalId,
             'rate_sum' => 4.5, 'rate1' => 4.5, 'rate2' => 4.5, 'rate3' => 4.5,
         ]);
 
         $db->table('campaigns')->insert([
-            'ad_title' => '강남 리프팅', 'hospital_id' => $this->hospitalId, 'status' => 'active',
-            'review_status' => 'approved', 'exposure' => 1, 'is_deleted' => 0, 'category' => 0,
-            'ad_type' => 1, 'cost_type' => 1, 'discount_cost' => 10000, 'general_cost' => 20000,
+            'ad_title'       => '강남 리프팅', 'hospital_id' => $this->hospitalId, 'status' => 'active',
+            'review_status'  => 'approved', 'exposure' => 1, 'is_deleted' => 0, 'category' => 0,
+            'ad_type'        => 1, 'cost_type' => 1, 'discount_cost' => 10000, 'general_cost' => 20000,
             'ad_detail_info' => '리프팅 상세', 'created_at' => $now, 'updated_at' => $now,
         ]);
         $this->eventId = (int) $db->insertID();
 
         $db->table('boards')->insert([
-            'user_id' => 1, 'user_name' => '홍길동', 'type' => BoardModel::TYPE_HOSPITAL,
-            'target_id' => $this->hospitalId, 'subject' => '만족 후기', 'contents' => '시술 만족합니다',
-            'rate_sum' => 5, 'is_secret' => 0, 'is_list' => 1, 'is_delete' => 0,
-            'ai_status' => BoardModel::AI_STATUS_IDLE, 'complain_count' => 0,
+            'user_id'    => 1, 'user_name' => '홍길동', 'type' => BoardModel::TYPE_HOSPITAL,
+            'target_id'  => $this->hospitalId, 'subject' => '만족 후기', 'contents' => '시술 만족합니다',
+            'rate_sum'   => 5, 'is_secret' => 0, 'is_list' => 1, 'is_delete' => 0,
+            'ai_status'  => BoardModel::AI_STATUS_IDLE, 'complain_count' => 0,
             'created_at' => $now, 'updated_at' => $now,
         ]);
         $this->reviewId = (int) $db->insertID();
@@ -80,7 +79,9 @@ final class WebJsonLdFeatureTest extends CIUnitTestCase
         return $decoded;
     }
 
-    /** [J1] 이벤트 상세 — Offer + MedicalProcedure + seller, 한글 정상 디코드 */
+    /**
+     * [J1] 이벤트 상세 — Offer + MedicalProcedure + seller, 한글 정상 디코드
+     */
     public function testEventDetailHasOfferJsonLd(): void
     {
         $ld = $this->jsonLd('events/' . $this->eventId);
@@ -94,7 +95,9 @@ final class WebJsonLdFeatureTest extends CIUnitTestCase
         $this->assertSame('강남웹병원', $ld['seller']['name']);
     }
 
-    /** [J2] 병원 상세 — MedicalClinic + AggregateRating */
+    /**
+     * [J2] 병원 상세 — MedicalClinic + AggregateRating
+     */
     public function testHospitalDetailHasMedicalClinicJsonLd(): void
     {
         $ld = $this->jsonLd('hospitals/' . $this->hospitalId);
@@ -107,7 +110,9 @@ final class WebJsonLdFeatureTest extends CIUnitTestCase
         $this->assertGreaterThan(0, $ld['aggregateRating']['reviewCount']);
     }
 
-    /** [J3] 후기 상세 — Review + itemReviewed(병원명) + 마스킹된 author */
+    /**
+     * [J3] 후기 상세 — Review + itemReviewed(병원명) + 마스킹된 author
+     */
     public function testReviewDetailHasReviewJsonLd(): void
     {
         $ld = $this->jsonLd('reviews/' . $this->reviewId);
@@ -120,7 +125,9 @@ final class WebJsonLdFeatureTest extends CIUnitTestCase
         $this->assertEquals(5.0, $ld['reviewRating']['ratingValue']); // JSON 은 5.0 을 5 로 직렬화
     }
 
-    /** [J4] 목록 페이지 — JSON-LD 미출력 */
+    /**
+     * [J4] 목록 페이지 — JSON-LD 미출력
+     */
     public function testListPageHasNoJsonLd(): void
     {
         $body = $this->get('events')->getBody();

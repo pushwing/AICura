@@ -2,15 +2,15 @@
 
 namespace App\Controllers\Admin;
 
-use Override;
-use CodeIgniter\HTTP\RequestInterface;
-use Psr\Log\LoggerInterface;
-use CodeIgniter\Exceptions\PageNotFoundException;
-use RuntimeException;
 use App\Models\BoardModel;
 use App\Models\BoardSummaryModel;
 use App\Models\SettingModel;
+use CodeIgniter\Exceptions\PageNotFoundException;
+use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
+use Override;
+use Psr\Log\LoggerInterface;
+use RuntimeException;
 
 /**
  * 후기 운영 컨트롤러
@@ -28,7 +28,7 @@ class BoardController extends BaseAdminController
     public function initController(
         RequestInterface $request,
         ResponseInterface $response,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ): void {
         parent::initController($request, $response, $logger);
         $this->boardModel   = model(BoardModel::class);
@@ -47,8 +47,8 @@ class BoardController extends BaseAdminController
             'reported'   => $this->request->getGet('reported') ?? '',
             'suspicious' => $this->request->getGet('suspicious') ?? '',
             'keyword'    => $this->request->getGet('keyword') ?? '',
-            'page'      => (int) ($this->request->getGet('page') ?? 1),
-            'limit'     => 20,
+            'page'       => (int) ($this->request->getGet('page') ?? 1),
+            'limit'      => 20,
         ];
 
         $result = $this->boardModel->getList($params);

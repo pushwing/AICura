@@ -26,10 +26,10 @@ class AddAiFieldsToCallRequests extends Migration
     {
         $this->forge->addColumn('call_requests', [
             'ai_score' => [
-                'type'    => 'TINYINT',
+                'type'     => 'TINYINT',
                 'unsigned' => true,
-                'null'    => true,
-                'after'   => 'content',
+                'null'     => true,
+                'after'    => 'content',
             ],
             'ai_summary' => [
                 'type'       => 'VARCHAR',

@@ -2,14 +2,14 @@
 
 namespace App\Controllers\Admin;
 
-use Override;
-use CodeIgniter\HTTP\RequestInterface;
-use Psr\Log\LoggerInterface;
-use CodeIgniter\Exceptions\PageNotFoundException;
-use RuntimeException;
 use App\Models\CallMemoModel;
 use App\Models\CallRequestModel;
+use CodeIgniter\Exceptions\PageNotFoundException;
+use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
+use Override;
+use Psr\Log\LoggerInterface;
+use RuntimeException;
 
 /**
  * 이벤트 신청 DB 관리 컨트롤러
@@ -26,7 +26,7 @@ class CallRequestController extends BaseAdminController
     public function initController(
         RequestInterface $request,
         ResponseInterface $response,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ): void {
         parent::initController($request, $response, $logger);
         $this->callRequestModel = model(CallRequestModel::class);
@@ -117,7 +117,7 @@ class CallRequestController extends BaseAdminController
             throw PageNotFoundException::forPageNotFound();
         }
 
-        if (!$this->validate(['memo' => 'required|max_length[500]'])) {
+        if (! $this->validate(['memo' => 'required|max_length[500]'])) {
             return redirect()->back()->with('error', '메모는 1~500자로 입력하세요.');
         }
 

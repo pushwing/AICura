@@ -13,14 +13,14 @@ class AddMissingColumnsToCampaigns extends Migration
         $fields = [
             // 영업 담당자 번호
             'agency_user_id' => [
-                'type' => 'INT',
-                'null' => true,
+                'type'  => 'INT',
+                'null'  => true,
                 'after' => 'hospital_type',
             ],
             // 등록자 번호
             'user_id' => [
-                'type' => 'INT',
-                'null' => true,
+                'type'  => 'INT',
+                'null'  => true,
                 'after' => 'agency_user_id',
             ],
             // 기간 연장 여부
@@ -44,14 +44,14 @@ class AddMissingColumnsToCampaigns extends Migration
             ],
             // 이벤트신청버튼 설정 JSON
             'ad_detail_info' => [
-                'type' => 'TEXT',
-                'null' => true,
+                'type'  => 'TEXT',
+                'null'  => true,
                 'after' => 'model_image_count',
             ],
             // 검수일
             'inspect_date' => [
-                'type' => 'DATE',
-                'null' => true,
+                'type'  => 'DATE',
+                'null'  => true,
                 'after' => 'ad_detail_info',
             ],
             // 후기 노출여부: 1 노출, 2 미노출
@@ -116,13 +116,13 @@ class AddMissingColumnsToCampaigns extends Migration
                 'after'      => 'contract_order_id',
             ],
             'del_date' => [
-                'type' => 'DATETIME',
-                'null' => true,
+                'type'  => 'DATETIME',
+                'null'  => true,
                 'after' => 'updated_at',
             ],
             'delete_user_id' => [
-                'type' => 'INT',
-                'null' => true,
+                'type'  => 'INT',
+                'null'  => true,
                 'after' => 'del_date',
             ],
         ];

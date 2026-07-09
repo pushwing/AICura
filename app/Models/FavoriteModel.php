@@ -12,20 +12,19 @@ use Throwable;
  */
 class FavoriteModel extends Model
 {
-    protected $table      = 'favorites';
-    protected $primaryKey = 'id';
+    public const TYPE_CAMPAIGN = 'campaign';
+    public const TYPE_HOSPITAL = 'hospital';
+
+    protected $table         = 'favorites';
+    protected $primaryKey    = 'id';
     protected $useTimestamps = true;
     protected $updatedField  = ''; // updated_at 컬럼 없음
     protected $returnType    = 'array';
-
     protected $allowedFields = [
         'user_id',
         'target_type',
         'target_id',
     ];
-
-    public const TYPE_CAMPAIGN = 'campaign';
-    public const TYPE_HOSPITAL  = 'hospital';
 
     /**
      * 찜 토글 — 있으면 삭제, 없으면 추가. 토글 후 찜 상태(true=찜됨)를 반환한다.
@@ -56,8 +55,8 @@ class FavoriteModel extends Model
         } catch (Throwable $e) {
             // 유니크 키 충돌(uniq_favorites_user_target)만 멱등 처리하고,
             // 그 외 DB 오류는 그대로 전파한다.
-            if (stripos($e->getMessage(), 'uniq_favorites_user_target') === false
-                && stripos($e->getMessage(), 'Duplicate') === false) {
+            if (! str_contains(strtolower($e->getMessage()), strtolower('uniq_favorites_user_target'))
+                && ! str_contains(strtolower($e->getMessage()), strtolower('Duplicate'))) {
                 throw $e;
             }
         }
@@ -108,6 +107,7 @@ class FavoriteModel extends Model
      * 주어진 대상 ID 목록 중 사용자가 찜한 ID만 반환 — 목록 is_liked 오버레이용 (N+1 방지)
      *
      * @param array<int, int> $targetIds
+     *
      * @return array<int, int> 찜한 target_id 목록
      */
     public function likedTargetIds(int $userId, string $targetType, array $targetIds): array

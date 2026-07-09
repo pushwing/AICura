@@ -2,12 +2,12 @@
 
 namespace App\Services;
 
-use RuntimeException;
-use Throwable;
 use App\Exceptions\AuthException;
 use App\Libraries\JwtLibrary;
 use App\Libraries\Social\SocialVerifierInterface;
 use App\Models\UserModel;
+use RuntimeException;
+use Throwable;
 
 /**
  * 외부(소비자) 앱 인증 서비스 (이슈 #96)
@@ -21,7 +21,9 @@ class AppAuthService
 {
     private const int ACCESS_TTL = 3600;
 
-    /** 지원 소셜 제공자 → users.provider 코드 매핑 */
+    /**
+     * 지원 소셜 제공자 → users.provider 코드 매핑
+     */
     private const array PROVIDER_MAP = [
         'naver' => 2,
         'kakao' => 3,
@@ -38,8 +40,8 @@ class AppAuthService
         ?HealthPointService $points = null,
         ?SocialVerifierInterface $socialVerifier = null,
     ) {
-        $this->users          = $users  ?? model(UserModel::class);
-        $this->jwt            = $jwt    ?? new JwtLibrary();
+        $this->users          = $users ?? model(UserModel::class);
+        $this->jwt            = $jwt ?? new JwtLibrary();
         $this->points         = $points ?? service('healthPointService');
         $this->socialVerifier = $socialVerifier ?? service('socialTokenVerifier');
     }
@@ -53,7 +55,7 @@ class AppAuthService
     {
         $user = $this->users->findAppUserForAuth($this->normalizeEmail($email));
 
-        if ($user === null || !is_string($user['password']) || !password_verify($password, $user['password'])) {
+        if ($user === null || ! is_string($user['password']) || ! password_verify($password, $user['password'])) {
             throw AuthException::invalidCredentials();
         }
 
@@ -68,6 +70,7 @@ class AppAuthService
      * 이메일 회원가입 — 소비자 자가가입 (가입 후 자동 로그인 토큰 발급)
      *
      * @param array<string, mixed> $input email·password·username·phone·age·sex·where_from
+     *
      * @return array<string, mixed> 토큰 번들
      */
     public function register(array $input): array
@@ -101,6 +104,7 @@ class AppAuthService
      * email 컬럼(UNIQUE·NOT NULL)에는 충돌 없는 안정적 합성 주소를 저장한다.
      *
      * @param array<string, mixed> $input provider('naver'|'kakao')·access_token·where_from
+     *
      * @return array<string, mixed> 토큰 번들
      */
     public function socialLogin(array $input): array
@@ -123,7 +127,7 @@ class AppAuthService
         }
 
         $userId = $this->createUser([
-            'email'      => sprintf('social_%d_%s@aicura.app', $provider, $uid),
+            'email' => sprintf('social_%d_%s@aicura.app', $provider, $uid),
             // 프로필 값은 제공자 검증 결과를 우선 사용한다.
             'username'   => $profile->username,
             'picture'    => $profile->picture,
@@ -140,7 +144,7 @@ class AppAuthService
      */
     public function isEmailAvailable(string $email): bool
     {
-        return !$this->users->emailExists($this->normalizeEmail($email));
+        return ! $this->users->emailExists($this->normalizeEmail($email));
     }
 
     /**
@@ -200,7 +204,7 @@ class AppAuthService
     {
         $key = strtolower(trim($provider));
 
-        if (!isset(self::PROVIDER_MAP[$key])) {
+        if (! isset(self::PROVIDER_MAP[$key])) {
             throw AuthException::unsupportedProvider();
         }
 
@@ -219,7 +223,7 @@ class AppAuthService
 
     private function nullableString(mixed $value): ?string
     {
-        if (!is_string($value)) {
+        if (! is_string($value)) {
             return null;
         }
 

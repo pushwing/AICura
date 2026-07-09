@@ -21,7 +21,9 @@ enum AppLogEvent: string
     case EventLike          = 'event_like';           // 이벤트 찜
     case HospitalDetailView = 'hospital_detail_view'; // 병원 상세 조회
 
-    /** 통계 화면 표시용 한국어 라벨 */
+    /**
+     * 통계 화면 표시용 한국어 라벨
+     */
     public function label(): string
     {
         return match ($this) {

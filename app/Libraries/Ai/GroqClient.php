@@ -23,13 +23,19 @@ class GroqClient implements AiClientInterface
     private const string ENDPOINT      = 'https://api.groq.com/openai/v1/chat/completions';
     private const string DEFAULT_MODEL = 'llama-3.3-70b-versatile';
 
-    /** 응답 토큰 상한 — 보고서 본문이 잘리지 않을 만큼 충분, 과금 폭주 방지 */
+    /**
+     * 응답 토큰 상한 — 보고서 본문이 잘리지 않을 만큼 충분, 과금 폭주 방지
+     */
     private const int MAX_TOKENS = 2048;
 
-    /** 429·5xx 재시도 횟수 (총 시도 = MAX_RETRIES + 1) */
+    /**
+     * 429·5xx 재시도 횟수 (총 시도 = MAX_RETRIES + 1)
+     */
     private const int MAX_RETRIES = 2;
 
-    /** 백오프 상한(초) — Retry-After가 비정상적으로 길어도 이 값으로 캡 */
+    /**
+     * 백오프 상한(초) — Retry-After가 비정상적으로 길어도 이 값으로 캡
+     */
     private const int MAX_BACKOFF = 10;
 
     private readonly string $apiKey;
@@ -66,14 +72,16 @@ class GroqClient implements AiClientInterface
         return $decoded;
     }
 
-    /** 공통 호출 루프 — $json=true면 JSON 모드로 요청하고 본문 문자열을 반환 */
+    /**
+     * 공통 호출 루프 — $json=true면 JSON 모드로 요청하고 본문 문자열을 반환
+     */
     private function request(string $systemPrompt, string $userPrompt, bool $json): string
     {
         if (! $this->isConfigured()) {
             throw new RuntimeException('GROQ_API_KEY가 설정되지 않았습니다.');
         }
 
-        for ($attempt = 0; ; $attempt++) {
+        for ($attempt = 0;; $attempt++) {
             $response = $this->send($systemPrompt, $userPrompt, $json);
             $status   = $response->getStatusCode();
             $body     = (string) $response->getBody();
@@ -104,6 +112,7 @@ class GroqClient implements AiClientInterface
                 'status' => $status,
                 'body'   => $body,
             ]);
+
             throw new RuntimeException("Groq API 응답 오류 (HTTP {$status})");
         }
     }
@@ -122,7 +131,7 @@ class GroqClient implements AiClientInterface
             'max_tokens'  => self::MAX_TOKENS,
             'messages'    => [
                 ['role' => 'system', 'content' => $systemPrompt],
-                ['role' => 'user',   'content' => $userPrompt],
+                ['role' => 'user', 'content' => $userPrompt],
             ],
         ];
 
@@ -139,7 +148,9 @@ class GroqClient implements AiClientInterface
         ]);
     }
 
-    /** 재시도 대기 시간 — Retry-After 헤더 우선, 없으면 지수 백오프(2,4,8…), MAX_BACKOFF로 캡 */
+    /**
+     * 재시도 대기 시간 — Retry-After 헤더 우선, 없으면 지수 백오프(2,4,8…), MAX_BACKOFF로 캡
+     */
     private function backoffSeconds(ResponseInterface $response, int $attempt): int
     {
         $retryAfter = (int) $response->getHeaderLine('Retry-After');

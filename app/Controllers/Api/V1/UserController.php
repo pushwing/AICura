@@ -32,7 +32,7 @@ class UserController extends BaseApiController
         responses: [
             new OA\Response(response: 200, description: '내 프로필'),
             new OA\Response(response: 401, description: '인증 필요'),
-        ]
+        ],
     )]
     public function me(): ResponseInterface
     {
@@ -52,8 +52,8 @@ class UserController extends BaseApiController
                 new OA\Property(property: 'sex', type: 'string', enum: ['M', 'F'], example: 'F'),
                 new OA\Property(property: 'job', type: 'string', example: '회사원'),
                 new OA\Property(property: 'picture', type: 'string', example: 'https://...'),
-            ]
-        )
+            ],
+        ),
     ), tags: ['Me'], responses: [
         new OA\Response(response: 200, description: '수정된 프로필'),
         new OA\Response(response: 422, description: '유효성 검사 실패'),
@@ -69,7 +69,7 @@ class UserController extends BaseApiController
             'picture'  => 'permit_empty|max_length[500]',
         ];
 
-        if (!$this->validate($rules)) {
+        if (! $this->validate($rules)) {
             return $this->error('VALIDATION_ERROR', implode(' ', $this->validator->getErrors()), 422);
         }
 
@@ -85,7 +85,7 @@ class UserController extends BaseApiController
         summary: '회원 탈퇴',
         security: [['bearerAuth' => []]],
         tags: ['Me'],
-        responses: [new OA\Response(response: 200, description: '탈퇴 완료')]
+        responses: [new OA\Response(response: 200, description: '탈퇴 완료')],
     )]
     public function withdraw(): ResponseInterface
     {
@@ -101,8 +101,8 @@ class UserController extends BaseApiController
             properties: [
                 new OA\Property(property: 'push_token', type: 'string', example: 'fcm-token-xxxx'),
                 new OA\Property(property: 'platform', description: '2 iOS · 3 Android', type: 'integer', example: 2),
-            ]
-        )
+            ],
+        ),
     ), tags: ['Me'], responses: [
         new OA\Response(response: 200, description: '등록 완료'),
         new OA\Response(response: 422, description: '유효성 검사 실패'),
@@ -114,7 +114,7 @@ class UserController extends BaseApiController
             'platform'   => 'permit_empty|in_list[2,3]',
         ];
 
-        if (!$this->validate($rules)) {
+        if (! $this->validate($rules)) {
             return $this->error('VALIDATION_ERROR', implode(' ', $this->validator->getErrors()), 422);
         }
 
@@ -131,7 +131,7 @@ class UserController extends BaseApiController
         summary: '내 상담 신청 내역',
         security: [['bearerAuth' => []]],
         tags: ['Me'],
-        responses: [new OA\Response(response: 200, description: '상담 신청 목록')]
+        responses: [new OA\Response(response: 200, description: '상담 신청 목록')],
     )]
     public function callRequests(): ResponseInterface
     {
@@ -146,7 +146,7 @@ class UserController extends BaseApiController
         summary: '내가 쓴 후기',
         security: [['bearerAuth' => []]],
         tags: ['Me'],
-        responses: [new OA\Response(response: 200, description: '내 후기 목록')]
+        responses: [new OA\Response(response: 200, description: '내 후기 목록')],
     )]
     public function boards(): ResponseInterface
     {
@@ -161,7 +161,7 @@ class UserController extends BaseApiController
         summary: '내 예약',
         security: [['bearerAuth' => []]],
         tags: ['Me'],
-        responses: [new OA\Response(response: 200, description: '내 예약 목록')]
+        responses: [new OA\Response(response: 200, description: '내 예약 목록')],
     )]
     public function bookings(): ResponseInterface
     {
@@ -179,7 +179,7 @@ class UserController extends BaseApiController
         parameters: [
             new OA\Parameter(name: 'type', in: 'query', schema: new OA\Schema(type: 'string', default: 'campaign', enum: ['campaign', 'hospital'])),
         ],
-        responses: [new OA\Response(response: 200, description: '찜 목록')]
+        responses: [new OA\Response(response: 200, description: '찜 목록')],
     )]
     public function likes(): ResponseInterface
     {
@@ -195,7 +195,7 @@ class UserController extends BaseApiController
         summary: '헬스포인트 잔액·내역',
         security: [['bearerAuth' => []]],
         tags: ['Me'],
-        responses: [new OA\Response(response: 200, description: '잔액 + 변동 내역')]
+        responses: [new OA\Response(response: 200, description: '잔액 + 변동 내역')],
     )]
     public function healthPoint(): ResponseInterface
     {
@@ -220,15 +220,15 @@ class UserController extends BaseApiController
             properties: [
                 new OA\Property(property: 'amount', description: '차감할 포인트(1 이상)', type: 'integer', example: 100),
                 new OA\Property(property: 'memo', description: '사용 메모(선택)', type: 'string', example: '쿠폰 교환'),
-            ]
-        )
+            ],
+        ),
     ), tags: ['Me'], responses: [
         new OA\Response(response: 200, description: '차감 후 잔액'),
         new OA\Response(response: 422, description: '금액 오류 또는 잔액 부족'),
     ])]
     public function redeemHealthPoint(): ResponseInterface
     {
-        if (!$this->validate(['amount' => 'required|is_natural_no_zero'])) {
+        if (! $this->validate(['amount' => 'required|is_natural_no_zero'])) {
             return $this->error('VALIDATION_ERROR', implode(' ', $this->validator->getErrors()), 422);
         }
 
@@ -259,6 +259,7 @@ class UserController extends BaseApiController
 
     /**
      * @param array{page: int, limit: int} $p
+     *
      * @return array<string, int>
      */
     private function meta(array $p, int $total): array

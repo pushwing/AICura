@@ -24,8 +24,8 @@ class BookingService
         ?HospitalModel $hospitals = null,
         ?CallRequestModel $callRequests = null,
     ) {
-        $this->bookings     = $bookings     ?? model(BookingModel::class);
-        $this->hospitals    = $hospitals    ?? model(HospitalModel::class);
+        $this->bookings     = $bookings ?? model(BookingModel::class);
+        $this->hospitals    = $hospitals ?? model(HospitalModel::class);
         $this->callRequests = $callRequests ?? model(CallRequestModel::class);
     }
 
@@ -33,13 +33,15 @@ class BookingService
      * 예약 생성
      *
      * @param array<string, mixed> $input hospital_id·name·phone·book_date·call_request_id
+     *
      * @return array<string, mixed>
+     *
      * @throws NotFoundException 노출 불가 병원·타인 상담건
      */
     public function create(int $userId, array $input): array
     {
         $hospitalId = (int) $input['hospital_id'];
-        if (!$this->hospitals->isVisible($hospitalId)) {
+        if (! $this->hospitals->isVisible($hospitalId)) {
             throw NotFoundException::of('예약할 수 있는 병원이 아닙니다.');
         }
 
@@ -66,6 +68,7 @@ class BookingService
      * 본인 예약 상세
      *
      * @return array<string, mixed>
+     *
      * @throws NotFoundException
      */
     public function detail(int $userId, int $id): array
@@ -82,8 +85,10 @@ class BookingService
      * 본인 예약 변경 — 취소된 예약은 변경 불가.
      *
      * @param array<string, mixed> $input
+     *
      * @return array<string, mixed>
-     * @throws NotFoundException|BookingException
+     *
+     * @throws BookingException|NotFoundException
      */
     public function update(int $userId, int $id, array $input): array
     {
@@ -114,7 +119,7 @@ class BookingService
     /**
      * 본인 예약 취소
      *
-     * @throws NotFoundException|BookingException
+     * @throws BookingException|NotFoundException
      */
     public function cancel(int $userId, int $id): void
     {
@@ -131,6 +136,7 @@ class BookingService
 
     /**
      * @param array<string, mixed> $row
+     *
      * @return array<string, mixed>
      */
     private function transform(array $row): array
@@ -154,7 +160,7 @@ class BookingService
 
     private function normalizeDate(mixed $value): ?string
     {
-        if (!is_string($value) || trim($value) === '') {
+        if (! is_string($value) || trim($value) === '') {
             return null;
         }
 
@@ -165,7 +171,7 @@ class BookingService
 
     private function nullableString(mixed $value): ?string
     {
-        if (!is_string($value)) {
+        if (! is_string($value)) {
             return null;
         }
 
