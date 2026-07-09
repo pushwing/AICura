@@ -15,8 +15,8 @@ class AddReservedAtToCallRequests extends Migration
     {
         $this->forge->addColumn('call_requests', [
             'reserved_at' => [
-                'type' => 'DATETIME',
-                'null' => true,
+                'type'  => 'DATETIME',
+                'null'  => true,
                 'after' => 'confirm_date',
             ],
         ]);

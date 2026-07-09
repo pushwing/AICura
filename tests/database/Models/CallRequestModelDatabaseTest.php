@@ -14,8 +14,7 @@ final class CallRequestModelDatabaseTest extends CIUnitTestCase
     protected $migrate     = true;
     protected $migrateOnce = true;
     protected $refresh     = false;
-    protected $namespace   = null;
-
+    protected $namespace;
     private int $hospitalId    = 0;
     private int $campaignId    = 0;
     private int $callRequestId = 0;
@@ -112,13 +111,13 @@ final class CallRequestModelDatabaseTest extends CIUnitTestCase
 
     public function testChangeStatusToReservedRequiresReservedAt(): void
     {
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         model(CallRequestModel::class)->changeStatus($this->callRequestId, 5); // 예약 일시 누락
     }
 
     public function testChangeStatusRejectsInvalidStatus(): void
     {
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         model(CallRequestModel::class)->changeStatus($this->callRequestId, 99);
     }
 

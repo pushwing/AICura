@@ -27,14 +27,18 @@ class AppLogAggregate extends BaseCommand
     protected $description = 'app_logs 를 시간 단위로 집계해 hourly_event_stats 에 적재합니다.';
     protected $usage       = 'logs:aggregate [options]';
 
-    /** @var array<string, string> */
+    /**
+     * @var array<string, string>
+     */
     protected $options = [
         '--date'     => '집계 날짜 (YYYY-MM-DD, 기본: 직전 1시간의 날짜). --hour 없으면 하루 전체 재집계',
         '--hour'     => '집계 시각 (0~23, 기본: 직전 1시간)',
         '--backfill' => '--date 의 0~23시 전체를 재집계',
     ];
 
-    /** @param array<int|string, string|null> $params */
+    /**
+     * @param array<int|string, string|null> $params
+     */
     public function run(array $params): void
     {
         $dateOpt = $params['date'] ?? CLI::getOption('date');
@@ -56,6 +60,7 @@ class AppLogAggregate extends BaseCommand
             if ($backfill) {
                 $totalBuckets = 0;
                 $totalLogs    = 0;
+
                 for ($h = 0; $h < 24; $h++) {
                     $result = $service->aggregateHour($date, $h);
                     $totalBuckets += $result['buckets'];

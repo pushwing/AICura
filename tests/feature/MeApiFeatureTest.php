@@ -1,6 +1,7 @@
 <?php
 
 use App\Libraries\JwtLibrary;
+use App\Models\UserDeviceModel;
 use App\Models\UserModel;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
@@ -28,13 +29,12 @@ final class MeApiFeatureTest extends CIUnitTestCase
     use DatabaseTestTrait;
     use FeatureTestTrait;
 
-    protected $migrate   = true;
-    protected $refresh   = true;
-    protected $namespace = null;
-
-    private int $userId = 0;
-    private int $otherId = 0;
-    private string $token = '';
+    protected $migrate = true;
+    protected $refresh = true;
+    protected $namespace;
+    private int $userId     = 0;
+    private int $otherId    = 0;
+    private string $token   = '';
     private int $hospitalId = 0;
     private int $campaignId = 0;
 
@@ -47,14 +47,14 @@ final class MeApiFeatureTest extends CIUnitTestCase
         $now = date('Y-m-d H:i:s');
 
         $db->table('users')->insert([
-            'email' => 'me@aicura.test', 'username' => '나', 'user_type' => UserModel::TYPE_USER,
+            'email'     => 'me@aicura.test', 'username' => '나', 'user_type' => UserModel::TYPE_USER,
             'is_active' => 1, 'health_point' => 500, 'provider' => 9, 'created_at' => $now, 'updated_at' => $now,
         ]);
         $this->userId = (int) $db->insertID();
         $this->token  = (new JwtLibrary())->generateAccessToken($this->userId);
 
         $db->table('users')->insert([
-            'email' => 'other@aicura.test', 'user_type' => UserModel::TYPE_USER, 'is_active' => 1,
+            'email'      => 'other@aicura.test', 'user_type' => UserModel::TYPE_USER, 'is_active' => 1,
             'created_at' => $now, 'updated_at' => $now,
         ]);
         $this->otherId = (int) $db->insertID();
@@ -62,7 +62,7 @@ final class MeApiFeatureTest extends CIUnitTestCase
         $db->table('hospitals')->insert(['name' => '강남병원', 'type' => 1, 'status' => 'active', 'is_deleted' => 0, 'created_at' => $now, 'updated_at' => $now]);
         $this->hospitalId = (int) $db->insertID();
         $db->table('campaigns')->insert([
-            'ad_title' => '리프팅', 'hospital_id' => $this->hospitalId, 'status' => 'active', 'exposure' => 1,
+            'ad_title'   => '리프팅', 'hospital_id' => $this->hospitalId, 'status' => 'active', 'exposure' => 1,
             'is_deleted' => 0, 'ad_type' => 1, 'cost_type' => 1, 'created_at' => $now, 'updated_at' => $now,
         ]);
         $this->campaignId = (int) $db->insertID();
@@ -88,7 +88,9 @@ final class MeApiFeatureTest extends CIUnitTestCase
         return ['Authorization' => 'Bearer ' . $this->token];
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * @return array<string, mixed>
+     */
     private function authGet(string $uri): array
     {
         $result = $this->withHeaders($this->authHeaders())->get($uri);
@@ -97,7 +99,9 @@ final class MeApiFeatureTest extends CIUnitTestCase
         return json_decode($result->getJSON(), true);
     }
 
-    /** [M1] 프로필 */
+    /**
+     * [M1] 프로필
+     */
     public function testProfile(): void
     {
         $body = $this->authGet('api/v1/me');
@@ -106,7 +110,9 @@ final class MeApiFeatureTest extends CIUnitTestCase
         $this->assertArrayNotHasKey('password', $body['data']);
     }
 
-    /** [M2] 프로필 수정 */
+    /**
+     * [M2] 프로필 수정
+     */
     public function testUpdateProfile(): void
     {
         $result = $this->withHeaders($this->authHeaders())->withBodyFormat('json')
@@ -116,14 +122,18 @@ final class MeApiFeatureTest extends CIUnitTestCase
         $this->seeInDatabase('users', ['id' => $this->userId, 'username' => '새이름', 'phone' => '01099998888']);
     }
 
-    /** [M3] 회원 탈퇴 */
+    /**
+     * [M3] 회원 탈퇴
+     */
     public function testWithdraw(): void
     {
         $this->withHeaders($this->authHeaders())->delete('api/v1/me')->assertStatus(200);
         $this->dontSeeInDatabase('users', ['id' => $this->userId, 'deleted_at' => null]);
     }
 
-    /** [M4] 기기 등록 (upsert) */
+    /**
+     * [M4] 기기 등록 (upsert)
+     */
     public function testRegisterDevice(): void
     {
         $payload = ['push_token' => 'fcm-abc', 'platform' => 2];
@@ -132,10 +142,12 @@ final class MeApiFeatureTest extends CIUnitTestCase
 
         // 같은 토큰 재등록 → 행 1개 유지
         $this->withHeaders($this->authHeaders())->withBodyFormat('json')->post('api/v1/me/device', $payload)->assertStatus(200);
-        $this->assertSame(1, model(\App\Models\UserDeviceModel::class)->where('push_token', 'fcm-abc')->countAllResults());
+        $this->assertSame(1, model(UserDeviceModel::class)->where('push_token', 'fcm-abc')->countAllResults());
     }
 
-    /** [M5] 내 상담 내역 */
+    /**
+     * [M5] 내 상담 내역
+     */
     public function testMyCallRequests(): void
     {
         $body = $this->authGet('api/v1/me/call-requests');
@@ -143,7 +155,9 @@ final class MeApiFeatureTest extends CIUnitTestCase
         $this->assertSame('미확인', $body['data'][0]['status_label']);
     }
 
-    /** [M6] 내 후기 */
+    /**
+     * [M6] 내 후기
+     */
     public function testMyBoards(): void
     {
         $body = $this->authGet('api/v1/me/boards');
@@ -151,7 +165,9 @@ final class MeApiFeatureTest extends CIUnitTestCase
         $this->assertSame('내 후기', $body['data'][0]['subject']);
     }
 
-    /** [M7] 내 예약 */
+    /**
+     * [M7] 내 예약
+     */
     public function testMyBookings(): void
     {
         $body = $this->authGet('api/v1/me/bookings');
@@ -159,7 +175,9 @@ final class MeApiFeatureTest extends CIUnitTestCase
         $this->assertSame('강남병원', $body['data'][0]['hospital_name']);
     }
 
-    /** [M8] 찜 — 유형별 */
+    /**
+     * [M8] 찜 — 유형별
+     */
     public function testMyLikes(): void
     {
         $camp = $this->authGet('api/v1/me/likes?type=campaign');
@@ -173,7 +191,9 @@ final class MeApiFeatureTest extends CIUnitTestCase
         $this->assertSame('강남병원', $hosp['data'][0]['name']);
     }
 
-    /** [M9] 헬스포인트 */
+    /**
+     * [M9] 헬스포인트
+     */
     public function testHealthPoint(): void
     {
         $body = $this->authGet('api/v1/me/health-point');
@@ -182,7 +202,9 @@ final class MeApiFeatureTest extends CIUnitTestCase
         $this->assertSame('signup', $body['data']['logs'][0]['type']);
     }
 
-    /** [M10] 토큰 없으면 401 */
+    /**
+     * [M10] 토큰 없으면 401
+     */
     public function testRequiresAuth(): void
     {
         $this->get('api/v1/me')->assertStatus(401);

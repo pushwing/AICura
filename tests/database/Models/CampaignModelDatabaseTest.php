@@ -14,8 +14,7 @@ final class CampaignModelDatabaseTest extends CIUnitTestCase
     protected $migrate     = true;
     protected $migrateOnce = true;
     protected $refresh     = false;
-    protected $namespace   = null;
-
+    protected $namespace;
     private int $hospitalId = 0;
     private int $campaignId = 0;
 
@@ -122,7 +121,7 @@ final class CampaignModelDatabaseTest extends CIUnitTestCase
         // pending → ended 는 허용되지 않는 전이
         $model = model(CampaignModel::class);
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         $model->updateStatus($this->campaignId, 'end');
     }
 
@@ -130,7 +129,7 @@ final class CampaignModelDatabaseTest extends CIUnitTestCase
     {
         $model = model(CampaignModel::class);
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         $model->updateStatus($this->campaignId, 'unknown_action');
     }
 

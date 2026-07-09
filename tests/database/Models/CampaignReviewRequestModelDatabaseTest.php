@@ -14,8 +14,7 @@ final class CampaignReviewRequestModelDatabaseTest extends CIUnitTestCase
     protected $migrate     = true;
     protected $migrateOnce = true;
     protected $refresh     = false;
-    protected $namespace   = null;
-
+    protected $namespace;
     private int $hospitalId = 0;
     private int $campaignId = 0;
 
@@ -126,7 +125,7 @@ final class CampaignReviewRequestModelDatabaseTest extends CIUnitTestCase
         $model->approve($id, 99, null);
 
         // approved → approved 는 허용되지 않는 전이
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         $model->approve($id, 99, null);
     }
 
@@ -134,7 +133,7 @@ final class CampaignReviewRequestModelDatabaseTest extends CIUnitTestCase
     {
         $model = model(CampaignReviewRequestModel::class);
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         $model->approve(999999, 99, null);
     }
 
@@ -155,7 +154,7 @@ final class CampaignReviewRequestModelDatabaseTest extends CIUnitTestCase
     {
         $model = model(CampaignReviewRequestModel::class);
 
-        $first  = $model->record($this->campaignId, $this->sampleContent(), 1, 'create');
+        $first = $model->record($this->campaignId, $this->sampleContent(), 1, 'create');
         $model->record($this->campaignId, $this->sampleContent(), 1, 'update');
 
         // 한 건만 처리해도 다른 pending 이 남아있으면 true
@@ -172,7 +171,7 @@ final class CampaignReviewRequestModelDatabaseTest extends CIUnitTestCase
             $this->campaignId,
             array_merge($this->sampleContent(), ['ad_title' => '__newer__']),
             1,
-            'update'
+            'update',
         );
 
         $latest = $model->getLatestPending($this->campaignId);

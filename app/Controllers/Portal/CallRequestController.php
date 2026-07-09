@@ -2,15 +2,15 @@
 
 namespace App\Controllers\Portal;
 
-use Override;
-use CodeIgniter\HTTP\RequestInterface;
-use Psr\Log\LoggerInterface;
-use RuntimeException;
 use App\Models\CallMemoModel;
 use App\Models\CallRequestModel;
 use App\Models\RefundRequestModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
+use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
+use Override;
+use Psr\Log\LoggerInterface;
+use RuntimeException;
 
 /**
  * 광고주 신청 DB 관리 (이슈 #32)
@@ -28,7 +28,7 @@ class CallRequestController extends BasePortalController
     public function initController(
         RequestInterface $request,
         ResponseInterface $response,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ): void {
         parent::initController($request, $response, $logger);
         $this->callRequestModel   = model(CallRequestModel::class);
@@ -36,7 +36,9 @@ class CallRequestController extends BasePortalController
         $this->refundRequestModel = model(RefundRequestModel::class);
     }
 
-    /** 로그인 광고주의 병원 id를 반환하거나 404 (미연결 시) */
+    /**
+     * 로그인 광고주의 병원 id를 반환하거나 404 (미연결 시)
+     */
     private function requireHospitalId(): int
     {
         $this->requireAdvertiser();
@@ -165,7 +167,7 @@ class CallRequestController extends BasePortalController
             throw PageNotFoundException::forPageNotFound();
         }
 
-        if (!$this->validate(['memo' => 'required|max_length[500]'])) {
+        if (! $this->validate(['memo' => 'required|max_length[500]'])) {
             return redirect()->back()->with('error', '메모는 1~500자로 입력하세요.');
         }
 

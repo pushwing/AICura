@@ -11,7 +11,9 @@ use App\Models\GuideModel;
  */
 class GuideService
 {
-    /** 공개 조회 캐시 TTL (초) — 10분 */
+    /**
+     * 공개 조회 캐시 TTL (초) — 10분
+     */
     private const int PUBLIC_TTL = 600;
 
     private readonly GuideModel $guides;
@@ -25,6 +27,7 @@ class GuideService
 
     /**
      * @param array<string, mixed> $params
+     *
      * @return array{list: list<array<string, mixed>>, total: int}
      */
     public function adminList(array $params): array
@@ -47,7 +50,7 @@ class GuideService
      */
     public function create(array $input): int
     {
-        $data = $this->normalize($input);
+        $data         = $this->normalize($input);
         $data['slug'] = $this->guides->generateUniqueSlug(
             (string) ($input['slug'] ?? '') !== '' ? (string) $input['slug'] : (string) ($input['title'] ?? ''),
         );
@@ -68,7 +71,7 @@ class GuideService
      */
     public function update(int $id, array $input): bool
     {
-        $data = $this->normalize($input);
+        $data         = $this->normalize($input);
         $data['slug'] = $this->guides->generateUniqueSlug(
             (string) ($input['slug'] ?? '') !== '' ? (string) $input['slug'] : (string) ($input['title'] ?? ''),
             $id,
@@ -96,6 +99,7 @@ class GuideService
      * 공개 목록 (발행 건, 캐시).
      *
      * @param array<string, mixed> $params
+     *
      * @return array{items: list<array<string, mixed>>, total: int}
      */
     public function publishedList(array $params): array
@@ -106,7 +110,7 @@ class GuideService
         $cacheKey = 'web_guides_list_' . $page . '_' . $limit;
         /** @var array{list: list<array<string, mixed>>, total: int}|null $base */
         $base = cache($cacheKey);
-        if (!is_array($base)) {
+        if (! is_array($base)) {
             $base = $this->guides->getPublishedList(['page' => $page, 'limit' => $limit]);
             cache()->save($cacheKey, $base, self::PUBLIC_TTL);
         }
@@ -122,7 +126,7 @@ class GuideService
     public function findPublishedBySlug(string $slug): ?array
     {
         $cacheKey = 'web_guide_' . md5($slug);
-        /** @var array<string, mixed>|null|false $cached */
+        /** @var array<string, mixed>|false|null $cached */
         $cached = cache($cacheKey);
         if (is_array($cached)) {
             return $cached;
@@ -145,6 +149,7 @@ class GuideService
      * 폼 입력 → 저장 데이터 정규화 (FAQ 직렬화·발행 시각).
      *
      * @param array<string, mixed> $input
+     *
      * @return array<string, mixed>
      */
     private function normalize(array $input): array
@@ -181,6 +186,7 @@ class GuideService
         $answers   = is_array($answers) ? array_values($answers) : [];
 
         $items = [];
+
         foreach ($questions as $i => $q) {
             $q = trim((string) $q);
             $a = trim((string) ($answers[$i] ?? ''));
@@ -204,11 +210,12 @@ class GuideService
         }
 
         $decoded = json_decode($json, true);
-        if (!is_array($decoded)) {
+        if (! is_array($decoded)) {
             return [];
         }
 
         $items = [];
+
         foreach ($decoded as $row) {
             if (is_array($row) && isset($row['q'], $row['a'])) {
                 $items[] = ['q' => (string) $row['q'], 'a' => (string) $row['a']];
@@ -218,7 +225,9 @@ class GuideService
         return $items;
     }
 
-    /** 발행 가이드 공개 URL 을 IndexNow 에 제출 (이슈 #152). */
+    /**
+     * 발행 가이드 공개 URL 을 IndexNow 에 제출 (이슈 #152).
+     */
     private function submitIndexNow(string $slug): void
     {
         service('indexNowService')->submit(base_url('guides/' . rawurlencode($slug)));

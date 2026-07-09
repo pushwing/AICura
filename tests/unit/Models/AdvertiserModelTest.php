@@ -36,6 +36,7 @@ final class AdvertiserModelTest extends CIUnitTestCase
             'contact_email', 'contact_phone', 'business_no',
             'is_network', 'network_parent_id', 'status',
         ];
+
         foreach ($expected as $field) {
             $this->assertContains($field, $allowed);
         }

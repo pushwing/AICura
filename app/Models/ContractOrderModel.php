@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Throwable;
 use CodeIgniter\Model;
+use Throwable;
 
 /**
  * 추가계약건 모델 (병원당 N개)
@@ -23,12 +23,9 @@ use CodeIgniter\Model;
  */
 class ContractOrderModel extends Model
 {
-    protected $table      = 'contract_orders';
-    protected $primaryKey = 'id';
-    protected $useTimestamps = true;
-    protected $returnType    = 'array';
-
-    /** @var array<int, string> 광고 상품 종류 (ad_type2) */
+    /**
+     * @var array<int, string> 광고 상품 종류 (ad_type2)
+     */
     public const AD_TYPE2_LABELS = [
         1 => '이벤트',
         2 => '메인배너',
@@ -37,7 +34,9 @@ class ContractOrderModel extends Model
         5 => '기타',
     ];
 
-    /** @var array<int, string> 수주계약 상태 (contract_status) */
+    /**
+     * @var array<int, string> 수주계약 상태 (contract_status)
+     */
     public const STATUS_LABELS = [
         1 => '정상',
         2 => '발행환불',
@@ -47,7 +46,9 @@ class ContractOrderModel extends Model
         6 => '이월종료',
     ];
 
-    /** @var array<int, string> deposits 거래 상태 (status) — 원장 표기용 */
+    /**
+     * @var array<int, string> deposits 거래 상태 (status) — 원장 표기용
+     */
     public const DEPOSIT_STATUS_LABELS = [
         2  => '계약충전',
         3  => 'DB소진',
@@ -62,6 +63,10 @@ class ContractOrderModel extends Model
         12 => '이월충전',
     ];
 
+    protected $table         = 'contract_orders';
+    protected $primaryKey    = 'id';
+    protected $useTimestamps = true;
+    protected $returnType    = 'array';
     protected $allowedFields = [
         'hospital_id',
         'hospital_name',
@@ -103,20 +108,23 @@ class ContractOrderModel extends Model
         'memo',
     ];
 
-    /** @var array<string, string> */
+    /**
+     * @var array<string, string>
+     */
     protected $validationRules = [
-        'hospital_id'    => 'required|integer',
-        'hospital_name'  => 'required|max_length[255]',
-        'contract_type'  => 'required|in_list[1,2]',
-        'ad_type'        => 'required|in_list[1,2]',
-        'ad_type2'       => 'required|in_list[1,2,3,4,5]',
-        'ad_price'       => 'required|integer|greater_than[0]',
+        'hospital_id'   => 'required|integer',
+        'hospital_name' => 'required|max_length[255]',
+        'contract_type' => 'required|in_list[1,2]',
+        'ad_type'       => 'required|in_list[1,2]',
+        'ad_type2'      => 'required|in_list[1,2,3,4,5]',
+        'ad_price'      => 'required|integer|greater_than[0]',
     ];
 
     /**
      * 수주계약 목록 (검색·페이징)
      *
      * @param array<string, mixed> $params
+     *
      * @return array<string, mixed>
      */
     public function getList(array $params): array
@@ -126,13 +134,13 @@ class ContractOrderModel extends Model
             ->join('contract_order_connects coc', 'coc.contract_order_id = co.id')
             ->join('contracts c', 'c.id = coc.contract_id');
 
-        if (!empty($params['hospital_name'])) {
+        if (! empty($params['hospital_name'])) {
             $builder->like('co.hospital_name', $params['hospital_name']);
         }
-        if (!empty($params['contract_status'])) {
+        if (! empty($params['contract_status'])) {
             $builder->where('co.contract_status', $params['contract_status']);
         }
-        if (!empty($params['ad_type2'])) {
+        if (! empty($params['ad_type2'])) {
             $builder->where('co.ad_type2', $params['ad_type2']);
         }
 
@@ -214,6 +222,7 @@ class ContractOrderModel extends Model
             ->getResultArray();
 
         $balances = [];
+
         foreach ($rows as $row) {
             $balances[(int) $row['contract_order_id']] = (int) $row['charged'] - (int) $row['used'];
         }
@@ -299,6 +308,7 @@ class ContractOrderModel extends Model
      * - contract_order_connects에 매핑 insert
      *
      * @param array<string, mixed> $data
+     *
      * @return int 생성된 contract_order id
      */
     public function registerWithContract(array $data): int
@@ -322,13 +332,13 @@ class ContractOrderModel extends Model
                 $contractId = $db->insertID();
             }
 
-            $now = date('Y-m-d H:i:s');
-            $orderFields = array_intersect_key($data, array_flip($this->allowedFields));
+            $now                       = date('Y-m-d H:i:s');
+            $orderFields               = array_intersect_key($data, array_flip($this->allowedFields));
             $orderFields['created_at'] = $now;
             $orderFields['updated_at'] = $now;
 
             // 재계약: parent_id 설정
-            if ((int) $data['contract_type'] === 2 && !empty($data['parent_order_id'])) {
+            if ((int) $data['contract_type'] === 2 && ! empty($data['parent_order_id'])) {
                 $orderFields['parent_id'] = $data['parent_order_id'];
             }
 
@@ -356,12 +366,12 @@ class ContractOrderModel extends Model
             ]);
 
             // 재계약: 이전 수주계약 잔액 이월 처리
-            if ((int) $data['contract_type'] === 2 && !empty($data['parent_order_id'])) {
+            if ((int) $data['contract_type'] === 2 && ! empty($data['parent_order_id'])) {
                 $this->carryOverBalance(
                     $contractId,
                     (int) $data['parent_order_id'],
                     $orderId,
-                    (int) ($data['agency_user_id'] ?? 0)
+                    (int) ($data['agency_user_id'] ?? 0),
                 );
             }
 
@@ -370,6 +380,7 @@ class ContractOrderModel extends Model
             return $orderId;
         } catch (Throwable $e) {
             $db->transRollback();
+
             throw $e;
         }
     }
@@ -384,7 +395,7 @@ class ContractOrderModel extends Model
         int $contractId,
         int $prevOrderId,
         int $newOrderId,
-        int $userId
+        int $userId,
     ): void {
         $balance = $this->getBalance($contractId, $prevOrderId);
         $now     = date('Y-m-d H:i:s');

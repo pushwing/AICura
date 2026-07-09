@@ -2,11 +2,11 @@
 
 namespace App\Commands;
 
-use RuntimeException;
 use App\Libraries\RedisQueue;
 use App\Models\AppLogModel;
 use CodeIgniter\CLI\BaseCommand;
 use CodeIgniter\CLI\CLI;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -30,24 +30,30 @@ use Throwable;
  */
 class LogConsumeQueue extends BaseCommand
 {
+    private const int DEFAULT_LIMIT = 100;
+
     protected $group       = 'AICura';
     protected $name        = 'logs:consume';
     protected $description = 'Redis 로그 큐를 소비해 원시 파일 저장 + app_logs 적재합니다.';
     protected $usage       = 'logs:consume [options]';
 
-    /** @var array<string, string> */
+    /**
+     * @var array<string, string>
+     */
     protected $options = [
         '--limit'  => '한 번에 처리할 최대 건수 (기본값: 100, --daemon 시 무시)',
         '--daemon' => '상시 소비 모드 — 빈 큐면 대기 후 재시도',
         '--sleep'  => '데몬 모드에서 빈 큐일 때 대기 초 (기본값: 2)',
     ];
 
-    private const int DEFAULT_LIMIT = 100;
-
-    /** 데몬 모드 실행 플래그 — SIGTERM/SIGINT 수신 시 false 로 전환해 graceful 종료. */
+    /**
+     * 데몬 모드 실행 플래그 — SIGTERM/SIGINT 수신 시 false 로 전환해 graceful 종료.
+     */
     private bool $running = true;
 
-    /** @param array<int|string, string|null> $params */
+    /**
+     * @param array<int|string, string|null> $params
+     */
     public function run(array $params): void
     {
         $queue = service('redisQueue');
@@ -73,7 +79,9 @@ class LogConsumeQueue extends BaseCommand
         CLI::write(sprintf('완료 — %d건 처리', $processed), 'green');
     }
 
-    /** 큐가 비거나 limit 도달까지 처리. 처리 건수 반환. */
+    /**
+     * 큐가 비거나 limit 도달까지 처리. 처리 건수 반환.
+     */
     private function consumeBatch(RedisQueue $queue, int $limit): int
     {
         $count = 0;
@@ -91,7 +99,9 @@ class LogConsumeQueue extends BaseCommand
         return $count;
     }
 
-    /** 상시 소비 — 빈 큐면 sleep 후 재시도. SIGTERM/SIGINT 로 graceful 종료. */
+    /**
+     * 상시 소비 — 빈 큐면 sleep 후 재시도. SIGTERM/SIGINT 로 graceful 종료.
+     */
     private function consumeForever(RedisQueue $queue, int $sleep): void
     {
         $this->registerSignalHandlers();
@@ -110,7 +120,9 @@ class LogConsumeQueue extends BaseCommand
         CLI::write('종료 신호 수신 — 데몬을 정상 종료합니다.', 'yellow');
     }
 
-    /** 데몬 graceful 종료를 위한 시그널 핸들러 등록 (pcntl 가용 시). */
+    /**
+     * 데몬 graceful 종료를 위한 시그널 핸들러 등록 (pcntl 가용 시).
+     */
     private function registerSignalHandlers(): void
     {
         if (! function_exists('pcntl_async_signals')) {
@@ -153,6 +165,7 @@ class LogConsumeQueue extends BaseCommand
      * payload 의 level/event/message 를 분리하고 나머지는 context(JSON)로 보존한다.
      *
      * @param array<string, mixed> $record
+     *
      * @return array<string, mixed>
      */
     public function transform(array $record): array
@@ -177,7 +190,9 @@ class LogConsumeQueue extends BaseCommand
         ];
     }
 
-    /** 처리 실패 건을 날짜별 dead-letter 파일에 보존. */
+    /**
+     * 처리 실패 건을 날짜별 dead-letter 파일에 보존.
+     */
     private function deadLetter(string $raw, string $reason): void
     {
         $dir = rtrim(WRITEPATH, '/\\') . '/logs/queue-failed/';

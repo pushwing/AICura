@@ -18,15 +18,21 @@ use Throwable;
  */
 class RedisQueue
 {
-    /** 로그 수집 큐 키 */
+    /**
+     * 로그 수집 큐 키
+     */
     public const LOG_QUEUE = 'log_queue';
 
     private ?Client $client = null;
 
-    /** 연결 시도 후 실패가 확정된 경우 재시도하지 않도록 표시 */
+    /**
+     * 연결 시도 후 실패가 확정된 경우 재시도하지 않도록 표시
+     */
     private bool $unavailable = false;
 
-    /** @var array<string, mixed> */
+    /**
+     * @var array<string, mixed>
+     */
     private array $config;
 
     public function __construct()
@@ -43,7 +49,7 @@ class RedisQueue
     public function push(string $queue, string $payload): bool
     {
         $client = $this->client();
-        if (!$client instanceof Client) {
+        if (! $client instanceof Client) {
             return false;
         }
 
@@ -67,7 +73,7 @@ class RedisQueue
     public function pop(string $queue): ?string
     {
         $client = $this->client();
-        if (!$client instanceof Client) {
+        if (! $client instanceof Client) {
             return null;
         }
 
@@ -83,11 +89,13 @@ class RedisQueue
         }
     }
 
-    /** 현재 큐에 남은 항목 수 (미연결 시 0). */
+    /**
+     * 현재 큐에 남은 항목 수 (미연결 시 0).
+     */
     public function length(string $queue): int
     {
         $client = $this->client();
-        if (!$client instanceof Client) {
+        if (! $client instanceof Client) {
             return 0;
         }
 
@@ -98,7 +106,9 @@ class RedisQueue
         }
     }
 
-    /** Redis 연결 가용 여부. */
+    /**
+     * Redis 연결 가용 여부.
+     */
     public function isAvailable(): bool
     {
         return $this->client() instanceof Client;

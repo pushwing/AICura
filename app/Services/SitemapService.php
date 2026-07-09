@@ -16,10 +16,14 @@ use App\Models\HospitalModel;
  */
 final readonly class SitemapService
 {
-    /** 캐시 키 (CI4 캐시 키는 ':' 등 예약문자 금지 — 언더스코어 사용) */
+    /**
+     * 캐시 키 (CI4 캐시 키는 ':' 등 예약문자 금지 — 언더스코어 사용)
+     */
     public const string CACHE_KEY = 'web_sitemap';
 
-    /** 캐시 TTL (초) — 1시간 (CLAUDE.md §부하분산: sitemap 1h) */
+    /**
+     * 캐시 TTL (초) — 1시간 (CLAUDE.md §부하분산: sitemap 1h)
+     */
     private const int CACHE_TTL = 3600;
 
     private CampaignModel $campaigns;
@@ -108,7 +112,7 @@ final readonly class SitemapService
         return '<?xml version="1.0" encoding="UTF-8"?>' . "\n"
             . '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n"
             . implode("\n", $urls) . "\n"
-            . '</urlset>' . "\n";
+            . "</urlset>\n";
     }
 
     /**

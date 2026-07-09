@@ -6,6 +6,7 @@ use App\Libraries\Ai\AiClientInterface;
 use App\Services\AiCopyService;
 use CodeIgniter\Cache\CacheInterface;
 use CodeIgniter\Test\CIUnitTestCase;
+use RuntimeException;
 
 /**
  * AiCopyService 단위 테스트 (이슈 #73)
@@ -70,10 +71,21 @@ final class AiCopyServiceTest extends CIUnitTestCase
         $cache->expects($this->never())->method('save');
 
         // AI를 호출하면 실패하는 Fake — 캐시 히트 시 호출되지 않아야 한다
-        $ai = new class implements AiClientInterface {
-            public function isConfigured(): bool { return true; }
-            public function complete(string $s, string $u): string { return ''; }
-            public function completeJson(string $s, string $u): array { throw new \RuntimeException('AI를 호출하면 안 됩니다'); }
+        $ai = new class () implements AiClientInterface {
+            public function isConfigured(): bool
+            {
+                return true;
+            }
+
+            public function complete(string $s, string $u): string
+            {
+                return '';
+            }
+
+            public function completeJson(string $s, string $u): array
+            {
+                throw new RuntimeException('AI를 호출하면 안 됩니다');
+            }
         };
 
         $service = new AiCopyService($ai, $cache);
@@ -88,15 +100,30 @@ final class AiCopyServiceTest extends CIUnitTestCase
     private function fakeAi(array $jsonResponse): AiClientInterface
     {
         return new class ($jsonResponse) implements AiClientInterface {
-            /** @param array<string, mixed> $jsonResponse */
-            public function __construct(private array $jsonResponse) {}
+            /**
+             * @param array<string, mixed> $jsonResponse
+             */
+            public function __construct(private array $jsonResponse)
+            {
+            }
 
-            public function isConfigured(): bool { return true; }
+            public function isConfigured(): bool
+            {
+                return true;
+            }
 
-            public function complete(string $systemPrompt, string $userPrompt): string { return ''; }
+            public function complete(string $systemPrompt, string $userPrompt): string
+            {
+                return '';
+            }
 
-            /** @return array<string, mixed> */
-            public function completeJson(string $systemPrompt, string $userPrompt): array { return $this->jsonResponse; }
+            /**
+             * @return array<string, mixed>
+             */
+            public function completeJson(string $systemPrompt, string $userPrompt): array
+            {
+                return $this->jsonResponse;
+            }
         };
     }
 }

@@ -24,32 +24,40 @@ use DOMText;
  */
 class HtmlSanitizer
 {
-    /** 기본 허용 태그 (호출부에서 재정의 가능) */
+    /**
+     * 기본 허용 태그 (호출부에서 재정의 가능)
+     */
     public const array DEFAULT_TAGS = [
         'p', 'br', 'strong', 'em', 'b', 'i', 's', 'u',
         'ul', 'ol', 'li', 'h2', 'h3', 'h4', 'blockquote', 'a', 'img',
     ];
 
-    /** 내용까지 통째로 제거할 위험 태그 (언랩 대상이 아님) */
+    /**
+     * 내용까지 통째로 제거할 위험 태그 (언랩 대상이 아님)
+     */
     private const array DANGEROUS_TAGS = [
         'script', 'style', 'iframe', 'object', 'embed', 'form', 'input',
         'button', 'textarea', 'select', 'option', 'link', 'meta', 'base',
         'svg', 'math', 'template', 'noscript', 'title', 'head',
     ];
 
-    /** 태그별 허용 속성 — 여기에 없는 태그의 속성은 모두 제거 */
+    /**
+     * 태그별 허용 속성 — 여기에 없는 태그의 속성은 모두 제거
+     */
     private const array ATTRIBUTE_POLICY = [
         'a'   => ['href', 'title', 'target', 'rel'],
         'img' => ['src', 'alt', 'title', 'width', 'height'],
     ];
 
-    /** href/src 에 허용하는 URL 스킴 */
+    /**
+     * href/src 에 허용하는 URL 스킴
+     */
     private const array SAFE_SCHEMES = ['http', 'https', 'mailto', 'tel'];
 
     /**
      * HTML 정화.
      *
-     * @param string        $html        정화 대상 HTML
+     * @param string            $html        정화 대상 HTML
      * @param list<string>|null $allowedTags 허용 태그 목록(소문자). null 이면 DEFAULT_TAGS 사용.
      */
     public function sanitize(string $html, ?array $allowedTags = null): string
@@ -79,6 +87,7 @@ class HtmlSanitizer
         $this->cleanChildren($body, $allowed);
 
         $out = '';
+
         foreach (iterator_to_array($body->childNodes) as $child) {
             $out .= (string) $dom->saveHTML($child);
         }
@@ -101,6 +110,7 @@ class HtmlSanitizer
 
             if ($child instanceof DOMComment || ! $child instanceof DOMElement) {
                 $node->removeChild($child); // 주석·PI 등 제거
+
                 continue;
             }
 
@@ -108,6 +118,7 @@ class HtmlSanitizer
 
             if (in_array($tag, self::DANGEROUS_TAGS, true)) {
                 $node->removeChild($child); // 서브트리째 제거
+
                 continue;
             }
 
@@ -115,6 +126,7 @@ class HtmlSanitizer
                 // 허용되지 않은 일반 태그: 자식을 정화한 뒤 언랩(태그만 벗기고 내용 보존)
                 $this->cleanChildren($child, $allowed);
                 $this->unwrap($child);
+
                 continue;
             }
 
@@ -123,7 +135,9 @@ class HtmlSanitizer
         }
     }
 
-    /** 허용 속성만 남기고 나머지 제거, href/src 스킴 검증. */
+    /**
+     * 허용 속성만 남기고 나머지 제거, href/src 스킴 검증.
+     */
     private function cleanAttributes(DOMElement $el, string $tag): void
     {
         $allowedAttrs = self::ATTRIBUTE_POLICY[$tag] ?? [];
@@ -133,6 +147,7 @@ class HtmlSanitizer
 
             if (! in_array($name, $allowedAttrs, true)) {
                 $el->removeAttribute($attr->nodeName);
+
                 continue;
             }
 
@@ -147,7 +162,9 @@ class HtmlSanitizer
         }
     }
 
-    /** 노드를 제거하되 자식들은 부모로 끌어올려 보존한다. */
+    /**
+     * 노드를 제거하되 자식들은 부모로 끌어올려 보존한다.
+     */
     private function unwrap(DOMElement $el): void
     {
         $parent = $el->parentNode;

@@ -8,6 +8,7 @@ use App\Models\CampaignReviewRequestModel;
 use App\Models\ComplianceCheckModel;
 use App\Services\AiComplianceService;
 use CodeIgniter\Test\CIUnitTestCase;
+use RuntimeException;
 
 /**
  * AiComplianceService 단위 테스트 (이슈 #71)
@@ -85,16 +86,27 @@ final class AiComplianceServiceTest extends CIUnitTestCase
     public function testCheckWithEmptyTextSkipsAiAndStoresSafe(): void
     {
         // AI를 호출하면 실패하는 Fake — 빈 텍스트면 호출되지 않아야 한다
-        $ai = new class implements AiClientInterface {
-            public function isConfigured(): bool { return true; }
-            public function complete(string $s, string $u): string { throw new \RuntimeException('called'); }
-            public function completeJson(string $s, string $u): array { throw new \RuntimeException('AI를 호출하면 안 됩니다'); }
+        $ai = new class () implements AiClientInterface {
+            public function isConfigured(): bool
+            {
+                return true;
+            }
+
+            public function complete(string $s, string $u): string
+            {
+                throw new RuntimeException('called');
+            }
+
+            public function completeJson(string $s, string $u): array
+            {
+                throw new RuntimeException('AI를 호출하면 안 됩니다');
+            }
         };
 
         $campaignModel = $this->createMock(CampaignModel::class);
         $campaignModel->method('find')->willReturn(['ad_title' => '', 'ad_detail_info' => '']);
 
-        $captured = null;
+        $captured   = null;
         $checkModel = $this->createMock(ComplianceCheckModel::class);
         $checkModel->method('insert')->willReturnCallback(static function ($data) use (&$captured) {
             $captured = $data;
@@ -122,7 +134,7 @@ final class AiComplianceServiceTest extends CIUnitTestCase
         $campaignModel = $this->createMock(CampaignModel::class);
         $campaignModel->method('find')->willReturn(['ad_title' => '100% 효과 보장', 'ad_detail_info' => '<p>설명</p>']);
 
-        $captured = null;
+        $captured   = null;
         $checkModel = $this->createMock(ComplianceCheckModel::class);
         $checkModel->method('insert')->willReturnCallback(static function ($data) use (&$captured) {
             $captured = $data;
@@ -148,15 +160,30 @@ final class AiComplianceServiceTest extends CIUnitTestCase
     private function fakeAi(array $jsonResponse): AiClientInterface
     {
         return new class ($jsonResponse) implements AiClientInterface {
-            /** @param array<string, mixed> $jsonResponse */
-            public function __construct(private array $jsonResponse) {}
+            /**
+             * @param array<string, mixed> $jsonResponse
+             */
+            public function __construct(private array $jsonResponse)
+            {
+            }
 
-            public function isConfigured(): bool { return true; }
+            public function isConfigured(): bool
+            {
+                return true;
+            }
 
-            public function complete(string $systemPrompt, string $userPrompt): string { return ''; }
+            public function complete(string $systemPrompt, string $userPrompt): string
+            {
+                return '';
+            }
 
-            /** @return array<string, mixed> */
-            public function completeJson(string $systemPrompt, string $userPrompt): array { return $this->jsonResponse; }
+            /**
+             * @return array<string, mixed>
+             */
+            public function completeJson(string $systemPrompt, string $userPrompt): array
+            {
+                return $this->jsonResponse;
+            }
         };
     }
 }

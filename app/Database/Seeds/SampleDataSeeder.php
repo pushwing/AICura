@@ -56,7 +56,7 @@ class SampleDataSeeder extends Seeder
      * advertisers.owner_user_id(광고주 본인 계정) / agency_user_id(대행사) 연결에 사용한다.
      * 사용자 관리 화면의 '광고주/병원' 탭·'대행사' 탭에 데이터가 표시되도록 한다.
      *
-     * @return array{owners: array<int, int>, agency: int, agency2: int}  owners: hospital_id → user_id
+     * @return array{owners: array<int, int>, agency: int, agency2: int} owners: hospital_id → user_id
      */
     private function insertUsers(string $now): array
     {
@@ -93,12 +93,13 @@ class SampleDataSeeder extends Seeder
 
         // 광고주병원(user_type=201) 계정 — advertisers.hospital_id 와 매핑
         $owners = [
-            1 => ['email' => 'gangnam@aicura.test',  'username' => '강남성형외과 담당',    'phone' => '010-1234-5678'],
-            2 => ['email' => 'network@aicura.test',  'username' => '서울네트워크 담당',    'phone' => '010-9999-0000'],
-            3 => ['email' => 'bundang@aicura.test',  'username' => '분당자병원 담당',      'phone' => '010-1111-2222'],
+            1 => ['email' => 'gangnam@aicura.test', 'username' => '강남성형외과 담당', 'phone' => '010-1234-5678'],
+            2 => ['email' => 'network@aicura.test', 'username' => '서울네트워크 담당', 'phone' => '010-9999-0000'],
+            3 => ['email' => 'bundang@aicura.test', 'username' => '분당자병원 담당', 'phone' => '010-1111-2222'],
         ];
 
         $ownerIds = [];
+
         foreach ($owners as $hospitalId => $info) {
             $this->db->table('users')->insert([
                 'email'             => $info['email'],
@@ -230,9 +231,9 @@ class SampleDataSeeder extends Seeder
     {
         // 광고주별 contracts 데이터 (광고주당 1건)
         $contracts = [
-            ['id' => 1, 'hospital_id' => 1, 'hospital_name' => '강남성형외과',    'title' => '강남성형외과 2026 계약', 'pay_type' => 1],
-            ['id' => 2, 'hospital_id' => 2, 'hospital_name' => '서울네트워크모병원', 'title' => '서울네트워크 2026 계약',  'pay_type' => 1],
-            ['id' => 3, 'hospital_id' => 3, 'hospital_name' => '분당자병원',       'title' => '분당자병원 2026 계약',   'pay_type' => 2],
+            ['id' => 1, 'hospital_id' => 1, 'hospital_name' => '강남성형외과', 'title' => '강남성형외과 2026 계약', 'pay_type' => 1],
+            ['id' => 2, 'hospital_id' => 2, 'hospital_name' => '서울네트워크모병원', 'title' => '서울네트워크 2026 계약', 'pay_type' => 1],
+            ['id' => 3, 'hospital_id' => 3, 'hospital_name' => '분당자병원', 'title' => '분당자병원 2026 계약', 'pay_type' => 2],
         ];
 
         foreach ($contracts as $row) {
@@ -259,7 +260,7 @@ class SampleDataSeeder extends Seeder
             // hospital_id=3 (contract_id=3), order id 7~9
             [
                 ['id' => 7, 'hospital_id' => 3, 'hospital_name' => '분당자병원', 'ad_type' => 1, 'ad_type2' => 1, 'ad_price' => 1000000, 'contract_status' => 1, 'deposit_date' => $now],
-                ['id' => 8, 'hospital_id' => 3, 'hospital_name' => '분당자병원', 'ad_type' => 1, 'ad_type2' => 2, 'ad_price' => 800000,  'contract_status' => 1, 'deposit_date' => $now],
+                ['id' => 8, 'hospital_id' => 3, 'hospital_name' => '분당자병원', 'ad_type' => 1, 'ad_type2' => 2, 'ad_price' => 800000, 'contract_status' => 1, 'deposit_date' => $now],
                 ['id' => 9, 'hospital_id' => 3, 'hospital_name' => '분당자병원', 'ad_type' => 2, 'ad_type2' => 4, 'ad_price' => 1200000, 'contract_status' => 1, 'deposit_date' => $now],
             ],
         ];
@@ -301,7 +302,7 @@ class SampleDataSeeder extends Seeder
     }
 
     /**
-     * @return array<int, array<string, mixed>>  삽입된 캠페인(id 포함) 목록
+     * @return array<int, array<string, mixed>> 삽입된 캠페인(id 포함) 목록
      */
     private function insertCampaigns(string $now): array
     {
@@ -421,6 +422,7 @@ class SampleDataSeeder extends Seeder
         ];
 
         $inserted = [];
+
         foreach ($campaigns as $row) {
             $this->db->table('campaigns')->insert(array_merge($row, [
                 'is_deleted' => 0,
@@ -467,11 +469,11 @@ class SampleDataSeeder extends Seeder
                     'name'        => '샘플신청자' . $campaignId . '-' . ($i + 1),
                     'phone'       => '010-' . str_pad((string) $campaignId, 4, '0', STR_PAD_LEFT)
                                        . '-' . str_pad((string) ($i + 1), 4, '0', STR_PAD_LEFT),
-                    'content'     => '샘플 이벤트 신청',
-                    'event_cost'  => $eventCost,
-                    'funnel'      => 'sample',
-                    'created_at'  => $now,
-                    'updated_at'  => $now,
+                    'content'    => '샘플 이벤트 신청',
+                    'event_cost' => $eventCost,
+                    'funnel'     => 'sample',
+                    'created_at' => $now,
+                    'updated_at' => $now,
                 ]);
 
                 // 차감 1건 = deposits 소진(status=3)

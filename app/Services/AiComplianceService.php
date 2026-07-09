@@ -28,13 +28,13 @@ class AiComplianceService
         ?AiClientInterface $ai = null,
         ?ComplianceCheckModel $checkModel = null,
         ?CampaignModel $campaignModel = null,
-        ?CampaignReviewRequestModel $reviewModel = null
+        ?CampaignReviewRequestModel $reviewModel = null,
     ) {
         // 이슈 #71·#73은 Gemini 사용 — 공급자 명시 고정 (#65 보고서는 Groq 유지)
-        $this->ai            = $ai            ?? AiClientFactory::make('gemini');
-        $this->checkModel    = $checkModel    ?? model(ComplianceCheckModel::class);
+        $this->ai            = $ai ?? AiClientFactory::make('gemini');
+        $this->checkModel    = $checkModel ?? model(ComplianceCheckModel::class);
         $this->campaignModel = $campaignModel ?? model(CampaignModel::class);
-        $this->reviewModel   = $reviewModel   ?? model(CampaignReviewRequestModel::class);
+        $this->reviewModel   = $reviewModel ?? model(CampaignReviewRequestModel::class);
         $this->modelName     = (string) env('GEMINI_MODEL', 'gemini-2.0-flash');
     }
 
@@ -109,7 +109,7 @@ class AiComplianceService
      */
     public function normalize(array $raw): array
     {
-        $flags = [];
+        $flags    = [];
         $rawFlags = $raw['flags'] ?? [];
         if (is_array($rawFlags)) {
             foreach ($rawFlags as $flag) {

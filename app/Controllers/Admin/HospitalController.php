@@ -2,13 +2,13 @@
 
 namespace App\Controllers\Admin;
 
-use Override;
-use CodeIgniter\HTTP\RequestInterface;
-use Psr\Log\LoggerInterface;
 use App\Models\DepartmentModel;
 use App\Models\HospitalModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
+use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
+use Override;
+use Psr\Log\LoggerInterface;
 
 /**
  * Admin 병원 관리 (이슈 #113)
@@ -17,24 +17,26 @@ use CodeIgniter\HTTP\ResponseInterface;
  */
 class HospitalController extends BaseAdminController
 {
-    private HospitalModel $hospitalModel;
-    private DepartmentModel $departmentModel;
-
     // 목록 페이지당 행 수
     private const int PER_PAGE = 20;
 
-    /** @var array<int, string> 병원 망 구분 라벨 (hospitals.type) */
+    /**
+     * @var array<int, string> 병원 망 구분 라벨 (hospitals.type)
+     */
     private const array TYPE_LABELS = [
         1 => '일반',
         2 => '네트워크(모)',
         3 => '네트워크(자)',
     ];
 
+    private HospitalModel $hospitalModel;
+    private DepartmentModel $departmentModel;
+
     #[Override]
     public function initController(
         RequestInterface $request,
         ResponseInterface $response,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ): void {
         parent::initController($request, $response, $logger);
         $this->hospitalModel   = model(HospitalModel::class);
@@ -64,11 +66,12 @@ class HospitalController extends BaseAdminController
         $deptMap = $this->departmentModel->byHospitalIds($ids);
 
         $hospitals = array_map(function (array $row) use ($deptMap): array {
-            $id                       = (int) $row['id'];
-            $row['type_label']        = self::TYPE_LABELS[(int) $row['type']] ?? '-';
-            $row['departments']       = $deptMap[$id] ?? [];
-            $row['department_names']  = implode(', ', array_column($deptMap[$id] ?? [], 'name'));
-            $row['created_at_kst']    = empty($row['created_at']) ? '-' : $this->toKst($row['created_at']);
+            $id                      = (int) $row['id'];
+            $row['type_label']       = self::TYPE_LABELS[(int) $row['type']] ?? '-';
+            $row['departments']      = $deptMap[$id] ?? [];
+            $row['department_names'] = implode(', ', array_column($deptMap[$id] ?? [], 'name'));
+            $row['created_at_kst']   = empty($row['created_at']) ? '-' : $this->toKst($row['created_at']);
+
             return $row;
         }, $list);
 
@@ -112,7 +115,7 @@ class HospitalController extends BaseAdminController
 
     public function create(): ResponseInterface
     {
-        if (!$this->validate($this->rules())) {
+        if (! $this->validate($this->rules())) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
@@ -143,7 +146,7 @@ class HospitalController extends BaseAdminController
             throw PageNotFoundException::forPageNotFound();
         }
 
-        if (!$this->validate($this->rules())) {
+        if (! $this->validate($this->rules())) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
@@ -193,20 +196,24 @@ class HospitalController extends BaseAdminController
     // 헬퍼
     // ──────────────────────────────────────────────
 
-    /** @return array<string, string> */
+    /**
+     * @return array<string, string>
+     */
     private function rules(): array
     {
         return [
-            'name'           => 'required|max_length[255]',
-            'type'           => 'required|in_list[1,2,3]',
-            'status'         => 'required|in_list[active,inactive]',
-            'phone'          => 'permit_empty|max_length[20]',
-            'address'        => 'permit_empty|max_length[500]',
-            'departments.*'  => 'permit_empty|is_not_unique[departments.id]',
+            'name'          => 'required|max_length[255]',
+            'type'          => 'required|in_list[1,2,3]',
+            'status'        => 'required|in_list[active,inactive]',
+            'phone'         => 'permit_empty|max_length[20]',
+            'address'       => 'permit_empty|max_length[500]',
+            'departments.*' => 'permit_empty|is_not_unique[departments.id]',
         ];
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * @return array<string, mixed>
+     */
     private function formData(): array
     {
         return [
@@ -218,7 +225,9 @@ class HospitalController extends BaseAdminController
         ];
     }
 
-    /** @return list<int> */
+    /**
+     * @return list<int>
+     */
     private function postedDepartmentIds(): array
     {
         $posted = $this->request->getPost('departments');
@@ -226,7 +235,9 @@ class HospitalController extends BaseAdminController
         return is_array($posted) ? array_map(intval(...), $posted) : [];
     }
 
-    /** 활성 병원 공개 URL 을 IndexNow 에 제출 (이슈 #152). */
+    /**
+     * 활성 병원 공개 URL 을 IndexNow 에 제출 (이슈 #152).
+     */
     private function submitIndexNow(int $id): void
     {
         if ((string) $this->request->getPost('status') === 'active') {

@@ -508,7 +508,7 @@ class Mimes
      *
      * @return string|null The extension determined, or null if unable to match.
      */
-    public static function guessExtensionFromType(string $type, ?string $proposedExtension = null): string|int|null
+    public static function guessExtensionFromType(string $type, ?string $proposedExtension = null): int|string|null
     {
         $type = trim(strtolower($type), '. ');
 

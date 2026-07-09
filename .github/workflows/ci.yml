@@ -75,6 +75,11 @@ jobs:
                    writable/session writable/uploads writable/debugbar
           chmod -R 777 writable
 
+      - name: 코드 스타일 검사 (PHP CS Fixer)
+        # dry-run — 포맷이 어긋난 파일이 있으면 실패(자동 수정 안 함).
+        # 수정은 로컬에서 `composer cs:fix` 로 처리한다.
+        run: composer cs
+
       - name: 정적 분석 (PHPStan)
         run: composer analyse
 

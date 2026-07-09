@@ -1,8 +1,11 @@
 <?php
 
+use CodeIgniter\Config\Services;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use CodeIgniter\Test\FeatureTestTrait;
+use CodeIgniter\Throttle\Throttler;
+use Tests\Support\Libraries\FakeRedisQueue;
 
 /**
  * 외부(소비자) 앱 공통·운영 API 피처 테스트 (이슈 #103, SQLite3 인메모리 DB)
@@ -22,16 +25,16 @@ final class SystemApiFeatureTest extends CIUnitTestCase
     use DatabaseTestTrait;
     use FeatureTestTrait;
 
-    protected $migrate   = true;
-    protected $refresh   = true;
-    protected $namespace = null;
+    protected $migrate = true;
+    protected $refresh = true;
+    protected $namespace;
 
     protected function setUp(): void
     {
         parent::setUp();
         cache()->clean();
         // Throttler 를 갓 비운 캐시에 재바인딩 — 다른 테스트의 Rate Limit 버킷 누수 방지
-        \CodeIgniter\Config\Services::injectMock('throttler', new \CodeIgniter\Throttle\Throttler(cache()));
+        Services::injectMock('throttler', new Throttler(cache()));
 
         $db = db_connect();
         $db->table('settings')->insert(['setting_key' => 'site_name', 'setting_value' => 'AI Cura', 'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s')]);
@@ -44,7 +47,9 @@ final class SystemApiFeatureTest extends CIUnitTestCase
         $db->table('codes')->insert(['code' => 'A', 'name' => '기타', 'type' => 'etc', 'is_use' => 1, 'sort' => 1]);
     }
 
-    /** [S1][S6] settings — 공개 키만 */
+    /**
+     * [S1][S6] settings — 공개 키만
+     */
     public function testSettings(): void
     {
         $res = $this->get('api/v1/settings');
@@ -57,7 +62,9 @@ final class SystemApiFeatureTest extends CIUnitTestCase
         $this->assertArrayNotHasKey('admin_email', $data); // 내부 키 미노출
     }
 
-    /** [S2] codes — 사용중 + type 필터 */
+    /**
+     * [S2] codes — 사용중 + type 필터
+     */
     public function testCodes(): void
     {
         $all = json_decode($this->get('api/v1/codes')->getJSON(), true)['data'];
@@ -68,11 +75,13 @@ final class SystemApiFeatureTest extends CIUnitTestCase
         $this->assertSame('M', $sex[0]['code']);
     }
 
-    /** [S3] logs — 202 + 파일 append (Redis 미연결 폴백 경로) */
+    /**
+     * [S3] logs — 202 + 파일 append (Redis 미연결 폴백 경로)
+     */
     public function testLogsAccepted(): void
     {
         // 로컬에 Redis 가 떠 있어도 결과가 흔들리지 않도록 미연결 큐를 주입한다.
-        \CodeIgniter\Config\Services::injectMock('redisQueue', new \Tests\Support\Libraries\FakeRedisQueue(false));
+        Services::injectMock('redisQueue', new FakeRedisQueue(false));
 
         $res = $this->withBodyFormat('json')->post('api/v1/logs', ['level' => 'info', 'event' => 'screen_view', 'message' => '진입']);
         $res->assertStatus(202);
@@ -83,13 +92,17 @@ final class SystemApiFeatureTest extends CIUnitTestCase
         @unlink($file);
     }
 
-    /** [S4] logs — 빈 본문 422 */
+    /**
+     * [S4] logs — 빈 본문 422
+     */
     public function testLogsRejectsEmpty(): void
     {
         $this->withBodyFormat('json')->post('api/v1/logs', [])->assertStatus(422);
     }
 
-    /** [S4a] logs — 본문 크기 초과 413 (이슈 #187 디스크·큐 남용 방지) */
+    /**
+     * [S4a] logs — 본문 크기 초과 413 (이슈 #187 디스크·큐 남용 방지)
+     */
     public function testLogsRejectsOversizedBody(): void
     {
         $res = $this->withBodyFormat('json')->post('api/v1/logs', [
@@ -102,7 +115,9 @@ final class SystemApiFeatureTest extends CIUnitTestCase
         $this->assertSame('PAYLOAD_TOO_LARGE', json_decode($res->getJSON(), true)['code']);
     }
 
-    /** [S4b] logs — 허용되지 않은 level 422 */
+    /**
+     * [S4b] logs — 허용되지 않은 level 422
+     */
     public function testLogsRejectsInvalidLevel(): void
     {
         $res = $this->withBodyFormat('json')->post('api/v1/logs', ['level' => 'critical', 'event' => 'x']);
@@ -111,7 +126,9 @@ final class SystemApiFeatureTest extends CIUnitTestCase
         $this->assertSame('VALIDATION_ERROR', json_decode($res->getJSON(), true)['code']);
     }
 
-    /** [S4c] logs — 지나치게 긴 message 422 (크기 상한 이내지만 필드 길이 초과) */
+    /**
+     * [S4c] logs — 지나치게 긴 message 422 (크기 상한 이내지만 필드 길이 초과)
+     */
     public function testLogsRejectsTooLongMessage(): void
     {
         $res = $this->withBodyFormat('json')->post('api/v1/logs', [
@@ -123,7 +140,9 @@ final class SystemApiFeatureTest extends CIUnitTestCase
         $this->assertSame('VALIDATION_ERROR', json_decode($res->getJSON(), true)['code']);
     }
 
-    /** [S5] health */
+    /**
+     * [S5] health
+     */
     public function testHealth(): void
     {
         $res = $this->get('api/v1/health');

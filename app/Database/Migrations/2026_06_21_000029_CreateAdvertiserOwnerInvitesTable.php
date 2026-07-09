@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Database\Migrations;
 
-use CodeIgniter\Database\MySQLi\Connection;
 use CodeIgniter\Database\Migration;
+use CodeIgniter\Database\MySQLi\Connection;
 
 /**
  * advertiser_owner_invites 테이블 — owner 연결 초대/승인 플로우 (이슈 #38)

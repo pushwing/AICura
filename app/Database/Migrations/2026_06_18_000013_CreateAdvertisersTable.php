@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Database\Migrations;
 
-use CodeIgniter\Database\MySQLi\Connection;
 use CodeIgniter\Database\Migration;
+use CodeIgniter\Database\MySQLi\Connection;
 
 /**
  * advertisers 테이블 마이그레이션

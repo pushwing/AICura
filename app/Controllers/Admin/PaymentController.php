@@ -2,15 +2,15 @@
 
 namespace App\Controllers\Admin;
 
-use Override;
-use CodeIgniter\HTTP\RequestInterface;
-use Psr\Log\LoggerInterface;
-use CodeIgniter\Exceptions\PageNotFoundException;
-use RuntimeException;
-use Throwable;
 use App\Models\PaymentModel;
 use App\Models\RefundModel;
+use CodeIgniter\Exceptions\PageNotFoundException;
+use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
+use Override;
+use Psr\Log\LoggerInterface;
+use RuntimeException;
+use Throwable;
 
 class PaymentController extends BaseAdminController
 {
@@ -21,7 +21,7 @@ class PaymentController extends BaseAdminController
     public function initController(
         RequestInterface $request,
         ResponseInterface $response,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ): void {
         parent::initController($request, $response, $logger);
         $this->paymentModel = model(PaymentModel::class);
@@ -35,12 +35,12 @@ class PaymentController extends BaseAdminController
     public function index(): string
     {
         $params = [
-            'status'       => $this->request->getGet('status') ?? '',
+            'status'        => $this->request->getGet('status') ?? '',
             'hospital_name' => $this->request->getGet('hospital_name') ?? '',
-            'date_from'    => $this->request->getGet('date_from') ?? '',
-            'date_to'      => $this->request->getGet('date_to') ?? '',
-            'page'         => (int) ($this->request->getGet('page') ?? 1),
-            'limit'        => 20,
+            'date_from'     => $this->request->getGet('date_from') ?? '',
+            'date_to'       => $this->request->getGet('date_to') ?? '',
+            'page'          => (int) ($this->request->getGet('page') ?? 1),
+            'limit'         => 20,
         ];
 
         $result = $this->paymentModel->getPaymentList($params);
@@ -97,7 +97,7 @@ class PaymentController extends BaseAdminController
             'refund_amount' => 'required|integer|greater_than[0]',
         ];
 
-        if (!$this->validate($rules)) {
+        if (! $this->validate($rules)) {
             return redirect()->back()->with('error', implode(' ', $this->validator->getErrors()));
         }
 
@@ -108,7 +108,7 @@ class PaymentController extends BaseAdminController
         if ($refundAmount > $remaining) {
             return redirect()->back()->with(
                 'error',
-                '환불 금액이 잔여 환불 가능액(' . number_format($remaining) . '원)을 초과할 수 없습니다.'
+                '환불 금액이 잔여 환불 가능액(' . number_format($remaining) . '원)을 초과할 수 없습니다.',
             );
         }
 

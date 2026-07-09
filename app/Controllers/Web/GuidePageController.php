@@ -2,13 +2,13 @@
 
 namespace App\Controllers\Web;
 
-use Override;
 use App\Libraries\Seo\JsonLdBuilder;
 use App\Services\GuideService;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
+use Override;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -25,7 +25,7 @@ class GuidePageController extends BaseWebController
     public function initController(
         RequestInterface $request,
         ResponseInterface $response,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ): void {
         parent::initController($request, $response, $logger);
         $this->guides = Services::guideService();
@@ -67,7 +67,7 @@ class GuidePageController extends BaseWebController
         $summary = trim((string) ($guide['summary'] ?? ''));
 
         return $this->render('web/guides/show', [
-            'guide'  => $guide,
+            'guide' => $guide,
             // faqPage 는 FAQ 없으면 [] 반환 → render 에서 자동 무시
             'jsonLd' => [
                 JsonLdBuilder::guide($guide, $url),

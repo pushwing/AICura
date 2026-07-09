@@ -13,10 +13,14 @@ use CodeIgniter\HTTP\Files\UploadedFile;
  */
 class UploadService
 {
-    /** 저장 하위 디렉터리 (writable/uploads/ 기준) */
+    /**
+     * 저장 하위 디렉터리 (writable/uploads/ 기준)
+     */
     private const string SUBDIR = 'boards';
 
-    /** 허용 확장자 → 정규화 */
+    /**
+     * 허용 확장자 → 정규화
+     */
     private const array EXT_MAP = [
         'jpg'  => 'jpg',
         'jpeg' => 'jpg',
@@ -36,7 +40,7 @@ class UploadService
         $name = bin2hex(random_bytes(16)) . '.' . $ext;
 
         $dir = $this->baseDir();
-        if (!is_dir($dir)) {
+        if (! is_dir($dir)) {
             mkdir($dir, 0775, true);
         }
 
@@ -61,15 +65,15 @@ class UploadService
         }
 
         $path = $this->baseDir() . $name;
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             return null;
         }
 
         $ext  = strtolower(pathinfo($name, PATHINFO_EXTENSION));
         $mime = match ($ext) {
-            'png'  => 'image/png',
-            'webp' => 'image/webp',
-            'gif'  => 'image/gif',
+            'png'   => 'image/png',
+            'webp'  => 'image/webp',
+            'gif'   => 'image/gif',
             default => 'image/jpeg',
         };
 

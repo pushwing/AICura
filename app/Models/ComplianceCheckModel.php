@@ -12,12 +12,27 @@ use CodeIgniter\Model;
  */
 class ComplianceCheckModel extends Model
 {
+    public const RISK_SAFE      = 'safe';
+    public const RISK_WARNING   = 'warning';
+    public const RISK_VIOLATION = 'violation';
+
+    /**
+     * 허용 위험 등급 (정규화 검증용)
+     */
+    public const RISK_LEVELS = [
+        self::RISK_SAFE,
+        self::RISK_WARNING,
+        self::RISK_VIOLATION,
+    ];
+
     protected $table         = 'creative_compliance_checks';
     protected $primaryKey    = 'id';
     protected $useTimestamps = true;
     protected $returnType    = 'array';
 
-    /** @var list<string> */
+    /**
+     * @var list<string>
+     */
     protected $allowedFields = [
         'campaign_id',
         'review_request_id',
@@ -25,17 +40,6 @@ class ComplianceCheckModel extends Model
         'flags',
         'checked_text',
         'model',
-    ];
-
-    public const RISK_SAFE      = 'safe';
-    public const RISK_WARNING   = 'warning';
-    public const RISK_VIOLATION = 'violation';
-
-    /** 허용 위험 등급 (정규화 검증용) */
-    public const RISK_LEVELS = [
-        self::RISK_SAFE,
-        self::RISK_WARNING,
-        self::RISK_VIOLATION,
     ];
 
     /**

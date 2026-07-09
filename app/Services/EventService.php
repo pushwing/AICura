@@ -16,13 +16,19 @@ use App\Models\FavoriteModel;
  */
 class EventService
 {
-    /** 이미지 서빙 경로 prefix (admin 뷰와 동일) */
+    /**
+     * 이미지 서빙 경로 prefix (admin 뷰와 동일)
+     */
     private const string IMAGE_PATH = 'uploads/campaigns/';
 
-    /** 목록·집계 캐시 TTL (초) */
+    /**
+     * 목록·집계 캐시 TTL (초)
+     */
     private const int LIST_TTL = 300;
 
-    /** 메인·추천 캐시 TTL (초) */
+    /**
+     * 메인·추천 캐시 TTL (초)
+     */
     private const int FEED_TTL = 600;
 
     private readonly CampaignModel $campaigns;
@@ -34,15 +40,16 @@ class EventService
         ?EventCategoryModel $categories = null,
         ?FavoriteModel $favorites = null,
     ) {
-        $this->campaigns  = $campaigns  ?? model(CampaignModel::class);
+        $this->campaigns  = $campaigns ?? model(CampaignModel::class);
         $this->categories = $categories ?? model(EventCategoryModel::class);
-        $this->favorites  = $favorites  ?? model(FavoriteModel::class);
+        $this->favorites  = $favorites ?? model(FavoriteModel::class);
     }
 
     /**
      * 이벤트 목록 — 캐시된 기본 결과에 사용자 찜 여부를 덧입혀 반환한다.
      *
      * @param array<string, mixed> $params
+     *
      * @return array{items: array<int, array<string, mixed>>, total: int}
      */
     public function list(int $userId, array $params): array
@@ -52,7 +59,7 @@ class EventService
 
         /** @var array{list: array<int, array<string, mixed>>, total: int}|null $base */
         $base = cache($cacheKey);
-        if (!is_array($base)) {
+        if (! is_array($base)) {
             $base = $this->campaigns->getEventList($params);
             cache()->save($cacheKey, $base, self::LIST_TTL);
         }
@@ -67,6 +74,7 @@ class EventService
      * 이벤트 상세
      *
      * @return array<string, mixed>
+     *
      * @throws NotFoundException 노출 조건 미충족·미존재
      */
     public function detail(int $userId, int $id): array
@@ -75,7 +83,7 @@ class EventService
 
         /** @var array<string, mixed>|null $row */
         $row = cache($cacheKey);
-        if (!is_array($row)) {
+        if (! is_array($row)) {
             $row = $this->campaigns->getEventDetail($id);
             if ($row === null) {
                 throw NotFoundException::of('이벤트를 찾을 수 없습니다.');
@@ -83,7 +91,7 @@ class EventService
             cache()->save($cacheKey, $row, self::LIST_TTL);
         }
 
-        $item = $this->transformDetailItem($row);
+        $item             = $this->transformDetailItem($row);
         $item['is_liked'] = $this->favorites->likedTargetIds($userId, FavoriteModel::TYPE_CAMPAIGN, [(int) $item['id']]) !== [];
 
         return $item;
@@ -127,11 +135,12 @@ class EventService
      * 이벤트 찜 토글
      *
      * @return array{liked: bool}
+     *
      * @throws NotFoundException 노출 조건 미충족·미존재
      */
     public function toggleFavorite(int $userId, int $id): array
     {
-        if (!$this->campaigns->isVisibleEvent($id)) {
+        if (! $this->campaigns->isVisibleEvent($id)) {
             throw NotFoundException::of('이벤트를 찾을 수 없습니다.');
         }
 
@@ -144,13 +153,14 @@ class EventService
      * 메인·추천 공통 — 캐시된 기본 피드에 사용자 찜 여부 오버레이.
      *
      * @param callable():array<int, array<string, mixed>> $fetch
+     *
      * @return array<int, array<string, mixed>>
      */
     private function feed(int $userId, string $cacheKey, callable $fetch): array
     {
         /** @var array<int, array<string, mixed>>|null $rows */
         $rows = cache($cacheKey);
-        if (!is_array($rows)) {
+        if (! is_array($rows)) {
             $rows = $fetch();
             cache()->save($cacheKey, $rows, self::FEED_TTL);
         }
@@ -164,6 +174,7 @@ class EventService
      * is_liked 일괄 오버레이 (N+1 방지)
      *
      * @param array<int, array<string, mixed>> $items
+     *
      * @return array<int, array<string, mixed>>
      */
     private function overlayLikes(int $userId, array $items): array
@@ -187,6 +198,7 @@ class EventService
      * 목록 행 → 소비자 응답 변환 (썸네일 URL 조립, 타입 라벨)
      *
      * @param array<string, mixed> $row
+     *
      * @return array<string, mixed>
      */
     private function transformListItem(array $row): array
@@ -217,6 +229,7 @@ class EventService
      * 상세 행 → 소비자 응답 변환
      *
      * @param array<string, mixed> $row
+     *
      * @return array<string, mixed>
      */
     private function transformDetailItem(array $row): array
@@ -256,11 +269,12 @@ class EventService
         }
 
         $decoded = json_decode($json, true);
-        if (!is_array($decoded)) {
+        if (! is_array($decoded)) {
             return [];
         }
 
         $urls = [];
+
         foreach ($decoded as $name) {
             if (is_string($name) && trim($name) !== '') {
                 $urls[] = (string) base_url(self::IMAGE_PATH . basename($name));
@@ -274,6 +288,7 @@ class EventService
      * 목록 캐시 키 정규화 — 캐시 적중률을 위해 의미 있는 파라미터만 추린다.
      *
      * @param array<string, mixed> $params
+     *
      * @return array<string, mixed>
      */
     private function normalizeListParams(array $params): array

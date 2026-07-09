@@ -6,6 +6,7 @@ use App\Exceptions\TokenException;
 use App\Libraries\JwtLibrary;
 use CodeIgniter\Test\CIUnitTestCase;
 use ReflectionMethod;
+use RuntimeException;
 
 /**
  * JwtLibrary 토큰 검증 테스트 (이슈 #96)
@@ -24,7 +25,9 @@ final class JwtLibraryTest extends CIUnitTestCase
         $this->jwt = new JwtLibrary();
     }
 
-    /** 시크릿이 비어 있으면 생성자에서 즉시 실패한다 (이슈 #187 fail-closed) */
+    /**
+     * 시크릿이 비어 있으면 생성자에서 즉시 실패한다 (이슈 #187 fail-closed)
+     */
     public function testEmptySecretThrows(): void
     {
         $prev = getenv('JWT_SECRET');
@@ -32,7 +35,7 @@ final class JwtLibraryTest extends CIUnitTestCase
         $_ENV['JWT_SECRET'] = '';
 
         try {
-            $this->expectException(\RuntimeException::class);
+            $this->expectException(RuntimeException::class);
             $this->expectExceptionMessageMatches('/JWT_SECRET/');
             new JwtLibrary();
         } finally {
@@ -47,7 +50,9 @@ final class JwtLibraryTest extends CIUnitTestCase
         }
     }
 
-    /** 32자 미만 시크릿도 거부한다 */
+    /**
+     * 32자 미만 시크릿도 거부한다
+     */
     public function testShortSecretThrows(): void
     {
         $prev = getenv('JWT_SECRET');
@@ -55,7 +60,7 @@ final class JwtLibraryTest extends CIUnitTestCase
         $_ENV['JWT_SECRET'] = 'tooshort';
 
         try {
-            $this->expectException(\RuntimeException::class);
+            $this->expectException(RuntimeException::class);
             new JwtLibrary();
         } finally {
             if ($prev === false) {
@@ -92,7 +97,7 @@ final class JwtLibraryTest extends CIUnitTestCase
 
     public function testTamperedSignatureThrowsInvalid(): void
     {
-        $token   = $this->jwt->generateAccessToken(7);
+        $token    = $this->jwt->generateAccessToken(7);
         $tampered = $token . 'xx'; // 서명 훼손
 
         $this->expectException(TokenException::class);
@@ -102,6 +107,7 @@ final class JwtLibraryTest extends CIUnitTestCase
             $this->jwt->validateAccessToken($tampered);
         } catch (TokenException $e) {
             $this->assertSame('INVALID_TOKEN', $e->errorCode());
+
             throw $e;
         }
     }
@@ -117,6 +123,7 @@ final class JwtLibraryTest extends CIUnitTestCase
             $this->jwt->validateAccessToken($refresh);
         } catch (TokenException $e) {
             $this->assertSame('INVALID_TOKEN', $e->errorCode());
+
             throw $e;
         }
     }
@@ -129,6 +136,7 @@ final class JwtLibraryTest extends CIUnitTestCase
             $this->jwt->validateAccessToken('not.a.jwt');
         } catch (TokenException $e) {
             $this->assertSame('INVALID_TOKEN', $e->errorCode());
+
             throw $e;
         }
     }

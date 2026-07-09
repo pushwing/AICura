@@ -9,11 +9,10 @@ use CodeIgniter\Model;
  */
 class CodeModel extends Model
 {
-    protected $table      = 'codes';
-    protected $primaryKey = 'id';
+    protected $table         = 'codes';
+    protected $primaryKey    = 'id';
     protected $useTimestamps = false;
     protected $returnType    = 'array';
-
     protected $allowedFields = [
         'code',
         'name',

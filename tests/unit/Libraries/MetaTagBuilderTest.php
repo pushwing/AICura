@@ -10,7 +10,9 @@ use CodeIgniter\Test\CIUnitTestCase;
  */
 final class MetaTagBuilderTest extends CIUnitTestCase
 {
-    /** 기본 메타 — title·description·robots·canonical·OG·Twitter 출력 */
+    /**
+     * 기본 메타 — title·description·robots·canonical·OG·Twitter 출력
+     */
     public function testRendersCoreTags(): void
     {
         $html = MetaTagBuilder::fromArray([
@@ -30,7 +32,9 @@ final class MetaTagBuilderTest extends CIUnitTestCase
         $this->assertStringContainsString('<meta property="og:url" content="https://aicura.test/events">', $html);
     }
 
-    /** og:image 없으면 image 태그 없음 + twitter:card=summary */
+    /**
+     * og:image 없으면 image 태그 없음 + twitter:card=summary
+     */
     public function testWithoutImageUsesSummaryCard(): void
     {
         $html = MetaTagBuilder::fromArray([
@@ -44,7 +48,9 @@ final class MetaTagBuilderTest extends CIUnitTestCase
         $this->assertStringNotContainsString('twitter:image', $html);
     }
 
-    /** og:image 있으면 image 태그 + twitter:card=summary_large_image */
+    /**
+     * og:image 있으면 image 태그 + twitter:card=summary_large_image
+     */
     public function testWithImageUsesLargeCard(): void
     {
         $html = MetaTagBuilder::fromArray([
@@ -59,7 +65,9 @@ final class MetaTagBuilderTest extends CIUnitTestCase
         $this->assertStringContainsString('<meta name="twitter:image" content="https://aicura.test/img.jpg">', $html);
     }
 
-    /** 누락 키는 안전한 기본값으로 보정 */
+    /**
+     * 누락 키는 안전한 기본값으로 보정
+     */
     public function testMissingKeysFallBackToDefaults(): void
     {
         $html = MetaTagBuilder::fromArray([])->render();

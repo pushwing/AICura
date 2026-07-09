@@ -9,11 +9,10 @@ use CodeIgniter\Model;
  */
 class ContractModel extends Model
 {
-    protected $table      = 'contracts';
-    protected $primaryKey = 'id';
+    protected $table         = 'contracts';
+    protected $primaryKey    = 'id';
     protected $useTimestamps = true;
     protected $returnType    = 'array';
-
     protected $allowedFields = [
         'hospital_id',
         'hospital_name',
@@ -40,7 +39,9 @@ class ContractModel extends Model
         'tax_charge_email',
     ];
 
-    /** @var array<string, string> */
+    /**
+     * @var array<string, string>
+     */
     protected $validationRules = [
         'hospital_id'   => 'required|integer',
         'hospital_name' => 'required|max_length[255]',
@@ -63,6 +64,7 @@ class ContractModel extends Model
      * contract_orders를 JOIN하여 각 계약의 추가계약건 수, 총 계약금액 집계
      *
      * @param array<string, mixed> $params
+     *
      * @return array<string, mixed>
      */
     public function getListWithOrders(array $params): array
@@ -75,7 +77,7 @@ class ContractModel extends Model
             ->join('contract_orders co', 'co.id = coc.contract_order_id AND co.contract_status = 1', 'left')
             ->groupBy('c.id');
 
-        if (!empty($params['hospital_name'])) {
+        if (! empty($params['hospital_name'])) {
             $builder->like('c.hospital_name', $params['hospital_name']);
         }
 
@@ -98,6 +100,7 @@ class ContractModel extends Model
      * 각 병원의 정상(contract_status=1) 수주계약 건수·합계금액을 hospital_id로 키 매핑
      *
      * @param list<int> $hospitalIds
+     *
      * @return array<int, array{order_count:int, total_price:int}>
      */
     public function getSummaryByHospitalIds(array $hospitalIds): array
@@ -118,6 +121,7 @@ class ContractModel extends Model
             ->getResultArray();
 
         $summary = [];
+
         foreach ($rows as $row) {
             $summary[(int) $row['hospital_id']] = [
                 'order_count' => (int) $row['order_count'],
@@ -136,6 +140,7 @@ class ContractModel extends Model
      * 따라 '미입금'/'정상'으로 세분화한 `status_label`을 함께 내려준다.
      *
      * @param list<int> $hospitalIds
+     *
      * @return array<int, list<array<string, mixed>>> hospital_id → 수주건 목록
      */
     public function getOrdersByHospitalIds(array $hospitalIds): array
@@ -155,6 +160,7 @@ class ContractModel extends Model
             ->getResultArray();
 
         $grouped = [];
+
         foreach ($rows as $row) {
             $row['status_label']                  = $this->resolveOrderStatusLabel($row);
             $grouped[(int) $row['hospital_id']][] = $row;

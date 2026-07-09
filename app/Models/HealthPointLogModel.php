@@ -12,12 +12,11 @@ use CodeIgniter\Model;
  */
 class HealthPointLogModel extends Model
 {
-    protected $table      = 'health_point_logs';
-    protected $primaryKey = 'id';
+    protected $table         = 'health_point_logs';
+    protected $primaryKey    = 'id';
     protected $useTimestamps = true;
     protected $updatedField  = ''; // updated_at 없음
     protected $returnType    = 'array';
-
     protected $allowedFields = [
         'user_id',
         'amount',

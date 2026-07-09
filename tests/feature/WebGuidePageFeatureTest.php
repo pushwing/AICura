@@ -22,9 +22,9 @@ final class WebGuidePageFeatureTest extends CIUnitTestCase
     use DatabaseTestTrait;
     use FeatureTestTrait;
 
-    protected $migrate   = true;
-    protected $refresh   = true;
-    protected $namespace = null;
+    protected $migrate = true;
+    protected $refresh = true;
+    protected $namespace;
 
     protected function setUp(): void
     {
@@ -40,11 +40,11 @@ final class WebGuidePageFeatureTest extends CIUnitTestCase
             'content' => '<p>쌍꺼풀 본문<script>bad()</script></p>'
                 . '<a href="javascript:alert(1)">위험링크</a>',
             'procedure_name' => '쌍꺼풀 수술',
-            'faq_json' => json_encode([['q' => '비용은?', 'a' => '병원마다 다릅니다']], JSON_UNESCAPED_UNICODE),
-            'status' => 'published', 'published_at' => $now, 'created_at' => $now, 'updated_at' => $now,
+            'faq_json'       => json_encode([['q' => '비용은?', 'a' => '병원마다 다릅니다']], JSON_UNESCAPED_UNICODE),
+            'status'         => 'published', 'published_at' => $now, 'created_at' => $now, 'updated_at' => $now,
         ]);
         $db->table('guides')->insert([
-            'title' => '임시 가이드', 'slug' => 'draft-guide', 'status' => 'draft',
+            'title'      => '임시 가이드', 'slug' => 'draft-guide', 'status' => 'draft',
             'created_at' => $now, 'updated_at' => $now,
         ]);
     }
@@ -61,6 +61,7 @@ final class WebGuidePageFeatureTest extends CIUnitTestCase
     {
         preg_match_all('#<script type="application/ld\+json">(.*?)</script>#s', $body, $m);
         $out = [];
+
         foreach ($m[1] as $json) {
             $decoded = json_decode(trim($json), true);
             $this->assertIsArray($decoded, 'JSON-LD 파싱 실패');
@@ -70,7 +71,9 @@ final class WebGuidePageFeatureTest extends CIUnitTestCase
         return $out;
     }
 
-    /** [G1] 목록 — 발행 가이드만 */
+    /**
+     * [G1] 목록 — 발행 가이드만
+     */
     public function testIndexShowsPublishedOnly(): void
     {
         $body = $this->decode($this->get('guides')->getBody());
@@ -79,7 +82,9 @@ final class WebGuidePageFeatureTest extends CIUnitTestCase
         $this->assertStringNotContainsString('임시 가이드', $body);
     }
 
-    /** [G2] 상세 — 본문·FAQ 렌더, script 제거 */
+    /**
+     * [G2] 상세 — 본문·FAQ 렌더, script 제거
+     */
     public function testShowRendersBodyAndFaq(): void
     {
         $result = $this->get('guides/double-eyelid');
@@ -96,7 +101,9 @@ final class WebGuidePageFeatureTest extends CIUnitTestCase
         $this->assertStringContainsString('위험링크', $body);
     }
 
-    /** [G3] 상세 — Article(MedicalWebPage) + FAQPage JSON-LD */
+    /**
+     * [G3] 상세 — Article(MedicalWebPage) + FAQPage JSON-LD
+     */
     public function testShowHasArticleAndFaqJsonLd(): void
     {
         $blocks = $this->jsonLdBlocks($this->get('guides/double-eyelid')->getBody());
@@ -115,21 +122,27 @@ final class WebGuidePageFeatureTest extends CIUnitTestCase
         $this->assertSame('비용은?', $faq['mainEntity'][0]['name']);
     }
 
-    /** [G4] draft·미존재 슬러그 404 */
+    /**
+     * [G4] draft·미존재 슬러그 404
+     */
     public function testDraftAndMissingReturn404(): void
     {
         $this->expectException(PageNotFoundException::class);
         $this->get('guides/draft-guide');
     }
 
-    /** [G4b] 미존재 슬러그 404 */
+    /**
+     * [G4b] 미존재 슬러그 404
+     */
     public function testMissingSlugReturns404(): void
     {
         $this->expectException(PageNotFoundException::class);
         $this->get('guides/nope');
     }
 
-    /** STATUS 상수 노출 확인 (회귀 방지) */
+    /**
+     * STATUS 상수 노출 확인 (회귀 방지)
+     */
     public function testStatusConstants(): void
     {
         $this->assertSame('published', GuideModel::STATUS_PUBLISHED);

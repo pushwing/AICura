@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Exceptions\PointException;
 use App\Exceptions\NotFoundException;
+use App\Exceptions\PointException;
 use App\Models\BoardModel;
 use App\Models\BookingModel;
 use App\Models\CallRequestModel;
@@ -20,7 +20,9 @@ use App\Models\UserModel;
  */
 class MeService
 {
-    /** 이미지 서빙 경로 prefix (캠페인 썸네일) */
+    /**
+     * 이미지 서빙 경로 prefix (캠페인 썸네일)
+     */
     private const string IMAGE_PATH = 'uploads/campaigns/';
 
     private readonly UserModel $users;
@@ -42,20 +44,21 @@ class MeService
         ?HealthPointLogModel $pointLogs = null,
         ?HealthPointService $points = null,
     ) {
-        $this->users        = $users        ?? model(UserModel::class);
-        $this->devices      = $devices      ?? model(UserDeviceModel::class);
+        $this->users        = $users ?? model(UserModel::class);
+        $this->devices      = $devices ?? model(UserDeviceModel::class);
         $this->callRequests = $callRequests ?? model(CallRequestModel::class);
-        $this->boards       = $boards       ?? model(BoardModel::class);
-        $this->bookings     = $bookings     ?? model(BookingModel::class);
-        $this->favorites    = $favorites    ?? model(FavoriteModel::class);
-        $this->pointLogs    = $pointLogs    ?? model(HealthPointLogModel::class);
-        $this->points       = $points       ?? service('healthPointService');
+        $this->boards       = $boards ?? model(BoardModel::class);
+        $this->bookings     = $bookings ?? model(BookingModel::class);
+        $this->favorites    = $favorites ?? model(FavoriteModel::class);
+        $this->pointLogs    = $pointLogs ?? model(HealthPointLogModel::class);
+        $this->points       = $points ?? service('healthPointService');
     }
 
     /**
      * 내 프로필
      *
      * @return array<string, mixed>
+     *
      * @throws NotFoundException 탈퇴·미존재
      */
     public function profile(int $userId): array
@@ -72,6 +75,7 @@ class MeService
      * 프로필 수정 후 최신 프로필 반환
      *
      * @param array<string, mixed> $input
+     *
      * @return array<string, mixed>
      */
     public function updateProfile(int $userId, array $input): array
@@ -234,6 +238,7 @@ class MeService
      * 헬스포인트 차감(사용) — 차감 후 잔액 반환 (이슈 #114)
      *
      * @return array{balance: int}
+     *
      * @throws PointException 금액 오류·잔액 부족
      */
     public function redeemHealthPoint(int $userId, int $amount, ?string $memo = null): array
@@ -243,6 +248,7 @@ class MeService
 
     /**
      * @param array<string, mixed> $row
+     *
      * @return array<string, mixed>
      */
     private function transformProfile(array $row): array

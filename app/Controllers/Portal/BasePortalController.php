@@ -2,14 +2,14 @@
 
 namespace App\Controllers\Portal;
 
-use Override;
-use CodeIgniter\HTTP\RequestInterface;
-use CodeIgniter\HTTP\ResponseInterface;
-use Psr\Log\LoggerInterface;
-use DateTime;
-use DateTimeZone;
 use App\Controllers\BaseController;
 use CodeIgniter\Exceptions\PageNotFoundException;
+use CodeIgniter\HTTP\RequestInterface;
+use CodeIgniter\HTTP\ResponseInterface;
+use DateTime;
+use DateTimeZone;
+use Override;
+use Psr\Log\LoggerInterface;
 
 /**
  * 광고주·광고대행사 포털 공통 컨트롤러 (이슈 #32)
@@ -25,14 +25,16 @@ abstract class BasePortalController extends BaseController
     public const ROLE_AGENCY     = 'agency';
     public const ROLE_ADVERTISER = 'advertiser';
 
-    /** @var array<string, mixed> */
+    /**
+     * @var array<string, mixed>
+     */
     protected array $viewData = [];
 
     #[Override]
     public function initController(
         RequestInterface $request,
         ResponseInterface $response,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ): void {
         parent::initController($request, $response, $logger);
 
@@ -40,7 +42,9 @@ abstract class BasePortalController extends BaseController
         $this->viewData['role']       = $this->role();
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * @return array<string, mixed>
+     */
     protected function portalUser(): array
     {
         $user = session()->get('portal_user');
@@ -63,7 +67,9 @@ abstract class BasePortalController extends BaseController
         return $this->role() === self::ROLE_AGENCY;
     }
 
-    /** 광고주 본인의 병원 id (대행사이거나 미연결이면 null) */
+    /**
+     * 광고주 본인의 병원 id (대행사이거나 미연결이면 null)
+     */
     protected function hospitalId(): ?int
     {
         $id = $this->portalUser()['hospital_id'] ?? null;
@@ -71,7 +77,9 @@ abstract class BasePortalController extends BaseController
         return $id !== null ? (int) $id : null;
     }
 
-    /** 광고주 레코드 id (대행사이거나 미연결이면 null) */
+    /**
+     * 광고주 레코드 id (대행사이거나 미연결이면 null)
+     */
     protected function advertiserId(): ?int
     {
         $id = $this->portalUser()['advertiser_id'] ?? null;
@@ -79,15 +87,19 @@ abstract class BasePortalController extends BaseController
         return $id !== null ? (int) $id : null;
     }
 
-    /** 대행사 전용 화면 가드 */
+    /**
+     * 대행사 전용 화면 가드
+     */
     protected function requireAgency(): void
     {
-        if (!$this->isAgency()) {
+        if (! $this->isAgency()) {
             throw PageNotFoundException::forPageNotFound();
         }
     }
 
-    /** 광고주 전용 화면 가드 */
+    /**
+     * 광고주 전용 화면 가드
+     */
     protected function requireAdvertiser(): void
     {
         if ($this->isAgency()) {
@@ -103,7 +115,9 @@ abstract class BasePortalController extends BaseController
         return $dt->format('Y-m-d H:i');
     }
 
-    /** @param array<string, mixed> $data */
+    /**
+     * @param array<string, mixed> $data
+     */
     protected function render(string $view, array $data = []): string
     {
         $pageData = array_merge($this->viewData, $data);

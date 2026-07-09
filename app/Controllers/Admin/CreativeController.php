@@ -2,9 +2,9 @@
 
 namespace App\Controllers\Admin;
 
-use CodeIgniter\Exceptions\PageNotFoundException;
 use App\Models\CampaignModel;
 use App\Models\CampaignReviewRequestModel;
+use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\ResponseInterface;
 
 /**
@@ -22,11 +22,11 @@ class CreativeController extends BaseAdminController
     public function index(): string
     {
         $params = [
-            'keyword'    => $this->request->getGet('keyword') ?? '',
-            'status'     => $this->request->getGet('status') ?? '',
-            'has_image'  => $this->request->getGet('has_image') ?? '',
-            'page'       => max(1, (int) ($this->request->getGet('page') ?? 1)),
-            'limit'      => 20,
+            'keyword'   => $this->request->getGet('keyword') ?? '',
+            'status'    => $this->request->getGet('status') ?? '',
+            'has_image' => $this->request->getGet('has_image') ?? '',
+            'page'      => max(1, (int) ($this->request->getGet('page') ?? 1)),
+            'limit'     => 20,
         ];
 
         $result = model(CampaignModel::class)->getCreativeList($params);
@@ -79,14 +79,14 @@ class CreativeController extends BaseAdminController
             't2_image_name' => 'permit_empty|max_length[500]',
             'd_images.*'    => 'permit_empty|max_length[500]',
         ];
-        if (!$this->validate($rules)) {
+        if (! $this->validate($rules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
         $dImagesRaw = $this->request->getPost('d_images') ?? [];
         $dImages    = array_values(array_filter(
             is_array($dImagesRaw) ? $dImagesRaw : [],
-            fn($v): bool => is_string($v) && trim($v) !== ''
+            static fn ($v): bool => is_string($v) && trim($v) !== '',
         ));
 
         // 이미지 변경 데이터 — campaigns 에는 직접 쓰지 않고 review request 로 기록
@@ -98,6 +98,7 @@ class CreativeController extends BaseAdminController
 
         // 나머지 콘텐츠 필드는 기존 approved 데이터 유지 (이미지만 변경하는 경우)
         $contentData = [];
+
         foreach (CampaignReviewRequestModel::CONTENT_FIELDS as $field) {
             $contentData[$field] = $imageData[$field] ?? $campaign[$field] ?? null;
         }
@@ -109,7 +110,7 @@ class CreativeController extends BaseAdminController
             $id,
             $contentData,
             (int) ($authUser['id'] ?? 0),
-            'update'
+            'update',
         );
 
         $campaignModel->update($id, ['review_status' => 'pending']);

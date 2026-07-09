@@ -28,11 +28,13 @@ enum PointReason: string
             self::Signup       => 500,
             self::ReviewCreate => 100,
             self::ReviewRevoke,
-            self::Redeem       => 0,
+            self::Redeem => 0,
         };
     }
 
-    /** 내역 표시용 한국어 라벨 */
+    /**
+     * 내역 표시용 한국어 라벨
+     */
     public function label(): string
     {
         return match ($this) {

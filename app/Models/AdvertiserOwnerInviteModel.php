@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Throwable;
 use CodeIgniter\Model;
+use Throwable;
 
 /**
  * 광고주 owner 연결 초대 (이슈 #38)
@@ -13,20 +13,21 @@ use CodeIgniter\Model;
  */
 class AdvertiserOwnerInviteModel extends Model
 {
-    protected $table         = 'advertiser_owner_invites';
-    protected $primaryKey    = 'id';
-    protected $useTimestamps = true;
-    protected $returnType    = 'array';
-
     public const STATUS_PENDING   = 1;
     public const STATUS_ACCEPTED  = 2;
     public const STATUS_REJECTED  = 3;
     public const STATUS_EXPIRED   = 4;
     public const STATUS_CANCELLED = 5;
 
-    /** 초대 유효 기간(일) */
+    /**
+     * 초대 유효 기간(일)
+     */
     public const TTL_DAYS = 7;
 
+    protected $table         = 'advertiser_owner_invites';
+    protected $primaryKey    = 'id';
+    protected $useTimestamps = true;
+    protected $returnType    = 'array';
     protected $allowedFields = [
         'advertiser_id',
         'agency_user_id',
@@ -40,9 +41,9 @@ class AdvertiserOwnerInviteModel extends Model
     /**
      * 초대 생성 — 만료 시각은 생성 +7일로 자동 설정
      *
-     * @return int|false 생성된 초대 id, 실패 시 false
+     * @return false|int 생성된 초대 id, 실패 시 false
      */
-    public function createInvite(int $advertiserId, int $agencyUserId, int $inviteeUserId, string $inviteeEmail): int|false
+    public function createInvite(int $advertiserId, int $agencyUserId, int $inviteeUserId, string $inviteeEmail): false|int
     {
         $id = $this->insert([
             'advertiser_id'   => $advertiserId,

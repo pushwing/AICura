@@ -2,13 +2,13 @@
 
 namespace App\Controllers\Admin;
 
-use Override;
-use CodeIgniter\HTTP\RequestInterface;
-use Psr\Log\LoggerInterface;
-use CodeIgniter\Exceptions\PageNotFoundException;
 use App\Models\ContractModel;
 use App\Models\ContractOrderModel;
+use CodeIgniter\Exceptions\PageNotFoundException;
+use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
+use Override;
+use Psr\Log\LoggerInterface;
 
 /**
  * 계약 관리 컨트롤러
@@ -28,7 +28,7 @@ class ContractController extends BaseAdminController
     public function initController(
         RequestInterface $request,
         ResponseInterface $response,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ): void {
         parent::initController($request, $response, $logger);
         $this->contractModel = model(ContractModel::class);
@@ -50,9 +50,9 @@ class ContractController extends BaseAdminController
         $result = $this->contractModel->getListWithOrders($params);
 
         return $this->render('admin/contracts/index', [
-            'contracts'    => $result['list'],
-            'total'        => $result['total'],
-            'params'       => $params,
+            'contracts' => $result['list'],
+            'total'     => $result['total'],
+            'params'    => $params,
         ]);
     }
 
@@ -134,7 +134,7 @@ class ContractController extends BaseAdminController
             'ad_price'      => 'required|integer|greater_than[0]',
         ];
 
-        if (!$this->validate($rules)) {
+        if (! $this->validate($rules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
@@ -190,13 +190,13 @@ class ContractController extends BaseAdminController
         }
 
         $updateData = array_filter([
-            'tax_charge_name'       => $this->request->getPost('tax_charge_name'),
-            'tax_charge_email'      => $this->request->getPost('tax_charge_email'),
-            'tax_business_no'       => $this->request->getPost('tax_business_no'),
-            'agency_company_name'   => $this->request->getPost('agency_company_name'),
+            'tax_charge_name'         => $this->request->getPost('tax_charge_name'),
+            'tax_charge_email'        => $this->request->getPost('tax_charge_email'),
+            'tax_business_no'         => $this->request->getPost('tax_business_no'),
+            'agency_company_name'     => $this->request->getPost('agency_company_name'),
             'agency_company_fee_rate' => $this->request->getPost('agency_company_fee_rate'),
-            'memo'                  => $this->request->getPost('memo'),
-        ], fn(bool|float|int|object|string|array|null $v): bool => $v !== null && $v !== '');
+            'memo'                    => $this->request->getPost('memo'),
+        ], static fn (array|bool|float|int|object|string|null $v): bool => $v !== null && $v !== '');
 
         // 입금 전, 세금계산서 미발행인 경우에만 금액 수정 허용
         if (empty($order['deposit_date']) && empty($order['tax_issue_date'])) {
@@ -227,7 +227,7 @@ class ContractController extends BaseAdminController
             throw PageNotFoundException::forPageNotFound();
         }
 
-        if (!empty($order['deposit_date'])) {
+        if (! empty($order['deposit_date'])) {
             return redirect()->back()->with('error', '이미 입금 확인된 계약입니다.');
         }
 

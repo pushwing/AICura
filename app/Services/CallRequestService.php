@@ -2,11 +2,11 @@
 
 namespace App\Services;
 
-use Throwable;
 use App\Exceptions\CallRequestException;
 use App\Exceptions\NotFoundException;
 use App\Models\CallRequestModel;
 use App\Models\CampaignModel;
+use Throwable;
 
 /**
  * 외부(소비자) 앱 상담 신청 서비스 (이슈 #100)
@@ -25,14 +25,16 @@ class CallRequestService
         ?CampaignModel $campaigns = null,
     ) {
         $this->callRequests = $callRequests ?? model(CallRequestModel::class);
-        $this->campaigns    = $campaigns    ?? model(CampaignModel::class);
+        $this->campaigns    = $campaigns ?? model(CampaignModel::class);
     }
 
     /**
      * 상담 신청 생성 — 캠페인 검증 → INSERT → CPA 과금 → AI 큐 적재.
      *
      * @param array<string, mixed> $input campaign_id·name·phone·content·call_time·age·sex·funnel·region·device·supply_third_party_agree
+     *
      * @return array<string, mixed> 생성된 신청 상세 (소비자 노출 컬럼)
+     *
      * @throws NotFoundException 노출 조건 미충족·미존재 캠페인
      */
     public function apply(int $userId, array $input): array
@@ -46,7 +48,7 @@ class CallRequestService
             'campaign_id'              => $campaign['id'],
             'hospital_id'              => $campaign['hospital_id'],
             'user_id'                  => $userId,
-            'event_cost'              => $campaign['db_cost'],
+            'event_cost'               => $campaign['db_cost'],
             'device'                   => $this->normalizeDevice($input['device'] ?? null),
             'name'                     => trim((string) $input['name']),
             'phone'                    => trim((string) $input['phone']),
@@ -91,6 +93,7 @@ class CallRequestService
      * 본인 신청 상세
      *
      * @return array<string, mixed>
+     *
      * @throws NotFoundException 미존재·타인 소유
      */
     public function detail(int $userId, int $id): array
@@ -106,8 +109,8 @@ class CallRequestService
     /**
      * 본인 신청 취소 — 미확인(status=1) 건만 soft delete.
      *
-     * @throws NotFoundException 미존재·타인 소유
      * @throws CallRequestException 이미 처리 진행되어 취소 불가
+     * @throws NotFoundException    미존재·타인 소유
      */
     public function cancel(int $userId, int $id): void
     {
@@ -127,6 +130,7 @@ class CallRequestService
      * 신청 행 → 소비자 응답 (상태 라벨 부여)
      *
      * @param array<string, mixed> $row
+     *
      * @return array<string, mixed>
      */
     private function transform(array $row): array
@@ -162,7 +166,7 @@ class CallRequestService
 
     private function nullableString(mixed $value): ?string
     {
-        if (!is_string($value)) {
+        if (! is_string($value)) {
             return null;
         }
 

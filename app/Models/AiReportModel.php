@@ -11,12 +11,20 @@ use CodeIgniter\Model;
  */
 class AiReportModel extends Model
 {
-    protected $table         = 'ai_reports';
-    protected $primaryKey     = 'id';
-    protected $useTimestamps  = true;
-    protected $returnType     = 'array';
+    public const TYPE_REVENUE     = 'revenue';
+    public const TYPE_CONSUMPTION = 'consumption';
+    public const SCOPE_GLOBAL     = 'global';
+    public const SCOPE_HOSPITAL   = 'hospital';
+    public const SCOPE_AGENCY     = 'agency';
 
-    /** @var list<string> */
+    protected $table         = 'ai_reports';
+    protected $primaryKey    = 'id';
+    protected $useTimestamps = true;
+    protected $returnType    = 'array';
+
+    /**
+     * @var list<string>
+     */
     protected $allowedFields = [
         'scope_type',
         'scope_id',
@@ -26,13 +34,6 @@ class AiReportModel extends Model
         'report_date',
         'meta',
     ];
-
-    public const TYPE_REVENUE     = 'revenue';
-    public const TYPE_CONSUMPTION = 'consumption';
-
-    public const SCOPE_GLOBAL   = 'global';
-    public const SCOPE_HOSPITAL = 'hospital';
-    public const SCOPE_AGENCY   = 'agency';
 
     /**
      * 종류별 최신 보고서 1건 (스코프 한정)
@@ -58,7 +59,7 @@ class AiReportModel extends Model
         int $page,
         int $limit,
         string $scopeType = self::SCOPE_GLOBAL,
-        ?int $scopeId = null
+        ?int $scopeId = null,
     ): array {
         $offset = ($page - 1) * $limit;
 

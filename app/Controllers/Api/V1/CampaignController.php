@@ -2,12 +2,12 @@
 
 namespace App\Controllers\Api\V1;
 
-use Override;
 use App\Exceptions\DomainException;
 use App\Services\EventService;
 use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
 use OpenApi\Attributes as OA;
+use Override;
 
 /**
  * 외부(소비자) 앱 이벤트 컨트롤러 (이슈 #98)
@@ -42,7 +42,7 @@ class CampaignController extends BaseApiController
         responses: [
             new OA\Response(response: 200, description: '이벤트 목록'),
             new OA\Response(response: 401, description: '인증 필요'),
-        ]
+        ],
     )]
     #[Override]
     public function index(): ResponseInterface
@@ -63,7 +63,7 @@ class CampaignController extends BaseApiController
         summary: '이벤트 카테고리 목록',
         security: [['bearerAuth' => []]],
         tags: ['Campaigns'],
-        responses: [new OA\Response(response: 200, description: '카테고리 목록')]
+        responses: [new OA\Response(response: 200, description: '카테고리 목록')],
     )]
     public function categories(): ResponseInterface
     {
@@ -75,7 +75,7 @@ class CampaignController extends BaseApiController
         summary: '메인 노출 이벤트',
         security: [['bearerAuth' => []]],
         tags: ['Campaigns'],
-        responses: [new OA\Response(response: 200, description: '메인 이벤트 목록')]
+        responses: [new OA\Response(response: 200, description: '메인 이벤트 목록')],
     )]
     public function main(): ResponseInterface
     {
@@ -87,7 +87,7 @@ class CampaignController extends BaseApiController
         summary: '추천 이벤트',
         security: [['bearerAuth' => []]],
         tags: ['Campaigns'],
-        responses: [new OA\Response(response: 200, description: '추천 이벤트 목록')]
+        responses: [new OA\Response(response: 200, description: '추천 이벤트 목록')],
     )]
     public function recommend(): ResponseInterface
     {
@@ -105,7 +105,7 @@ class CampaignController extends BaseApiController
         responses: [
             new OA\Response(response: 200, description: '이벤트 상세'),
             new OA\Response(response: 404, description: '존재하지 않는 이벤트'),
-        ]
+        ],
     )]
     #[Override]
     public function show($id = null): ResponseInterface
@@ -130,7 +130,7 @@ class CampaignController extends BaseApiController
         responses: [
             new OA\Response(response: 200, description: '토글 결과 (liked: 찜 여부)'),
             new OA\Response(response: 404, description: '존재하지 않는 이벤트'),
-        ]
+        ],
     )]
     public function like(?string $id = null): ResponseInterface
     {

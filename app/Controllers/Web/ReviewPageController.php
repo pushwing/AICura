@@ -2,7 +2,6 @@
 
 namespace App\Controllers\Web;
 
-use Override;
 use App\Exceptions\NotFoundException;
 use App\Libraries\Seo\JsonLdBuilder;
 use App\Libraries\Seo\NameMasker;
@@ -11,6 +10,7 @@ use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
+use Override;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -28,7 +28,7 @@ class ReviewPageController extends BaseWebController
     public function initController(
         RequestInterface $request,
         ResponseInterface $response,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ): void {
         parent::initController($request, $response, $logger);
         $this->boards = Services::boardService();
@@ -41,7 +41,7 @@ class ReviewPageController extends BaseWebController
     {
         $result = $this->boards->list(self::GUEST_USER_ID, $this->listParams());
 
-        $reviews = array_map(function (array $item): array {
+        $reviews = array_map(static function (array $item): array {
             $item['author'] = NameMasker::mask((string) ($item['user_name'] ?? ''));
 
             return $item;
@@ -90,7 +90,7 @@ class ReviewPageController extends BaseWebController
             'description' => $summary !== '' ? $summary : '성형·시술 실사용 후기 — AICura',
             'og_type'     => 'article',
             // 신고·의심 후기는 색인 제외(§4.3). 링크는 따라가도록 follow 유지
-            'robots'      => $indexable ? 'index, follow' : 'noindex, follow',
+            'robots' => $indexable ? 'index, follow' : 'noindex, follow',
         ]);
     }
 

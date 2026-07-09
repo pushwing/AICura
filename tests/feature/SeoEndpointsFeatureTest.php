@@ -20,10 +20,9 @@ final class SeoEndpointsFeatureTest extends CIUnitTestCase
     use DatabaseTestTrait;
     use FeatureTestTrait;
 
-    protected $migrate   = true;
-    protected $refresh   = true;
-    protected $namespace = null;
-
+    protected $migrate = true;
+    protected $refresh = true;
+    protected $namespace;
     private int $hospitalId = 0;
     private int $visibleId  = 0;
 
@@ -36,7 +35,7 @@ final class SeoEndpointsFeatureTest extends CIUnitTestCase
         $now = date('Y-m-d H:i:s');
 
         $db->table('hospitals')->insert([
-            'name' => '강남병원', 'type' => 1, 'status' => 'active', 'is_deleted' => 0,
+            'name'    => '강남병원', 'type' => 1, 'status' => 'active', 'is_deleted' => 0,
             'address' => '서울', 'phone' => '02-1', 'created_at' => $now, 'updated_at' => $now,
         ]);
         $this->hospitalId = (int) $db->insertID();
@@ -46,22 +45,26 @@ final class SeoEndpointsFeatureTest extends CIUnitTestCase
         $this->insertCampaign(['ad_title' => '검수미완료', 'exposure' => 1, 'review_status' => 'pending']);
     }
 
-    /** @param array<string, mixed> $overrides */
+    /**
+     * @param array<string, mixed> $overrides
+     */
     private function insertCampaign(array $overrides): int
     {
         $db  = db_connect();
         $now = date('Y-m-d H:i:s');
         $db->table('campaigns')->insert(array_merge([
-            'ad_title' => '이벤트', 'hospital_id' => $this->hospitalId, 'status' => 'active',
+            'ad_title'      => '이벤트', 'hospital_id' => $this->hospitalId, 'status' => 'active',
             'review_status' => 'approved', 'exposure' => 1, 'is_deleted' => 0,
-            'category' => 0, 'ad_type' => 1, 'cost_type' => 1,
-            'created_at' => $now, 'updated_at' => $now,
+            'category'      => 0, 'ad_type' => 1, 'cost_type' => 1,
+            'created_at'    => $now, 'updated_at' => $now,
         ], $overrides));
 
         return (int) $db->insertID();
     }
 
-    /** [S1] sitemap.xml — 200·XML, 이벤트 URL 포함 */
+    /**
+     * [S1] sitemap.xml — 200·XML, 이벤트 URL 포함
+     */
     public function testSitemapServesXmlWithEvents(): void
     {
         $result = $this->get('sitemap.xml');
@@ -76,7 +79,9 @@ final class SeoEndpointsFeatureTest extends CIUnitTestCase
         $this->assertStringContainsString('<lastmod>', $body);
     }
 
-    /** [S2] sitemap.xml — 검수 미완료 이벤트 미포함 */
+    /**
+     * [S2] sitemap.xml — 검수 미완료 이벤트 미포함
+     */
     public function testSitemapExcludesHiddenEvents(): void
     {
         $body = $this->get('sitemap.xml')->getBody();
@@ -86,14 +91,18 @@ final class SeoEndpointsFeatureTest extends CIUnitTestCase
         $this->assertSame(1, substr_count($body, '/events/')); // 이벤트 상세는 1건뿐
     }
 
-    /** [S3] sitemap 결과는 캐시된다 */
+    /**
+     * [S3] sitemap 결과는 캐시된다
+     */
     public function testSitemapIsCached(): void
     {
         $this->get('sitemap.xml');
         $this->assertIsString(cache(SitemapService::CACHE_KEY));
     }
 
-    /** [R1] robots.txt — 색인 허용·내부 차단·AI 크롤러·절대 Sitemap URL */
+    /**
+     * [R1] robots.txt — 색인 허용·내부 차단·AI 크롤러·절대 Sitemap URL
+     */
     public function testRobotsServesPolicy(): void
     {
         $result = $this->get('robots.txt');

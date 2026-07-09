@@ -66,13 +66,24 @@ final class AiReviewQualityServiceTest extends CIUnitTestCase
 
     private function service(): AiReviewQualityService
     {
-        $ai = new class implements AiClientInterface {
-            public function isConfigured(): bool { return true; }
+        $ai = new class () implements AiClientInterface {
+            public function isConfigured(): bool
+            {
+                return true;
+            }
 
-            public function complete(string $systemPrompt, string $userPrompt): string { return ''; }
+            public function complete(string $systemPrompt, string $userPrompt): string
+            {
+                return '';
+            }
 
-            /** @return array<string, mixed> */
-            public function completeJson(string $systemPrompt, string $userPrompt): array { return []; }
+            /**
+             * @return array<string, mixed>
+             */
+            public function completeJson(string $systemPrompt, string $userPrompt): array
+            {
+                return [];
+            }
         };
 
         return new AiReviewQualityService(

@@ -27,13 +27,17 @@ final class TokenException extends DomainException
         return $this->apiCode;
     }
 
-    /** 서명·형식 오류 또는 토큰 타입 불일치 — 신뢰할 수 없는 토큰 */
+    /**
+     * 서명·형식 오류 또는 토큰 타입 불일치 — 신뢰할 수 없는 토큰
+     */
     public static function invalid(): self
     {
         return new self('INVALID_TOKEN', '유효하지 않은 토큰입니다.');
     }
 
-    /** 서명·형식은 정상이나 만료된 토큰 */
+    /**
+     * 서명·형식은 정상이나 만료된 토큰
+     */
     public static function expired(): self
     {
         return new self('TOKEN_EXPIRED', '토큰이 만료되었습니다.');

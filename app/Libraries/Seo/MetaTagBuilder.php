@@ -49,7 +49,7 @@ final readonly class MetaTagBuilder
      */
     public function render(): string
     {
-        $hasImage   = $this->ogImage !== null && trim($this->ogImage) !== '';
+        $hasImage    = $this->ogImage !== null && trim($this->ogImage) !== '';
         $twitterCard = $hasImage ? 'summary_large_image' : 'summary';
 
         $lines = [

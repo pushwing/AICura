@@ -1,5 +1,6 @@
 <?php
 
+use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\Security\Security;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
@@ -17,12 +18,13 @@ final class AdvertiserControllerTest extends CIUnitTestCase
     protected $migrate     = true;
     protected $migrateOnce = true;
     protected $refresh     = false;
-    protected $namespace   = null;
-
+    protected $namespace;
     private int $hospitalId   = 0;
     private int $advertiserId = 0;
 
-    /** @var array<string, mixed> */
+    /**
+     * @var array<string, mixed>
+     */
     private array $authSession = [];
 
     protected function setUp(): void
@@ -110,7 +112,7 @@ final class AdvertiserControllerTest extends CIUnitTestCase
     public function testShowThrowsPageNotFoundForMissingAdvertiser(): void
     {
         // CI4 FeatureTestTrait는 PageNotFoundException을 HTTP 응답으로 변환하지 않고 전파
-        $this->expectException(\CodeIgniter\Exceptions\PageNotFoundException::class);
+        $this->expectException(PageNotFoundException::class);
         $this->withSession($this->authSession)->get('admin/advertisers/999999');
     }
 

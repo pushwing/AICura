@@ -17,9 +17,9 @@ final class WebLlmsFeatureTest extends CIUnitTestCase
     use DatabaseTestTrait;
     use FeatureTestTrait;
 
-    protected $migrate   = true;
-    protected $refresh   = true;
-    protected $namespace = null;
+    protected $migrate = true;
+    protected $refresh = true;
+    protected $namespace;
 
     protected function setUp(): void
     {
@@ -32,22 +32,26 @@ final class WebLlmsFeatureTest extends CIUnitTestCase
         $db->table('event_categories')->insert(['title' => '눈성형', 'is_visible' => 1, 'sort' => 1, 'category_type' => 0]);
 
         $db->table('guides')->insert([
-            'title' => '쌍꺼풀 수술 가이드', 'slug' => 'double-eyelid', 'summary' => '쌍꺼풀 정보 요약',
+            'title'  => '쌍꺼풀 수술 가이드', 'slug' => 'double-eyelid', 'summary' => '쌍꺼풀 정보 요약',
             'status' => 'published', 'published_at' => $now, 'created_at' => $now, 'updated_at' => $now,
         ]);
         $db->table('guides')->insert([
-            'title' => '임시 가이드', 'slug' => 'draft-guide', 'status' => 'draft',
+            'title'      => '임시 가이드', 'slug' => 'draft-guide', 'status' => 'draft',
             'created_at' => $now, 'updated_at' => $now,
         ]);
     }
 
-    /** 실제 응답 본문(raw UTF-8) */
+    /**
+     * 실제 응답 본문(raw UTF-8)
+     */
     private function rawBody(string $uri): string
     {
         return (string) $this->get($uri)->response()->getBody();
     }
 
-    /** 200 · text/plain · 마크다운 헤더·주요 페이지 링크 */
+    /**
+     * 200 · text/plain · 마크다운 헤더·주요 페이지 링크
+     */
     public function testServesMarkdownWithMainPages(): void
     {
         $result = $this->get('llms.txt');
@@ -64,7 +68,9 @@ final class WebLlmsFeatureTest extends CIUnitTestCase
         $this->assertStringContainsString('/sitemap.xml)', $body);
     }
 
-    /** 발행 가이드는 나열, 임시 가이드는 제외 */
+    /**
+     * 발행 가이드는 나열, 임시 가이드는 제외
+     */
     public function testListsPublishedGuidesOnly(): void
     {
         $body = $this->rawBody('llms.txt');
@@ -75,7 +81,9 @@ final class WebLlmsFeatureTest extends CIUnitTestCase
         $this->assertStringNotContainsString('임시 가이드', $body);
     }
 
-    /** 이벤트 카테고리 나열 */
+    /**
+     * 이벤트 카테고리 나열
+     */
     public function testListsEventCategories(): void
     {
         $body = $this->rawBody('llms.txt');
@@ -84,7 +92,9 @@ final class WebLlmsFeatureTest extends CIUnitTestCase
         $this->assertStringContainsString('- 눈성형', $body);
     }
 
-    /** 한글 원문이 raw UTF-8 로 출력된다(엔티티 아님) */
+    /**
+     * 한글 원문이 raw UTF-8 로 출력된다(엔티티 아님)
+     */
     public function testKoreanIsRawUtf8(): void
     {
         $body = $this->rawBody('llms.txt');

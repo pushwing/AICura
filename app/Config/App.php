@@ -32,29 +32,6 @@ class App extends BaseConfig
     public array $allowedHostnames = [];
 
     /**
-     * 로컬 개발 환경에서 FrankenPHP(8300)·CI4 내장 서버(8080)를 동시에 띄워두고 쓰는 경우,
-     * 요청 Host 헤더에 따라 baseURL 을 맞춰준다. Host header injection 방지를 위해
-     * 화이트리스트에 있는 host:port 조합만 허용한다.
-     */
-    public function __construct()
-    {
-        parent::__construct();
-
-        if (ENVIRONMENT === 'development') {
-            $allowedLocalHosts = [
-                'localhost:8080', '127.0.0.1:8080',
-                'localhost:8300', '127.0.0.1:8300',
-            ];
-
-            $host = service('superglobals')->server('HTTP_HOST') ?? '';
-
-            if (in_array($host, $allowedLocalHosts, true)) {
-                $this->baseURL = "http://{$host}/";
-            }
-        }
-    }
-
-    /**
      * --------------------------------------------------------------------------
      * Index File
      * --------------------------------------------------------------------------
@@ -223,4 +200,27 @@ class App extends BaseConfig
      * @see http://www.w3.org/TR/CSP/
      */
     public bool $CSPEnabled = false;
+
+    /**
+     * 로컬 개발 환경에서 FrankenPHP(8300)·CI4 내장 서버(8080)를 동시에 띄워두고 쓰는 경우,
+     * 요청 Host 헤더에 따라 baseURL 을 맞춰준다. Host header injection 방지를 위해
+     * 화이트리스트에 있는 host:port 조합만 허용한다.
+     */
+    public function __construct()
+    {
+        parent::__construct();
+
+        if (ENVIRONMENT === 'development') {
+            $allowedLocalHosts = [
+                'localhost:8080', '127.0.0.1:8080',
+                'localhost:8300', '127.0.0.1:8300',
+            ];
+
+            $host = service('superglobals')->server('HTTP_HOST') ?? '';
+
+            if (in_array($host, $allowedLocalHosts, true)) {
+                $this->baseURL = "http://{$host}/";
+            }
+        }
+    }
 }

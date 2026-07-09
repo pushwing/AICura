@@ -20,7 +20,9 @@ final class HtmlSanitizerTest extends CIUnitTestCase
         $this->sanitizer = new HtmlSanitizer();
     }
 
-    /** img 의 onerror 이벤트 핸들러 제거 — 대표적 XSS 벡터 */
+    /**
+     * img 의 onerror 이벤트 핸들러 제거 — 대표적 XSS 벡터
+     */
     public function testStripsImgOnerror(): void
     {
         $out = $this->sanitizer->sanitize('<img src="x" onerror="alert(document.cookie)">', ['img']);
@@ -30,7 +32,9 @@ final class HtmlSanitizerTest extends CIUnitTestCase
         $this->assertStringContainsString('<img', $out);
     }
 
-    /** a href 의 javascript: 스킴 제거 */
+    /**
+     * a href 의 javascript: 스킴 제거
+     */
     public function testStripsJavascriptHref(): void
     {
         $out = $this->sanitizer->sanitize('<a href="javascript:alert(1)">클릭</a>', ['a']);
@@ -39,7 +43,9 @@ final class HtmlSanitizerTest extends CIUnitTestCase
         $this->assertStringContainsString('클릭', $out);
     }
 
-    /** 제어문자로 위장한 스킴(java\tscript:)도 차단 */
+    /**
+     * 제어문자로 위장한 스킴(java\tscript:)도 차단
+     */
     public function testStripsObfuscatedJavascriptScheme(): void
     {
         $out = $this->sanitizer->sanitize("<a href=\"java\tscript:alert(1)\">x</a>", ['a']);
@@ -47,7 +53,9 @@ final class HtmlSanitizerTest extends CIUnitTestCase
         $this->assertStringNotContainsString('script:', strtolower($out));
     }
 
-    /** data: URL 도 차단 (스킴 화이트리스트에 없음) */
+    /**
+     * data: URL 도 차단 (스킴 화이트리스트에 없음)
+     */
     public function testStripsDataUrl(): void
     {
         $out = $this->sanitizer->sanitize('<a href="data:text/html;base64,PHNjcmlwdD4=">x</a>', ['a']);
@@ -55,7 +63,9 @@ final class HtmlSanitizerTest extends CIUnitTestCase
         $this->assertStringNotContainsString('data:', $out);
     }
 
-    /** script 태그는 내용째 제거 */
+    /**
+     * script 태그는 내용째 제거
+     */
     public function testRemovesScriptTagAndContent(): void
     {
         $out = $this->sanitizer->sanitize('<p>안녕</p><script>alert(1)</script>', ['p']);
@@ -65,7 +75,9 @@ final class HtmlSanitizerTest extends CIUnitTestCase
         $this->assertStringContainsString('안녕', $out);
     }
 
-    /** 허용 안 된 태그(div)는 언랩 — 내부 텍스트는 보존 */
+    /**
+     * 허용 안 된 태그(div)는 언랩 — 내부 텍스트는 보존
+     */
     public function testUnwrapsDisallowedTagKeepingText(): void
     {
         $out = $this->sanitizer->sanitize('<div><p>본문</p></div>', ['p']);
@@ -74,7 +86,9 @@ final class HtmlSanitizerTest extends CIUnitTestCase
         $this->assertStringContainsString('<p>본문</p>', $out);
     }
 
-    /** style 속성 제거 (CSS 기반 공격 차단) */
+    /**
+     * style 속성 제거 (CSS 기반 공격 차단)
+     */
     public function testStripsStyleAttribute(): void
     {
         $out = $this->sanitizer->sanitize('<p style="background:url(javascript:alert(1))">x</p>', ['p']);
@@ -83,7 +97,9 @@ final class HtmlSanitizerTest extends CIUnitTestCase
         $this->assertStringContainsString('x', $out);
     }
 
-    /** 안전한 태그·속성·http 링크는 보존 */
+    /**
+     * 안전한 태그·속성·http 링크는 보존
+     */
     public function testKeepsSafeContent(): void
     {
         $html = '<p>안녕 <strong>세계</strong> <a href="https://a.test/page" title="링크">이동</a></p>';
@@ -94,7 +110,9 @@ final class HtmlSanitizerTest extends CIUnitTestCase
         $this->assertStringContainsString('title="링크"', $out);
     }
 
-    /** 상대경로·앵커 링크는 허용 */
+    /**
+     * 상대경로·앵커 링크는 허용
+     */
     public function testKeepsRelativeAndAnchorHref(): void
     {
         $out = $this->sanitizer->sanitize('<a href="/events/1">a</a><a href="#top">b</a>', ['a']);
@@ -103,7 +121,9 @@ final class HtmlSanitizerTest extends CIUnitTestCase
         $this->assertStringContainsString('href="#top"', $out);
     }
 
-    /** target=_blank 링크에 rel=noopener 강제 (탭내빙 방지) */
+    /**
+     * target=_blank 링크에 rel=noopener 강제 (탭내빙 방지)
+     */
     public function testForcesRelOnBlankTarget(): void
     {
         $out = $this->sanitizer->sanitize('<a href="https://a.test" target="_blank">x</a>', ['a']);
@@ -111,7 +131,9 @@ final class HtmlSanitizerTest extends CIUnitTestCase
         $this->assertStringContainsString('rel="noopener noreferrer"', $out);
     }
 
-    /** 한글·이모지 등 멀티바이트 텍스트 보존 */
+    /**
+     * 한글·이모지 등 멀티바이트 텍스트 보존
+     */
     public function testPreservesMultibyteText(): void
     {
         $out = $this->sanitizer->sanitize('<p>성형외과 이벤트 🎉 안내</p>', ['p']);
@@ -119,13 +141,17 @@ final class HtmlSanitizerTest extends CIUnitTestCase
         $this->assertStringContainsString('성형외과 이벤트 🎉 안내', $out);
     }
 
-    /** 빈 입력 → 빈 문자열 */
+    /**
+     * 빈 입력 → 빈 문자열
+     */
     public function testEmptyInput(): void
     {
         $this->assertSame('', $this->sanitizer->sanitize('   ', ['p']));
     }
 
-    /** svg 내부 스크립트 벡터 제거 */
+    /**
+     * svg 내부 스크립트 벡터 제거
+     */
     public function testRemovesSvg(): void
     {
         $out = $this->sanitizer->sanitize('<svg><script>alert(1)</script></svg><p>ok</p>', ['p']);
@@ -135,7 +161,9 @@ final class HtmlSanitizerTest extends CIUnitTestCase
         $this->assertStringContainsString('ok', $out);
     }
 
-    /** iframe 제거 */
+    /**
+     * iframe 제거
+     */
     public function testRemovesIframe(): void
     {
         $out = $this->sanitizer->sanitize('<p>a</p><iframe src="https://evil.test"></iframe>', ['p', 'iframe']);

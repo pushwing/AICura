@@ -2,22 +2,22 @@
 
 namespace App\Controllers\Admin;
 
-use Override;
-use CodeIgniter\HTTP\RequestInterface;
-use Psr\Log\LoggerInterface;
-use CodeIgniter\Exceptions\PageNotFoundException;
-use RuntimeException;
-use App\Models\CampaignModel;
 use App\Models\CampaignHistoryModel;
+use App\Models\CampaignModel;
 use App\Models\CampaignReviewRequestModel;
 use App\Models\CampaignTempModel;
-use App\Models\HospitalModel;
 use App\Models\ContractModel;
 use App\Models\EventCategoryModel;
+use App\Models\HospitalModel;
 use App\Models\SettingModel;
 use App\Services\AiComplianceService;
 use App\Services\AiCopyService;
+use CodeIgniter\Exceptions\PageNotFoundException;
+use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
+use Override;
+use Psr\Log\LoggerInterface;
+use RuntimeException;
 use Throwable;
 
 class CampaignController extends BaseAdminController
@@ -34,7 +34,7 @@ class CampaignController extends BaseAdminController
     public function initController(
         RequestInterface $request,
         ResponseInterface $response,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ): void {
         parent::initController($request, $response, $logger);
         $this->campaignModel      = model(CampaignModel::class);
@@ -55,11 +55,11 @@ class CampaignController extends BaseAdminController
         $params = [
             'status'        => $this->request->getGet('status') ?? '',
             'review_status' => $this->request->getGet('review_status') ?? '',
-            'ad_type'  => $this->request->getGet('ad_type') ?? '',
-            'channel'  => $this->request->getGet('channel') ?? '',
-            'keyword'  => $this->request->getGet('keyword') ?? '',
-            'page'     => (int) ($this->request->getGet('page') ?? 1),
-            'limit'    => 20,
+            'ad_type'       => $this->request->getGet('ad_type') ?? '',
+            'channel'       => $this->request->getGet('channel') ?? '',
+            'keyword'       => $this->request->getGet('keyword') ?? '',
+            'page'          => (int) ($this->request->getGet('page') ?? 1),
+            'limit'         => 20,
         ];
 
         $result = $this->campaignModel->getCampaignList($params);
@@ -87,10 +87,10 @@ class CampaignController extends BaseAdminController
         $histories = $this->campaignModel->getHistoryList($id, ['limit' => 5]);
 
         return $this->render('admin/campaigns/show', [
-            'campaign'   => $campaign,
-            'histories'  => $histories['list'],
-            'adTypes'    => CampaignModel::AD_TYPES,
-            'channels'   => CampaignModel::CHANNELS,
+            'campaign'    => $campaign,
+            'histories'   => $histories['list'],
+            'adTypes'     => CampaignModel::AD_TYPES,
+            'channels'    => CampaignModel::CHANNELS,
             'transitions' => CampaignModel::STATUS_TRANSITIONS,
         ]);
     }
@@ -120,7 +120,7 @@ class CampaignController extends BaseAdminController
     {
         $rules = $this->campaignValidationRules();
 
-        if (!$this->validate($rules)) {
+        if (! $this->validate($rules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
@@ -197,7 +197,7 @@ class CampaignController extends BaseAdminController
 
         $rules = $this->campaignValidationRules();
 
-        if (!$this->validate($rules)) {
+        if (! $this->validate($rules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
@@ -241,7 +241,7 @@ class CampaignController extends BaseAdminController
         $action = (string) ($body['action'] ?? '');
         $memo   = isset($body['memo']) ? $this->sanitizeDetailHtml((string) $body['memo']) : null;
 
-        if (!in_array($action, ['approve', 'reject', 'end', 'reopen'], true)) {
+        if (! in_array($action, ['approve', 'reject', 'end', 'reopen'], true)) {
             return $this->response->setStatusCode(400)
                 ->setJSON(['success' => false, 'message' => '유효하지 않은 액션입니다.']);
         }
@@ -267,7 +267,7 @@ class CampaignController extends BaseAdminController
             $campaign['status'],
             $newStatus,
             (int) ($authUser['id'] ?? 0),
-            $memo
+            $memo,
         );
 
         return $this->response->setJSON([
@@ -363,7 +363,7 @@ class CampaignController extends BaseAdminController
         $categoryTitle = $categoryId > 0 ? $this->eventCategoryModel->titleById($categoryId) : '';
 
         try {
-            $result = new AiCopyService()->suggest([
+            $result = (new AiCopyService())->suggest([
                 'keyword'       => $keyword,
                 'hospital_type' => CampaignModel::HOSPITAL_TYPES[$hospitalTypeInt] ?? '',
                 'category'      => $categoryTitle,
@@ -411,7 +411,7 @@ class CampaignController extends BaseAdminController
         }
 
         try {
-            new AiComplianceService()->check($campaignId, $reviewRequestId);
+            (new AiComplianceService())->check($campaignId, $reviewRequestId);
         } catch (Throwable $e) {
             log_message('error', '심의 사전검사 실패 [campaign {id}]: {msg}', [
                 'id'  => $campaignId,
@@ -448,7 +448,9 @@ class CampaignController extends BaseAdminController
         return $rules;
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * @return array<string, mixed>
+     */
     private function buildCampaignData(): array
     {
         return [
@@ -481,12 +483,13 @@ class CampaignController extends BaseAdminController
      * 이미지 업로드 처리 — 업로드된 파일만 덮어씀
      *
      * @param array<string, mixed>|null $existing 기존 캠페인 데이터 (수정 시)
+     *
      * @return array<string, mixed>
      */
     private function handleImageUploads(?array $existing = null): array
     {
         $uploadPath = FCPATH . 'uploads/campaigns/';
-        if (!is_dir($uploadPath)) {
+        if (! is_dir($uploadPath)) {
             mkdir($uploadPath, 0755, true);
         }
 
@@ -494,7 +497,7 @@ class CampaignController extends BaseAdminController
 
         foreach (['t1_image_name', 't2_image_name'] as $field) {
             $file = $this->request->getFile($field);
-            if ($file !== null && $file->isValid() && !$file->hasMoved()) {
+            if ($file !== null && $file->isValid() && ! $file->hasMoved()) {
                 $newName = $file->getRandomName();
                 $file->move($uploadPath, $newName);
                 $result[$field] = 'campaigns/' . $newName;
@@ -505,10 +508,11 @@ class CampaignController extends BaseAdminController
 
         // 상세 이미지 다중 업로드
         $dImages = $this->request->getFileMultiple('d_images');
-        if (!empty($dImages)) {
+        if (! empty($dImages)) {
             $paths = [];
+
             foreach ($dImages as $file) {
-                if ($file !== null && $file->isValid() && !$file->hasMoved()) {
+                if ($file !== null && $file->isValid() && ! $file->hasMoved()) {
                     $newName = $file->getRandomName();
                     $file->move($uploadPath, $newName);
                     $paths[] = 'campaigns/' . $newName;

@@ -39,7 +39,7 @@ final class PaymentModelTest extends CIUnitTestCase
 
     public function testReturnTypeIsArray(): void
     {
-        $prop = (new \ReflectionClass($this->model))->getProperty('returnType');
+        $prop = (new ReflectionClass($this->model))->getProperty('returnType');
         $prop->setAccessible(true);
 
         $this->assertSame('array', $prop->getValue($this->model));
@@ -49,7 +49,7 @@ final class PaymentModelTest extends CIUnitTestCase
 
     public function testUseTimestampsIsTrue(): void
     {
-        $prop = (new \ReflectionClass($this->model))->getProperty('useTimestamps');
+        $prop = (new ReflectionClass($this->model))->getProperty('useTimestamps');
         $prop->setAccessible(true);
 
         $this->assertTrue($prop->getValue($this->model));
@@ -59,7 +59,7 @@ final class PaymentModelTest extends CIUnitTestCase
 
     public function testAllowedFieldsContainRequiredColumns(): void
     {
-        $prop = (new \ReflectionClass($this->model))->getProperty('allowedFields');
+        $prop = (new ReflectionClass($this->model))->getProperty('allowedFields');
         $prop->setAccessible(true);
         $fields = $prop->getValue($this->model);
 
@@ -89,10 +89,10 @@ final class PaymentModelTest extends CIUnitTestCase
     {
         $statuses = PaymentModel::STATUSES;
 
-        $this->assertArrayHasKey('pending',  $statuses);
-        $this->assertArrayHasKey('paid',     $statuses);
+        $this->assertArrayHasKey('pending', $statuses);
+        $this->assertArrayHasKey('paid', $statuses);
         $this->assertArrayHasKey('refunded', $statuses);
-        $this->assertArrayHasKey('failed',   $statuses);
+        $this->assertArrayHasKey('failed', $statuses);
     }
 
     public function testStatusesHaveLabelAndColorKeys(): void
@@ -107,7 +107,7 @@ final class PaymentModelTest extends CIUnitTestCase
 
     public function testProcessRefundThrowsForInvalidRefundType(): void
     {
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('유효하지 않은 환불 유형');
 
         // DB 접근 없이 refundType 검증 단계에서 예외 발생

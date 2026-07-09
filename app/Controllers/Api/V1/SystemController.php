@@ -17,17 +17,21 @@ use Throwable;
 #[OA\Tag(name: 'System', description: '공통·운영 — 소비자 앱')]
 class SystemController extends BaseApiController
 {
-    /** 로그 본문 최대 크기(bytes) — 비인증 엔드포인트 디스크·큐 남용 방지 (이슈 #187) */
+    /**
+     * 로그 본문 최대 크기(bytes) — 비인증 엔드포인트 디스크·큐 남용 방지 (이슈 #187)
+     */
     private const int MAX_LOG_BYTES = 8192;
 
-    /** 허용 로그 레벨 */
+    /**
+     * 허용 로그 레벨
+     */
     private const string ALLOWED_LEVELS = 'debug,info,warn,error';
 
     #[OA\Get(
         path: '/settings',
         summary: '앱 설정·최소버전·약관 링크',
         tags: ['System'],
-        responses: [new OA\Response(response: 200, description: '공개 설정 맵')]
+        responses: [new OA\Response(response: 200, description: '공개 설정 맵')],
     )]
     public function settings(): ResponseInterface
     {
@@ -41,7 +45,7 @@ class SystemController extends BaseApiController
         parameters: [
             new OA\Parameter(name: 'type', description: '코드 유형 필터', in: 'query', schema: new OA\Schema(type: 'string')),
         ],
-        responses: [new OA\Response(response: 200, description: '코드 목록')]
+        responses: [new OA\Response(response: 200, description: '코드 목록')],
     )]
     public function codes(): ResponseInterface
     {
@@ -57,7 +61,7 @@ class SystemController extends BaseApiController
             new OA\Property(property: 'level', type: 'string', example: 'info'),
             new OA\Property(property: 'event', type: 'string', example: 'screen_view'),
             new OA\Property(property: 'message', type: 'string', example: '이벤트 상세 진입'),
-        ])
+        ]),
     ), tags: ['System'], responses: [
         new OA\Response(response: 202, description: '수집 접수'),
         new OA\Response(response: 413, description: '본문 크기 초과'),
@@ -71,12 +75,12 @@ class SystemController extends BaseApiController
         }
 
         $payload = $this->request->getJSON(true);
-        if (!is_array($payload) || $payload === []) {
+        if (! is_array($payload) || $payload === []) {
             return $this->error('VALIDATION_ERROR', '로그 본문(JSON 객체)이 필요합니다.', 422);
         }
 
         // 알려진 필드는 형식·길이를 제한한다(그 외 컨텍스트 키는 크기 상한으로만 통제).
-        if (!$this->validate([
+        if (! $this->validate([
             'level'   => 'permit_empty|in_list[' . self::ALLOWED_LEVELS . ']',
             'event'   => 'permit_empty|max_length[100]',
             'message' => 'permit_empty|max_length[2000]',
@@ -97,7 +101,7 @@ class SystemController extends BaseApiController
         responses: [
             new OA\Response(response: 200, description: '정상'),
             new OA\Response(response: 503, description: '일부 구성요소 장애'),
-        ]
+        ],
     )]
     public function health(): ResponseInterface
     {

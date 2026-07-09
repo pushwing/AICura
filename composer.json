@@ -17,6 +17,7 @@
         "zircote/swagger-php": "^6.2"
     },
     "require-dev": {
+        "codeigniter/coding-standard": "^1.9",
         "codeigniter/phpstan-codeigniter": "^2.1",
         "fakerphp/faker": "^1.9",
         "mikey179/vfsstream": "^1.6",
@@ -48,6 +49,8 @@
         "analyse":      "phpstan analyse --memory-limit=512M",
         "check":        ["@analyse", "@test"],
         "rector":       "rector process --dry-run",
-        "rector:fix":   "rector process"
+        "rector:fix":   "rector process",
+        "cs":           "php-cs-fixer fix --dry-run --diff",
+        "cs:fix":       "php-cs-fixer fix"
     }
 }

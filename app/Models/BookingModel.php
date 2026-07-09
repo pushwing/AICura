@@ -11,11 +11,23 @@ use CodeIgniter\Model;
  */
 class BookingModel extends Model
 {
-    protected $table      = 'bookings';
-    protected $primaryKey = 'id';
+    public const STATUS_PENDING   = 0; // 예약 대기
+    public const STATUS_CONFIRMED = 1; // 확정
+    public const STATUS_CANCELLED = 2; // 취소
+
+    /**
+     * @var array<int, string> 상태 라벨
+     */
+    public const STATUSES = [
+        0 => '대기',
+        1 => '확정',
+        2 => '취소',
+    ];
+
+    protected $table         = 'bookings';
+    protected $primaryKey    = 'id';
     protected $useTimestamps = true;
     protected $returnType    = 'array';
-
     protected $allowedFields = [
         'user_id',
         'hospital_id',
@@ -25,17 +37,6 @@ class BookingModel extends Model
         'phone',
         'book_date',
         'confirm_date',
-    ];
-
-    public const STATUS_PENDING   = 0; // 예약 대기
-    public const STATUS_CONFIRMED = 1; // 확정
-    public const STATUS_CANCELLED = 2; // 취소
-
-    /** @var array<int, string> 상태 라벨 */
-    public const STATUSES = [
-        0 => '대기',
-        1 => '확정',
-        2 => '취소',
     ];
 
     /**
