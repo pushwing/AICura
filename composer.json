@@ -45,6 +45,9 @@
         "sort-packages": true
     },
     "scripts": {
+        "post-install-cmd": "@hooks:install",
+        "post-update-cmd":  "@hooks:install",
+        "hooks:install":    "git config core.hooksPath .githooks || true",
         "test":         "phpunit",
         "analyse":      "phpstan analyse --memory-limit=512M",
         "check":        ["@analyse", "@test"],
