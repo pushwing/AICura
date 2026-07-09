@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+#
+# pre-commit — 스테이징된 PHP 파일에 CI4 코딩 표준(php-cs-fixer)을 자동 적용한다.
+# 커밋 시점에 포맷을 맞춰 CI 의 `composer cs` 검사 실패를 사전에 차단한다.
+#
+# 활성화: git config core.hooksPath .githooks  (composer install 시 자동 설정)
+# 우회:   git commit --no-verify
+
+set -euo pipefail
+
+FIXER="vendor/bin/php-cs-fixer"
+
+# php-cs-fixer 미설치(예: composer install 전)면 조용히 통과
+if [ ! -x "$FIXER" ]; then
+    exit 0
+fi
+
+# 스테이징된 PHP 파일만 추출 (Added·Copied·Modified·Renamed)
+STAGED_PHP="$(git diff --cached --name-only --diff-filter=ACMR -- '*.php')"
+
+if [ -z "$STAGED_PHP" ]; then
+    exit 0
+fi
+
+# 설정의 finder(app·tests) 와 교집합만 처리 — 그 외 경로는 자동 무시된다.
+# shellcheck disable=SC2086
+echo "$STAGED_PHP" | xargs "$FIXER" fix --path-mode=intersection --quiet
+
+# 포맷으로 수정된 파일을 다시 스테이징
+# shellcheck disable=SC2086
+echo "$STAGED_PHP" | xargs git add
+
+exit 0
