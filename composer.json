@@ -50,7 +50,7 @@
         "hooks:install":    "git config core.hooksPath .githooks || true",
         "test":         "phpunit",
         "analyse":      "phpstan analyse --memory-limit=512M",
-        "check":        ["@analyse", "@test"],
+        "check":        ["@cs", "@analyse", "@test"],
         "rector":       "rector process --dry-run",
         "rector:fix":   "rector process",
         "cs":           "php-cs-fixer fix --dry-run --diff",
