@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+#
+# pre-commit — 스테이징된 파일에 코딩 표준을 자동 적용해 CI 포맷 검사 실패를 사전 차단한다.
+#   - PHP  : php-cs-fixer(CI4 표준) — CI 의 `composer cs` 대응
+#   - Dart : dart format            — CI 의 `dart format --set-exit-if-changed` 대응
+#
+# 활성화: git config core.hooksPath .githooks  (composer install 시 자동 설정)
+# 우회:   git commit --no-verify
+
+set -euo pipefail
+
+# ── PHP: php-cs-fixer 자동 적용 ──
+FIXER="vendor/bin/php-cs-fixer"
+if [ -x "$FIXER" ]; then
+    # 스테이징된 PHP 파일만 추출 (Added·Copied·Modified·Renamed)
+    STAGED_PHP="$(git diff --cached --name-only --diff-filter=ACMR -- '*.php')"
+    if [ -n "$STAGED_PHP" ]; then
+        # 설정의 finder(app·tests) 와 교집합만 처리 — 그 외 경로는 자동 무시된다.
+        # --config 미지정 시 php-cs-fixer 는 여러 경로를 받으면 "config parameter is required"
+        # 로 종료코드 16 을 반환한다(PR #201 이후 잠재 버그). 설정 파일을 명시해 회피한다.
+        # shellcheck disable=SC2086
+        echo "$STAGED_PHP" | xargs "$FIXER" fix --config=.php-cs-fixer.dist.php --path-mode=intersection --quiet
+        # 포맷으로 수정된 파일을 다시 스테이징
+        # shellcheck disable=SC2086
+        echo "$STAGED_PHP" | xargs git add
+    fi
+fi
+
+# ── Dart: dart format 자동 적용 (app-mobile) ──
+if command -v dart >/dev/null 2>&1; then
+    STAGED_DART="$(git diff --cached --name-only --diff-filter=ACMR -- '*.dart')"
+    if [ -n "$STAGED_DART" ]; then
+        # dart format 은 파일 경로를 받아 제자리 수정한다.
+        # shellcheck disable=SC2086
+        echo "$STAGED_DART" | xargs dart format --
+        # shellcheck disable=SC2086
+        echo "$STAGED_DART" | xargs git add
+    fi
+fi
+
+exit 0

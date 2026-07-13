@@ -2,13 +2,13 @@
 
 namespace App\Controllers\Admin;
 
-use Override;
-use CodeIgniter\HTTP\RequestInterface;
-use Psr\Log\LoggerInterface;
 use App\Models\DepartmentModel;
 use App\Models\HospitalModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
+use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
+use Override;
+use Psr\Log\LoggerInterface;
 
 /**
  * Admin 진료과 마스터 관리 (이슈 #113)
@@ -24,7 +24,7 @@ class DepartmentController extends BaseAdminController
     public function initController(
         RequestInterface $request,
         ResponseInterface $response,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ): void {
         parent::initController($request, $response, $logger);
         $this->departmentModel = model(DepartmentModel::class);
@@ -37,6 +37,7 @@ class DepartmentController extends BaseAdminController
 
         $departments = array_map(static function (array $row) use ($counts): array {
             $row['hospital_count'] = $counts[(int) $row['id']] ?? 0;
+
             return $row;
         }, $departments);
 
@@ -45,7 +46,7 @@ class DepartmentController extends BaseAdminController
 
     public function create(): ResponseInterface
     {
-        if (!$this->validate($this->rules())) {
+        if (! $this->validate($this->rules())) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
@@ -73,7 +74,7 @@ class DepartmentController extends BaseAdminController
             throw PageNotFoundException::forPageNotFound();
         }
 
-        if (!$this->validate($this->rules())) {
+        if (! $this->validate($this->rules())) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
@@ -112,7 +113,9 @@ class DepartmentController extends BaseAdminController
         return redirect()->to('/admin/departments')->with('success', '진료과가 삭제되었습니다.');
     }
 
-    /** @return array<string, string> */
+    /**
+     * @return array<string, string>
+     */
     private function rules(): array
     {
         return [

@@ -2,16 +2,16 @@
 
 namespace App\Controllers\Admin;
 
-use Override;
-use CodeIgniter\HTTP\RequestInterface;
-use Psr\Log\LoggerInterface;
-use CodeIgniter\Exceptions\PageNotFoundException;
-use RuntimeException;
 use App\Models\CampaignModel;
 use App\Models\CampaignReviewRequestModel;
 use App\Models\ComplianceCheckModel;
 use App\Services\AiComplianceService;
+use CodeIgniter\Exceptions\PageNotFoundException;
+use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
+use Override;
+use Psr\Log\LoggerInterface;
+use RuntimeException;
 use Throwable;
 
 class ReviewController extends BaseAdminController
@@ -23,7 +23,7 @@ class ReviewController extends BaseAdminController
     public function initController(
         RequestInterface $request,
         ResponseInterface $response,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ): void {
         parent::initController($request, $response, $logger);
         $this->reviewModel   = model(CampaignReviewRequestModel::class);
@@ -67,11 +67,11 @@ class ReviewController extends BaseAdminController
             ->latestByCampaign((int) $detail['campaign_id']);
 
         return $this->render('admin/reviews/show', [
-            'title'  => '검수 상세',
-            'detail' => $detail,
+            'title'      => '검수 상세',
+            'detail'     => $detail,
             'compliance' => $compliance,
-            'adTypes'  => CampaignModel::AD_TYPES,
-            'channels' => CampaignModel::CHANNELS,
+            'adTypes'    => CampaignModel::AD_TYPES,
+            'channels'   => CampaignModel::CHANNELS,
         ]);
     }
 
@@ -87,7 +87,7 @@ class ReviewController extends BaseAdminController
         }
 
         try {
-            new AiComplianceService()->check((int) $detail['campaign_id'], $id);
+            (new AiComplianceService())->check((int) $detail['campaign_id'], $id);
         } catch (Throwable $e) {
             log_message('error', '심의 사전검사 재요청 실패 [review {id}]: {msg}', [
                 'id'  => $id,
@@ -114,11 +114,11 @@ class ReviewController extends BaseAdminController
         }
 
         $action = $this->request->getPost('action') ?? '';
-        if (!in_array($action, ['approve', 'reject'], true)) {
+        if (! in_array($action, ['approve', 'reject'], true)) {
             return redirect()->back()->with('error', '올바르지 않은 액션입니다.');
         }
 
-        $memo    = $this->request->getPost('memo') ?? null;
+        $memo = $this->request->getPost('memo') ?? null;
 
         /** @var array<string, mixed> $authUser */
         $authUser = session()->get('admin_user');
@@ -145,7 +145,7 @@ class ReviewController extends BaseAdminController
                 // 검수 승인: review request 의 콘텐츠를 campaigns 에 복사
                 $this->campaignModel->update($campaignId, array_merge(
                     $contentFields,
-                    ['review_status' => $cacheStatus]
+                    ['review_status' => $cacheStatus],
                 ));
             } else {
                 $this->reviewModel->reject($id, $adminId, $memo);

@@ -15,12 +15,11 @@ final class PaymentModelDatabaseTest extends CIUnitTestCase
     protected $migrate     = true;
     protected $migrateOnce = true;
     protected $refresh     = false;
-    protected $namespace   = null;
-
-    private int $hospitalId       = 0;
-    private int $contractId       = 0;
-    private int $contractOrderId  = 0;
-    private int $paymentId        = 0;
+    protected $namespace;
+    private int $hospitalId      = 0;
+    private int $contractId      = 0;
+    private int $contractOrderId = 0;
+    private int $paymentId       = 0;
 
     protected function setUp(): void
     {
@@ -122,6 +121,7 @@ final class PaymentModelDatabaseTest extends CIUnitTestCase
         ]);
 
         $this->assertGreaterThanOrEqual(1, $result['total']);
+
         foreach ($result['list'] as $row) {
             $this->assertSame('paid', $row['status']);
         }
@@ -202,7 +202,7 @@ final class PaymentModelDatabaseTest extends CIUnitTestCase
 
     public function testProcessRefundThrowsForUnknownPaymentId(): void
     {
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('결제 정보를 찾을 수 없습니다.');
 
         model(PaymentModel::class)->processRefund(999999, 100000, 2, 1);
@@ -302,7 +302,7 @@ final class PaymentModelDatabaseTest extends CIUnitTestCase
         model(PaymentModel::class)->processRefund($this->paymentId, 500000, 2, 1);
 
         // 잔여액(600,000) 초과 요청은 거부
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('환불 금액이 유효하지 않습니다.');
         model(PaymentModel::class)->processRefund($this->paymentId, 700000, 5, 1);
     }

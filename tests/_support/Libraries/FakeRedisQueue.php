@@ -13,7 +13,9 @@ use App\Libraries\RedisQueue;
  */
 class FakeRedisQueue extends RedisQueue
 {
-    /** @var array<string, list<string>> */
+    /**
+     * @var array<string, list<string>>
+     */
     private array $store = [];
 
     public function __construct(private bool $available = true)

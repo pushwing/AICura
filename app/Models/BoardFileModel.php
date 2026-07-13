@@ -9,11 +9,10 @@ use CodeIgniter\Model;
  */
 class BoardFileModel extends Model
 {
-    protected $table      = 'board_files';
-    protected $primaryKey = 'id';
+    protected $table         = 'board_files';
+    protected $primaryKey    = 'id';
     protected $useTimestamps = true;
     protected $returnType    = 'array';
-
     protected $allowedFields = [
         'board_id',
         'type',
@@ -31,6 +30,7 @@ class BoardFileModel extends Model
     public function attach(int $boardId, array $fileNames): void
     {
         $order = 1;
+
         foreach ($fileNames as $name) {
             $this->insert([
                 'board_id'  => $boardId,

@@ -25,12 +25,16 @@ class ReportGenerateAi extends BaseCommand
     protected $description = 'Groq AI로 일일 매출·소진 보고서를 생성합니다.';
     protected $usage       = 'reports:generate-ai [options]';
 
-    /** @var array<string, string> */
+    /**
+     * @var array<string, string>
+     */
     protected $options = [
         '--date' => '보고서 기준일 (YYYY-MM-DD, 기본값: 어제)',
     ];
 
-    /** @param array<int|string, string|null> $params */
+    /**
+     * @param array<int|string, string|null> $params
+     */
     public function run(array $params): void
     {
         $date    = $params['date'] ?? CLI::getOption('date') ?? null;
@@ -56,14 +60,16 @@ class ReportGenerateAi extends BaseCommand
             $this->generateScope(
                 $service,
                 ReportScope::agency($a['agency_user_id'], $hospitalIds, $a['agency_name']),
-                $date
+                $date,
             );
         }
 
         CLI::write('완료', 'green');
     }
 
-    /** 한 스코프의 매출·소진 보고서를 생성 (개별 실패는 로깅 후 계속) */
+    /**
+     * 한 스코프의 매출·소진 보고서를 생성 (개별 실패는 로깅 후 계속)
+     */
     private function generateScope(AiReportService $service, ReportScope $scope, ?string $date): void
     {
         $this->generate('  매출', static fn (): int => $service->generateRevenueReport($scope, $date));
@@ -80,7 +86,7 @@ class ReportGenerateAi extends BaseCommand
             CLI::write("  ✓ {$label} 생성 완료 (ID: {$id})", 'green');
         } catch (Throwable $e) {
             CLI::error("  ✗ {$label} 생성 실패: " . $e->getMessage());
-            log_message('error', "AI 보고서 생성 실패 [{label}]: {msg}", [
+            log_message('error', 'AI 보고서 생성 실패 [{label}]: {msg}', [
                 'label' => $label,
                 'msg'   => $e->getMessage(),
             ]);

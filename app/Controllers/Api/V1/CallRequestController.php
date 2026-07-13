@@ -2,12 +2,12 @@
 
 namespace App\Controllers\Api\V1;
 
-use Override;
 use App\Exceptions\DomainException;
 use App\Services\CallRequestService;
 use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
 use OpenApi\Attributes as OA;
+use Override;
 
 /**
  * 외부(소비자) 앱 상담 신청 컨트롤러 (이슈 #100)
@@ -42,8 +42,8 @@ class CallRequestController extends BaseApiController
                 new OA\Property(property: 'funnel', type: 'string', example: 'event_detail'),
                 new OA\Property(property: 'region', type: 'string', example: '서울'),
                 new OA\Property(property: 'device', description: '1 Android · 2 iOS', type: 'integer', example: 2),
-            ]
-        )
+            ],
+        ),
     ), tags: ['CallRequests'], responses: [
         new OA\Response(response: 201, description: '신청 성공'),
         new OA\Response(response: 404, description: '신청할 수 없는 이벤트'),
@@ -65,7 +65,7 @@ class CallRequestController extends BaseApiController
             'region'      => 'permit_empty|max_length[100]',
         ];
 
-        if (!$this->validate($rules)) {
+        if (! $this->validate($rules)) {
             return $this->error('VALIDATION_ERROR', implode(' ', $this->validator->getErrors()), 422);
         }
 
@@ -96,7 +96,7 @@ class CallRequestController extends BaseApiController
         responses: [
             new OA\Response(response: 200, description: '신청 상세'),
             new OA\Response(response: 404, description: '존재하지 않거나 권한 없는 신청'),
-        ]
+        ],
     )]
     #[Override]
     public function show($id = null): ResponseInterface
@@ -122,7 +122,7 @@ class CallRequestController extends BaseApiController
             new OA\Response(response: 200, description: '취소 성공'),
             new OA\Response(response: 404, description: '존재하지 않거나 권한 없는 신청'),
             new OA\Response(response: 409, description: '이미 처리되어 취소 불가'),
-        ]
+        ],
     )]
     #[Override]
     public function delete($id = null): ResponseInterface

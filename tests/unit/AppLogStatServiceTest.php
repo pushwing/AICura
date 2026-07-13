@@ -23,7 +23,9 @@ final class AppLogStatServiceTest extends CIUnitTestCase
         return new AppLogStatService();
     }
 
-    /** @param list<array<string, mixed>> $buckets */
+    /**
+     * @param list<array<string, mixed>> $buckets
+     */
     private function find(array $buckets, string $event, int $campaignId): ?array
     {
         foreach ($buckets as $b) {

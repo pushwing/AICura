@@ -95,9 +95,9 @@ class CreateContractOrdersTable extends Migration
                 'null'       => true,
             ],
             'agency_company_fee_rate' => [
-                'type'    => 'DECIMAL',
+                'type'       => 'DECIMAL',
                 'constraint' => '5,2',
-                'null'    => true,
+                'null'       => true,
             ],
             'memo' => [
                 'type' => 'TEXT',

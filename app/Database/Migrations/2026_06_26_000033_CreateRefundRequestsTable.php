@@ -20,19 +20,19 @@ class CreateRefundRequestsTable extends Migration
     public function up(): void
     {
         $this->forge->addField([
-            'id'              => ['type' => 'BIGINT', 'unsigned' => true, 'auto_increment' => true],
-            'call_request_id' => ['type' => 'INT'],
-            'hospital_id'     => ['type' => 'INT'],
+            'id'               => ['type' => 'BIGINT', 'unsigned' => true, 'auto_increment' => true],
+            'call_request_id'  => ['type' => 'INT'],
+            'hospital_id'      => ['type' => 'INT'],
             'requested_status' => ['type' => 'TINYINT'],
-            'reason'          => ['type' => 'VARCHAR', 'constraint' => 500, 'null' => true],
-            'status'          => ['type' => 'TINYINT', 'default' => 1],
-            'reject_reason'   => ['type' => 'VARCHAR', 'constraint' => 500, 'null' => true],
-            'deposit_id'      => ['type' => 'BIGINT', 'unsigned' => true, 'null' => true],
-            'requested_by'    => ['type' => 'INT', 'null' => true],
-            'processed_by'    => ['type' => 'INT', 'null' => true],
-            'processed_at'    => ['type' => 'DATETIME', 'null' => true],
-            'created_at'      => ['type' => 'DATETIME', 'null' => true],
-            'updated_at'      => ['type' => 'DATETIME', 'null' => true],
+            'reason'           => ['type' => 'VARCHAR', 'constraint' => 500, 'null' => true],
+            'status'           => ['type' => 'TINYINT', 'default' => 1],
+            'reject_reason'    => ['type' => 'VARCHAR', 'constraint' => 500, 'null' => true],
+            'deposit_id'       => ['type' => 'BIGINT', 'unsigned' => true, 'null' => true],
+            'requested_by'     => ['type' => 'INT', 'null' => true],
+            'processed_by'     => ['type' => 'INT', 'null' => true],
+            'processed_at'     => ['type' => 'DATETIME', 'null' => true],
+            'created_at'       => ['type' => 'DATETIME', 'null' => true],
+            'updated_at'       => ['type' => 'DATETIME', 'null' => true],
         ]);
         $this->forge->addKey('id', true);
         $this->forge->addKey('call_request_id', false, false, 'idx_refund_requests_call_request_id');

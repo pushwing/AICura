@@ -17,7 +17,9 @@ final class IndexNowServiceTest extends CIUnitTestCase
         unset($_ENV['INDEXNOW_KEY'], $_SERVER['INDEXNOW_KEY']);
     }
 
-    /** 키 미설정이면 비활성 → 제출하지 않음 */
+    /**
+     * 키 미설정이면 비활성 → 제출하지 않음
+     */
     public function testDisabledWhenKeyMissing(): void
     {
         $service = new IndexNowService();
@@ -26,7 +28,9 @@ final class IndexNowServiceTest extends CIUnitTestCase
         $this->assertFalse($service->submit('https://x.test/a'));
     }
 
-    /** 로컬/테스트 호스트(example.com)면 키가 있어도 비활성 */
+    /**
+     * 로컬/테스트 호스트(example.com)면 키가 있어도 비활성
+     */
     public function testDisabledOnLocalHost(): void
     {
         putenv('INDEXNOW_KEY=abc123');
@@ -37,7 +41,9 @@ final class IndexNowServiceTest extends CIUnitTestCase
         $this->assertFalse($service->isEnabled());
     }
 
-    /** 페이로드 구조 — host·key·keyLocation·urlList */
+    /**
+     * 페이로드 구조 — host·key·keyLocation·urlList
+     */
     public function testPayloadShape(): void
     {
         putenv('INDEXNOW_KEY=mykey');
@@ -52,7 +58,9 @@ final class IndexNowServiceTest extends CIUnitTestCase
         $this->assertSame(['https://x.test/a', 'https://x.test/b'], $payload['urlList']);
     }
 
-    /** 빈 URL 은 제출하지 않음 */
+    /**
+     * 빈 URL 은 제출하지 않음
+     */
     public function testSubmitEmptyUrlsReturnsFalse(): void
     {
         putenv('INDEXNOW_KEY=mykey');

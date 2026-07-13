@@ -16,11 +16,15 @@ use CodeIgniter\Model;
  */
 class RefundModel extends Model
 {
-    protected $table      = 'refunds';
-    protected $primaryKey = 'id';
+    public const TERM_FULL      = 1;
+    public const TERM_PARTIAL   = 2;
+    public const RESULT_SUCCESS = 1;
+    public const RESULT_FAIL    = 2;
+
+    protected $table         = 'refunds';
+    protected $primaryKey    = 'id';
     protected $useTimestamps = true;
     protected $returnType    = 'array';
-
     protected $allowedFields = [
         'user_id',
         'payment_id',
@@ -34,12 +38,6 @@ class RefundModel extends Model
         'result1',
         'result2',
     ];
-
-    public const TERM_FULL    = 1;
-    public const TERM_PARTIAL = 2;
-
-    public const RESULT_SUCCESS = 1;
-    public const RESULT_FAIL    = 2;
 
     /**
      * 결제 건의 환불 내역 (최신순)

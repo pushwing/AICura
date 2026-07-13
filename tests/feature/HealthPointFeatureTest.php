@@ -2,11 +2,13 @@
 
 use App\Libraries\Social\SocialProfile;
 use App\Libraries\Social\SocialVerifierInterface;
+use App\Models\HealthPointLogModel;
 use App\Models\UserModel;
 use App\Services\AppAuthService;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use CodeIgniter\Test\FeatureTestTrait;
+use CodeIgniter\Test\TestResponse;
 use Config\Services;
 
 /**
@@ -30,10 +32,9 @@ final class HealthPointFeatureTest extends CIUnitTestCase
     use DatabaseTestTrait;
     use FeatureTestTrait;
 
-    protected $migrate   = true;
-    protected $refresh   = true;
-    protected $namespace = null;
-
+    protected $migrate = true;
+    protected $refresh = true;
+    protected $namespace;
     private int $hospitalId = 0;
 
     protected function setUp(): void
@@ -64,13 +65,17 @@ final class HealthPointFeatureTest extends CIUnitTestCase
         return ['token' => $token, 'id' => $id];
     }
 
-    /** @param array<string, mixed> $body */
-    private function authPost(string $token, string $uri, array $body = []): \CodeIgniter\Test\TestResponse
+    /**
+     * @param array<string, mixed> $body
+     */
+    private function authPost(string $token, string $uri, array $body = []): TestResponse
     {
         return $this->withHeaders(['Authorization' => 'Bearer ' . $token])->withBodyFormat('json')->post($uri, $body);
     }
 
-    /** [H1] 이메일 가입 적립 */
+    /**
+     * [H1] 이메일 가입 적립
+     */
     public function testSignupAwardsPoints(): void
     {
         $this->registerUser('h1@aicura.test');
@@ -79,10 +84,12 @@ final class HealthPointFeatureTest extends CIUnitTestCase
         $this->seeInDatabase('health_point_logs', ['type' => 'signup', 'amount' => 500, 'balance_after' => 500]);
     }
 
-    /** [H2] 소셜 가입 적립 (이슈 #187: access_token 서버 검증 — 검증기는 uid 777111 반환하도록 주입) */
+    /**
+     * [H2] 소셜 가입 적립 (이슈 #187: access_token 서버 검증 — 검증기는 uid 777111 반환하도록 주입)
+     */
     public function testSocialSignupAwardsPoints(): void
     {
-        $fake = new class implements SocialVerifierInterface {
+        $fake = new class () implements SocialVerifierInterface {
             public function verify(string $provider, string $accessToken): SocialProfile
             {
                 return new SocialProfile(uid: '777111', username: '카카오');
@@ -100,7 +107,9 @@ final class HealthPointFeatureTest extends CIUnitTestCase
         $this->assertSame(500, (int) $user['health_point']);
     }
 
-    /** [H3] 후기 작성 적립 */
+    /**
+     * [H3] 후기 작성 적립
+     */
     public function testReviewCreateAwardsPoints(): void
     {
         $u   = $this->registerUser('h3@aicura.test');
@@ -114,7 +123,9 @@ final class HealthPointFeatureTest extends CIUnitTestCase
         $this->seeInDatabase('health_point_logs', ['user_id' => $u['id'], 'type' => 'review', 'amount' => 100, 'balance_after' => 600]);
     }
 
-    /** [H4] 후기 삭제 회수 */
+    /**
+     * [H4] 후기 삭제 회수
+     */
     public function testReviewDeleteRevokesPoints(): void
     {
         $u   = $this->registerUser('h4@aicura.test');
@@ -130,11 +141,13 @@ final class HealthPointFeatureTest extends CIUnitTestCase
         $this->seeInDatabase('health_point_logs', ['user_id' => $u['id'], 'type' => 'review_revoke', 'amount' => -100, 'balance_after' => 500]);
     }
 
-    /** [H5] 후기 적립 멱등 — 같은 후기 재적립 없음 */
+    /**
+     * [H5] 후기 적립 멱등 — 같은 후기 재적립 없음
+     */
     public function testReviewAwardIsIdempotent(): void
     {
-        $u    = $this->registerUser('h5@aicura.test');
-        $res  = $this->authPost($u['token'], 'api/v1/boards', [
+        $u   = $this->registerUser('h5@aicura.test');
+        $res = $this->authPost($u['token'], 'api/v1/boards', [
             'type' => 2, 'target_id' => $this->hospitalId, 'subject' => '좋아요', 'contents' => '친절합니다', 'rating' => 4.5,
         ]);
         $boardId = (int) json_decode($res->getJSON(), true)['data']['id'];
@@ -143,11 +156,13 @@ final class HealthPointFeatureTest extends CIUnitTestCase
         $balance = service('healthPointService')->awardReview($u['id'], $boardId);
 
         $this->assertSame(600, $balance);
-        $this->assertSame(1, model(\App\Models\HealthPointLogModel::class)
+        $this->assertSame(1, model(HealthPointLogModel::class)
             ->where('user_id', $u['id'])->where('type', 'review')->countAllResults());
     }
 
-    /** [H6] 차감 성공 */
+    /**
+     * [H6] 차감 성공
+     */
     public function testRedeemSucceeds(): void
     {
         $u   = $this->registerUser('h6@aicura.test');
@@ -159,7 +174,9 @@ final class HealthPointFeatureTest extends CIUnitTestCase
         $this->seeInDatabase('health_point_logs', ['user_id' => $u['id'], 'type' => 'redeem', 'amount' => -200, 'balance_after' => 300, 'memo' => '쿠폰 교환']);
     }
 
-    /** [H7] 잔액 부족 차감 */
+    /**
+     * [H7] 잔액 부족 차감
+     */
     public function testRedeemInsufficientBalance(): void
     {
         $u   = $this->registerUser('h7@aicura.test');
@@ -171,7 +188,9 @@ final class HealthPointFeatureTest extends CIUnitTestCase
         $this->seeInDatabase('users', ['id' => $u['id'], 'health_point' => 500]);
     }
 
-    /** [H8] 잘못된 금액(0) 차감 */
+    /**
+     * [H8] 잘못된 금액(0) 차감
+     */
     public function testRedeemInvalidAmount(): void
     {
         $u   = $this->registerUser('h8@aicura.test');
@@ -181,7 +200,9 @@ final class HealthPointFeatureTest extends CIUnitTestCase
         $this->assertSame('VALIDATION_ERROR', json_decode($res->getJSON(), true)['code']);
     }
 
-    /** [H9] 차감 인증 필요 */
+    /**
+     * [H9] 차감 인증 필요
+     */
     public function testRedeemRequiresAuth(): void
     {
         $this->withBodyFormat('json')->post('api/v1/me/health-point/redeem', ['amount' => 100])->assertStatus(401);

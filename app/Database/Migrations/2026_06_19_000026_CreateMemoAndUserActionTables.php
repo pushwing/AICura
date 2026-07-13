@@ -18,14 +18,14 @@ class CreateMemoAndUserActionTables extends Migration
     {
         // ── memos ────────────────────────────────────────────────
         $this->forge->addField([
-            'id'            => ['type' => 'BIGINT', 'unsigned' => true, 'auto_increment' => true],
+            'id' => ['type' => 'BIGINT', 'unsigned' => true, 'auto_increment' => true],
             /*
              * 1 영업팀 메모, 2 세금계산서 메모,
              * 3 원장메모(운영자), 4 원장메모(광고주)
              */
-            'memo_type'     => ['type' => 'TINYINT', 'default' => 1],
+            'memo_type' => ['type' => 'TINYINT', 'default' => 1],
             // memoType=1,2 → contract_order_id
-            'target_id'     => ['type' => 'INT', 'null' => true],
+            'target_id' => ['type' => 'INT', 'null' => true],
             // memoType=3 → 원장번호
             'target_id2'    => ['type' => 'INT', 'null' => true],
             'user_id'       => ['type' => 'INT', 'null' => true],
@@ -40,9 +40,9 @@ class CreateMemoAndUserActionTables extends Migration
 
         // ── user_actions (사용자 포인트/액션 요약) ───────────────
         $this->forge->addField([
-            'id'        => ['type' => 'BIGINT', 'unsigned' => true, 'auto_increment' => true],
-            'user_id'   => ['type' => 'INT'],
-            'sum_point' => ['type' => 'INT', 'default' => 0],
+            'id'         => ['type' => 'BIGINT', 'unsigned' => true, 'auto_increment' => true],
+            'user_id'    => ['type' => 'INT'],
+            'sum_point'  => ['type' => 'INT', 'default' => 0],
             'created_at' => ['type' => 'DATETIME', 'null' => true],
             'updated_at' => ['type' => 'DATETIME', 'null' => true],
         ]);

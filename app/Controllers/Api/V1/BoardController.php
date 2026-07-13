@@ -2,12 +2,12 @@
 
 namespace App\Controllers\Api\V1;
 
-use Override;
 use App\Exceptions\DomainException;
 use App\Services\BoardService;
 use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
 use OpenApi\Attributes as OA;
+use Override;
 
 /**
  * 외부(소비자) 앱 후기 커뮤니티 컨트롤러 (이슈 #102)
@@ -37,7 +37,7 @@ class BoardController extends BaseApiController
             new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer', default: 1)),
             new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'integer', default: 20)),
         ],
-        responses: [new OA\Response(response: 200, description: '후기 목록')]
+        responses: [new OA\Response(response: 200, description: '후기 목록')],
     )]
     #[Override]
     public function index(): ResponseInterface
@@ -57,7 +57,7 @@ class BoardController extends BaseApiController
         responses: [
             new OA\Response(response: 200, description: '후기 상세'),
             new OA\Response(response: 404, description: '존재하지 않는 후기'),
-        ]
+        ],
     )]
     #[Override]
     public function show($id = null): ResponseInterface
@@ -80,8 +80,8 @@ class BoardController extends BaseApiController
                 new OA\Property(property: 'contents', type: 'string', example: '친절하고 좋았어요'),
                 new OA\Property(property: 'rating', type: 'number', format: 'float', example: 4.5),
                 new OA\Property(property: 'images', description: '업로드 파일명 목록', type: 'array', items: new OA\Items(type: 'string')),
-            ]
-        )
+            ],
+        ),
     ), tags: ['Boards'], responses: [
         new OA\Response(response: 201, description: '작성 성공'),
         new OA\Response(response: 404, description: '대상 없음'),
@@ -98,7 +98,7 @@ class BoardController extends BaseApiController
             'rating'    => 'permit_empty|decimal|greater_than_equal_to[0]|less_than_equal_to[5]',
         ];
 
-        if (!$this->validate($rules)) {
+        if (! $this->validate($rules)) {
             return $this->error('VALIDATION_ERROR', implode(' ', $this->validator->getErrors()), 422);
         }
 
@@ -118,7 +118,7 @@ class BoardController extends BaseApiController
         responses: [
             new OA\Response(response: 200, description: '수정 성공'),
             new OA\Response(response: 404, description: '존재하지 않거나 권한 없는 후기'),
-        ]
+        ],
     )]
     #[Override]
     public function update($id = null): ResponseInterface
@@ -129,7 +129,7 @@ class BoardController extends BaseApiController
             'rating'   => 'permit_empty|decimal|greater_than_equal_to[0]|less_than_equal_to[5]',
         ];
 
-        if (!$this->validate($rules)) {
+        if (! $this->validate($rules)) {
             return $this->error('VALIDATION_ERROR', implode(' ', $this->validator->getErrors()), 422);
         }
 
@@ -149,7 +149,7 @@ class BoardController extends BaseApiController
         responses: [
             new OA\Response(response: 200, description: '삭제 성공'),
             new OA\Response(response: 404, description: '존재하지 않거나 권한 없는 후기'),
-        ]
+        ],
     )]
     #[Override]
     public function delete($id = null): ResponseInterface
@@ -172,7 +172,7 @@ class BoardController extends BaseApiController
         responses: [
             new OA\Response(response: 200, description: '토글 결과'),
             new OA\Response(response: 404, description: '존재하지 않는 후기'),
-        ]
+        ],
     )]
     public function like(?string $id = null): ResponseInterface
     {
@@ -192,7 +192,7 @@ class BoardController extends BaseApiController
         responses: [
             new OA\Response(response: 200, description: '신고 결과 (reported: 신규 여부)'),
             new OA\Response(response: 404, description: '존재하지 않는 후기'),
-        ]
+        ],
     )]
     public function report(?string $id = null): ResponseInterface
     {
@@ -212,7 +212,7 @@ class BoardController extends BaseApiController
         responses: [
             new OA\Response(response: 200, description: '댓글 목록'),
             new OA\Response(response: 404, description: '존재하지 않는 후기'),
-        ]
+        ],
     )]
     public function comments(?string $id = null): ResponseInterface
     {
@@ -231,7 +231,7 @@ class BoardController extends BaseApiController
         required: true,
         content: new OA\JsonContent(required: ['contents'], properties: [
             new OA\Property(property: 'contents', type: 'string', example: '저도 다녀왔어요!'),
-        ])
+        ]),
     ), tags: ['Boards'], parameters: [new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))], responses: [
         new OA\Response(response: 201, description: '작성 성공'),
         new OA\Response(response: 404, description: '존재하지 않는 후기'),
@@ -239,7 +239,7 @@ class BoardController extends BaseApiController
     ])]
     public function commentCreate(?string $id = null): ResponseInterface
     {
-        if (!$this->validate(['contents' => 'required|max_length[1000]'])) {
+        if (! $this->validate(['contents' => 'required|max_length[1000]'])) {
             return $this->error('VALIDATION_ERROR', implode(' ', $this->validator->getErrors()), 422);
         }
 
@@ -264,7 +264,7 @@ class BoardController extends BaseApiController
         responses: [
             new OA\Response(response: 200, description: '삭제 성공'),
             new OA\Response(response: 404, description: '존재하지 않거나 권한 없는 댓글'),
-        ]
+        ],
     )]
     public function commentDelete(?string $id = null, ?string $commentId = null): ResponseInterface
     {
@@ -307,6 +307,7 @@ class BoardController extends BaseApiController
 
     /**
      * @param array<string, mixed> $p
+     *
      * @return array<string, int>
      */
     private function meta(array $p, int $total): array

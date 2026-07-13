@@ -6,6 +6,7 @@ use App\Models\UserModel;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use CodeIgniter\Test\FeatureTestTrait;
+use CodeIgniter\Test\TestResponse;
 
 /**
  * 외부(소비자) 앱 예약 API 피처 테스트 (이슈 #101, SQLite3 인메모리 DB)
@@ -25,14 +26,13 @@ final class BookingApiFeatureTest extends CIUnitTestCase
     use DatabaseTestTrait;
     use FeatureTestTrait;
 
-    protected $migrate   = true;
-    protected $refresh   = true;
-    protected $namespace = null;
-
-    private int $userId = 0;
-    private string $token = '';
+    protected $migrate = true;
+    protected $refresh = true;
+    protected $namespace;
+    private int $userId        = 0;
+    private string $token      = '';
     private string $otherToken = '';
-    private int $hospitalId = 0;
+    private int $hospitalId    = 0;
 
     protected function setUp(): void
     {
@@ -42,8 +42,8 @@ final class BookingApiFeatureTest extends CIUnitTestCase
         $db  = db_connect();
         $now = date('Y-m-d H:i:s');
 
-        $this->userId = $this->insertUser('booker@aicura.test');
-        $this->token  = (new JwtLibrary())->generateAccessToken($this->userId);
+        $this->userId     = $this->insertUser('booker@aicura.test');
+        $this->token      = (new JwtLibrary())->generateAccessToken($this->userId);
         $this->otherToken = (new JwtLibrary())->generateAccessToken($this->insertUser('other@aicura.test'));
 
         $db->table('hospitals')->insert(['name' => '강남병원', 'type' => 1, 'status' => 'active', 'is_deleted' => 0, 'created_at' => $now, 'updated_at' => $now]);
@@ -59,8 +59,10 @@ final class BookingApiFeatureTest extends CIUnitTestCase
         return (int) $db->insertID();
     }
 
-    /** @param array<string, mixed> $body */
-    private function authReq(string $method, string $uri, array $body = []): \CodeIgniter\Test\TestResponse
+    /**
+     * @param array<string, mixed> $body
+     */
+    private function authReq(string $method, string $uri, array $body = []): TestResponse
     {
         return $this->withHeaders(['Authorization' => 'Bearer ' . $this->token])->withBodyFormat('json')->call($method, $uri, $body);
     }
@@ -75,7 +77,9 @@ final class BookingApiFeatureTest extends CIUnitTestCase
         return (int) json_decode($res->getJSON(), true)['data']['id'];
     }
 
-    /** [K1] 생성 */
+    /**
+     * [K1] 생성
+     */
     public function testCreate(): void
     {
         $res = $this->authReq('post', 'api/v1/bookings', [
@@ -89,13 +93,17 @@ final class BookingApiFeatureTest extends CIUnitTestCase
         $this->seeInDatabase('bookings', ['id' => $data['id'], 'user_id' => $this->userId, 'status' => BookingModel::STATUS_PENDING]);
     }
 
-    /** [K2] 비노출 병원 */
+    /**
+     * [K2] 비노출 병원
+     */
     public function testCreateOnInvalidHospital(): void
     {
         $this->authReq('post', 'api/v1/bookings', ['hospital_id' => 999999])->assertStatus(404);
     }
 
-    /** [K3] 상세 — 소유권 */
+    /**
+     * [K3] 상세 — 소유권
+     */
     public function testDetailOwnership(): void
     {
         $id = $this->createBooking();
@@ -103,7 +111,9 @@ final class BookingApiFeatureTest extends CIUnitTestCase
         $this->withHeaders(['Authorization' => 'Bearer ' . $this->otherToken])->get('api/v1/bookings/' . $id)->assertStatus(404);
     }
 
-    /** [K4] 변경 */
+    /**
+     * [K4] 변경
+     */
     public function testUpdate(): void
     {
         $id  = $this->createBooking();
@@ -112,7 +122,9 @@ final class BookingApiFeatureTest extends CIUnitTestCase
         $this->assertSame('김철수', json_decode($res->getJSON(), true)['data']['name']);
     }
 
-    /** [K5] 취소 + 재취소 409 */
+    /**
+     * [K5] 취소 + 재취소 409
+     */
     public function testCancel(): void
     {
         $id = $this->createBooking();
@@ -125,7 +137,9 @@ final class BookingApiFeatureTest extends CIUnitTestCase
         $this->assertSame('ALREADY_CANCELLED', json_decode($again->getJSON(), true)['code']);
     }
 
-    /** [K6] 토큰 없으면 401 */
+    /**
+     * [K6] 토큰 없으면 401
+     */
     public function testRequiresAuth(): void
     {
         $this->get('api/v1/bookings/1')->assertStatus(401);

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\UserModel;
+use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use CodeIgniter\Test\FeatureTestTrait;
@@ -27,12 +28,11 @@ final class UserFeatureTest extends CIUnitTestCase
     use DatabaseTestTrait;
     use FeatureTestTrait;
 
-    protected $migrate   = true;
-    protected $refresh   = true;
-    protected $namespace = null;
-
     private const ADMIN_SESSION = ['admin_user' => ['id' => 1, 'email' => 'admin@test.com', 'username' => 'admin']];
 
+    protected $migrate = true;
+    protected $refresh = true;
+    protected $namespace;
     private int $testUserId = 0;
 
     protected function setUp(): void
@@ -85,7 +85,7 @@ final class UserFeatureTest extends CIUnitTestCase
     public function testIndexReturns200WithAuth(): void
     {
         $result = $this->withSession(self::ADMIN_SESSION)
-                       ->get('/admin/users');
+            ->get('/admin/users');
 
         $result->assertStatus(200);
         $result->assertSee('userGrid');
@@ -94,7 +94,7 @@ final class UserFeatureTest extends CIUnitTestCase
     public function testIndexContainsUserManagementTitle(): void
     {
         $result = $this->withSession(self::ADMIN_SESSION)
-                       ->get('/admin/users');
+            ->get('/admin/users');
 
         $result->assertStatus(200);
         $result->assertSee('사용자 관리');
@@ -105,7 +105,7 @@ final class UserFeatureTest extends CIUnitTestCase
     public function testIndexType2Returns200(): void
     {
         $result = $this->withSession(self::ADMIN_SESSION)
-                       ->get('/admin/users?type=2');
+            ->get('/admin/users?type=2');
 
         $result->assertStatus(200);
     }
@@ -115,7 +115,7 @@ final class UserFeatureTest extends CIUnitTestCase
     public function testIndexType3Returns200(): void
     {
         $result = $this->withSession(self::ADMIN_SESSION)
-                       ->get('/admin/users?type=3');
+            ->get('/admin/users?type=3');
 
         $result->assertStatus(200);
     }
@@ -125,7 +125,7 @@ final class UserFeatureTest extends CIUnitTestCase
     public function testIndexFilterByIsDormant(): void
     {
         $result = $this->withSession(self::ADMIN_SESSION)
-                       ->get('/admin/users?is_dormant=1');
+            ->get('/admin/users?is_dormant=1');
 
         $result->assertStatus(200);
     }
@@ -135,7 +135,7 @@ final class UserFeatureTest extends CIUnitTestCase
     public function testIndexFilterBySearchWord(): void
     {
         $result = $this->withSession(self::ADMIN_SESSION)
-                       ->get('/admin/users?search_word=__feature_user__');
+            ->get('/admin/users?search_word=__feature_user__');
 
         $result->assertStatus(200);
         $result->assertSee('__feature_user__@test.invalid');
@@ -145,10 +145,10 @@ final class UserFeatureTest extends CIUnitTestCase
 
     public function testShowThrowsPageNotFoundForNonExistentUser(): void
     {
-        $this->expectException(\CodeIgniter\Exceptions\PageNotFoundException::class);
+        $this->expectException(PageNotFoundException::class);
 
         $this->withSession(self::ADMIN_SESSION)
-             ->get('/admin/users/9999999');
+            ->get('/admin/users/9999999');
     }
 
     // ── [F9] show 존재하는 사용자 200 ─────────────────
@@ -156,7 +156,7 @@ final class UserFeatureTest extends CIUnitTestCase
     public function testShowReturns200WithValidUser(): void
     {
         $result = $this->withSession(self::ADMIN_SESSION)
-                       ->get('/admin/users/' . $this->testUserId);
+            ->get('/admin/users/' . $this->testUserId);
 
         $result->assertStatus(200);
         $result->assertSee('__feature_user__@test.invalid');
@@ -165,7 +165,7 @@ final class UserFeatureTest extends CIUnitTestCase
     public function testShowDisplaysUserType(): void
     {
         $result = $this->withSession(self::ADMIN_SESSION)
-                       ->get('/admin/users/' . $this->testUserId);
+            ->get('/admin/users/' . $this->testUserId);
 
         $result->assertStatus(200);
         $result->assertSee('관리자');
@@ -176,7 +176,7 @@ final class UserFeatureTest extends CIUnitTestCase
     public function testIndexClampsTypeOutOfRange(): void
     {
         $result = $this->withSession(self::ADMIN_SESSION)
-                       ->get('/admin/users?type=99');
+            ->get('/admin/users?type=99');
 
         $result->assertStatus(200);
         $result->assertSee('userGrid');

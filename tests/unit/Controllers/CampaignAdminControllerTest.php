@@ -22,11 +22,13 @@ final class CampaignAdminControllerTest extends CIUnitTestCase
     use DatabaseTestTrait;
     use FeatureTestTrait;
 
-    protected $migrate   = true;
-    protected $refresh   = true;
-    protected $namespace = null;
+    protected $migrate = true;
+    protected $refresh = true;
+    protected $namespace;
 
-    /** @var array<string, mixed> */
+    /**
+     * @var array<string, mixed>
+     */
     private array $authSession = [];
 
     private int $hospitalId = 0;
@@ -49,13 +51,15 @@ final class CampaignAdminControllerTest extends CIUnitTestCase
         $db  = db_connect();
         $now = date('Y-m-d H:i:s');
         $db->table('hospitals')->insert([
-            'name' => '__test_hospital__', 'type' => 1, 'status' => 'active',
+            'name'       => '__test_hospital__', 'type' => 1, 'status' => 'active',
             'is_deleted' => 0, 'created_at' => $now, 'updated_at' => $now,
         ]);
         $this->hospitalId = (int) $db->insertID();
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * @return array<string, mixed>
+     */
     private function baseCampaignPayload(): array
     {
         return [
@@ -134,9 +138,9 @@ final class CampaignAdminControllerTest extends CIUnitTestCase
         $now = date('Y-m-d H:i:s');
         $db  = db_connect();
         $db->table('campaigns')->insert([
-            'ad_title' => '__active__', 'hospital_id' => $this->hospitalId, 'hospital_type' => 1,
-            'ad_type' => 1, 'ad_start_date' => '2026-01-01', 'ad_end_date' => '2026-12-31',
-            'cost_type' => 1, 'status' => 'active', 'channel' => 1, 'is_deleted' => 0,
+            'ad_title'   => '__active__', 'hospital_id' => $this->hospitalId, 'hospital_type' => 1,
+            'ad_type'    => 1, 'ad_start_date' => '2026-01-01', 'ad_end_date' => '2026-12-31',
+            'cost_type'  => 1, 'status' => 'active', 'channel' => 1, 'is_deleted' => 0,
             'created_at' => $now, 'updated_at' => $now,
         ]);
 
@@ -173,9 +177,9 @@ final class CampaignAdminControllerTest extends CIUnitTestCase
         $now = date('Y-m-d H:i:s');
         $db  = db_connect();
         $db->table('campaigns')->insert([
-            'ad_title' => '__pending__', 'hospital_id' => $this->hospitalId, 'hospital_type' => 1,
-            'ad_type' => 1, 'ad_start_date' => '2026-01-01', 'ad_end_date' => '2026-12-31',
-            'cost_type' => 1, 'status' => 'pending', 'channel' => 1, 'is_deleted' => 0,
+            'ad_title'   => '__pending__', 'hospital_id' => $this->hospitalId, 'hospital_type' => 1,
+            'ad_type'    => 1, 'ad_start_date' => '2026-01-01', 'ad_end_date' => '2026-12-31',
+            'cost_type'  => 1, 'status' => 'pending', 'channel' => 1, 'is_deleted' => 0,
             'created_at' => $now, 'updated_at' => $now,
         ]);
         $id = (int) $db->insertID();

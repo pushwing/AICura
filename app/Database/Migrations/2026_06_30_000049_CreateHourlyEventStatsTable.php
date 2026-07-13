@@ -32,8 +32,8 @@ class CreateHourlyEventStatsTable extends Migration
             ],
             'stat_date' => ['type' => 'DATE'],
             'stat_hour' => [
-                'type'       => 'TINYINT',
-                'unsigned'   => true,
+                'type'     => 'TINYINT',
+                'unsigned' => true,
             ],
             'event' => [
                 'type'       => 'VARCHAR',

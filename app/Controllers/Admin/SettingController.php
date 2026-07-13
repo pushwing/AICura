@@ -2,13 +2,13 @@
 
 namespace App\Controllers\Admin;
 
-use Override;
-use CodeIgniter\HTTP\RequestInterface;
-use CodeIgniter\HTTP\ResponseInterface;
-use Psr\Log\LoggerInterface;
 use App\Models\SettingModel;
 use App\Models\UserModel;
 use CodeIgniter\HTTP\RedirectResponse;
+use CodeIgniter\HTTP\RequestInterface;
+use CodeIgniter\HTTP\ResponseInterface;
+use Override;
+use Psr\Log\LoggerInterface;
 
 /**
  * 어드민 설정 (이슈 #63)
@@ -27,14 +27,14 @@ class SettingController extends BaseAdminController
     public function initController(
         RequestInterface $request,
         ResponseInterface $response,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ): void {
         parent::initController($request, $response, $logger);
         $this->userModel    = model(UserModel::class);
         $this->settingModel = model(SettingModel::class);
     }
 
-    public function index(): string|RedirectResponse
+    public function index(): RedirectResponse|string
     {
         $user = $this->userModel->findWithPasswordById($this->adminUserId());
         if ($user === null) {
@@ -55,7 +55,7 @@ class SettingController extends BaseAdminController
             'username' => 'required|max_length[100]',
             'phone'    => 'permit_empty|max_length[30]',
         ];
-        if (!$this->validate($rules)) {
+        if (! $this->validate($rules)) {
             return redirect()->to('/admin/settings')->with('error', $this->firstError());
         }
 
@@ -86,7 +86,7 @@ class SettingController extends BaseAdminController
             'confirm_password' => ['matches' => '새 비밀번호 확인이 일치하지 않습니다.'],
             'new_password'     => ['min_length' => '비밀번호는 8자 이상이어야 합니다.'],
         ];
-        if (!$this->validate($rules, $messages)) {
+        if (! $this->validate($rules, $messages)) {
             return redirect()->to('/admin/settings')->with('error', $this->firstError());
         }
 
@@ -96,7 +96,7 @@ class SettingController extends BaseAdminController
         }
 
         $current = (string) $this->request->getPost('current_password');
-        if (!password_verify($current, (string) $user['password'])) {
+        if (! password_verify($current, (string) $user['password'])) {
             return redirect()->to('/admin/settings')->with('error', '현재 비밀번호가 올바르지 않습니다.');
         }
 
@@ -113,11 +113,12 @@ class SettingController extends BaseAdminController
             'site_name'   => 'permit_empty|max_length[255]',
             'admin_email' => 'permit_empty|valid_email|max_length[255]',
         ];
-        if (!$this->validate($rules)) {
+        if (! $this->validate($rules)) {
             return redirect()->to('/admin/settings')->with('error', $this->firstError());
         }
 
         $values = [];
+
         foreach (array_keys(SettingModel::KEYS) as $key) {
             $values[$key] = (string) ($this->request->getPost($key) ?? '');
         }

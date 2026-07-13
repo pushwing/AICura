@@ -93,6 +93,7 @@ class DashboardModel extends Model
      * 최근 N개월 월별 계약/매출 추이
      *
      * @param array<int, array{y: int, m: int}> $months
+     *
      * @return array{contracts: array<int, array<string, mixed>>, revenues: array<int, array<string, mixed>>}
      */
     public function getMonthlyTrend(array $months): array

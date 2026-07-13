@@ -12,7 +12,7 @@ final class RobotsFeatureTest extends CIUnitTestCase
 {
     use FeatureTestTrait;
 
-    protected $namespace = null;
+    protected $namespace;
 
     public function testRobotsListsAiAndSearchCrawlers(): void
     {

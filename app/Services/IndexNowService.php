@@ -28,13 +28,17 @@ class IndexNowService
         $this->timeout = max(3, (int) env('INDEXNOW_TIMEOUT', 5));
     }
 
-    /** 제출 가능 여부 — 키 설정 + 운영(비로컬) 호스트 */
+    /**
+     * 제출 가능 여부 — 키 설정 + 운영(비로컬) 호스트
+     */
     public function isEnabled(): bool
     {
-        return $this->key !== '' && !$this->isLocalHost();
+        return $this->key !== '' && ! $this->isLocalHost();
     }
 
-    /** 키 검증 파일 위치 (keyLocation) */
+    /**
+     * 키 검증 파일 위치 (keyLocation)
+     */
     public function keyLocation(): string
     {
         return base_url('indexnow-key.txt');
@@ -55,7 +59,7 @@ class IndexNowService
             static fn (string $u): bool => $u !== '',
         ));
 
-        if (!$this->isEnabled() || $urls === []) {
+        if (! $this->isEnabled() || $urls === []) {
             return false;
         }
 
@@ -78,6 +82,7 @@ class IndexNowService
      * IndexNow POST 페이로드.
      *
      * @param list<string> $urls
+     *
      * @return array<string, mixed>
      */
     public function payload(array $urls): array
@@ -90,7 +95,9 @@ class IndexNowService
         ];
     }
 
-    /** 로컬·테스트 호스트 여부 — 실서비스 도메인이 아닐 때 제출 방지 */
+    /**
+     * 로컬·테스트 호스트 여부 — 실서비스 도메인이 아닐 때 제출 방지
+     */
     private function isLocalHost(): bool
     {
         $host = (string) (parse_url(base_url(), PHP_URL_HOST) ?? '');

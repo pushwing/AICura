@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use CodeIgniter\Model;
 use RuntimeException;
 use Throwable;
-use CodeIgniter\Model;
 
 /**
  * contract_orders.contract_status 환불 유형:
@@ -13,11 +13,28 @@ use CodeIgniter\Model;
  */
 class PaymentModel extends Model
 {
-    protected $table      = 'payments';
-    protected $primaryKey = 'id';
+    public const PAYMENT_TYPES = [
+        1 => '가상계좌',
+        2 => '신용카드',
+    ];
+    public const STATUSES = [
+        'pending'          => ['label' => '입금대기', 'color' => '#f59e0b'],
+        'paid'             => ['label' => '결제완료', 'color' => '#10b981'],
+        'partial_refunded' => ['label' => '부분환불', 'color' => '#a855f7'],
+        'refunded'         => ['label' => '환불', 'color' => '#6366f1'],
+        'failed'           => ['label' => '실패', 'color' => '#ef4444'],
+    ];
+
+    // contract_orders.contract_status → deposits.status 매핑
+    private const array REFUND_DEPOSIT_STATUS_MAP = [
+        2 => 6, // 발행환불 → deposits 발행환불
+        5 => 7, // 계약환불 → deposits 계약환불
+    ];
+
+    protected $table         = 'payments';
+    protected $primaryKey    = 'id';
     protected $useTimestamps = true;
     protected $returnType    = 'array';
-
     protected $allowedFields = [
         'user_id',
         'hospital_id',
@@ -35,29 +52,11 @@ class PaymentModel extends Model
         'status',
     ];
 
-    public const PAYMENT_TYPES = [
-        1 => '가상계좌',
-        2 => '신용카드',
-    ];
-
-    public const STATUSES = [
-        'pending'          => ['label' => '입금대기',   'color' => '#f59e0b'],
-        'paid'             => ['label' => '결제완료',   'color' => '#10b981'],
-        'partial_refunded' => ['label' => '부분환불',   'color' => '#a855f7'],
-        'refunded'         => ['label' => '환불',       'color' => '#6366f1'],
-        'failed'           => ['label' => '실패',       'color' => '#ef4444'],
-    ];
-
-    // contract_orders.contract_status → deposits.status 매핑
-    private const array REFUND_DEPOSIT_STATUS_MAP = [
-        2 => 6, // 발행환불 → deposits 발행환불
-        5 => 7, // 계약환불 → deposits 계약환불
-    ];
-
     /**
      * 결제 목록 (페이징, 검색)
      *
      * @param array<string, mixed> $params
+     *
      * @return array<string, mixed>
      */
     public function getPaymentList(array $params): array
@@ -69,19 +68,19 @@ class PaymentModel extends Model
             ->join('hospitals h', 'h.id = p.hospital_id', 'left')
             ->join('contract_orders co', 'co.id = p.contract_order_id', 'left');
 
-        if (!empty($params['status'])) {
+        if (! empty($params['status'])) {
             $builder->where('p.status', $params['status']);
         }
-        if (!empty($params['hospital_name'])) {
+        if (! empty($params['hospital_name'])) {
             $builder->groupStart()
                 ->like('h.name', $params['hospital_name'])
                 ->orLike('co.hospital_name', $params['hospital_name'])
                 ->groupEnd();
         }
-        if (!empty($params['date_from'])) {
+        if (! empty($params['date_from'])) {
             $builder->where('DATE(p.created_at) >=', $params['date_from']);
         }
-        if (!empty($params['date_to'])) {
+        if (! empty($params['date_to'])) {
             $builder->where('DATE(p.created_at) <=', $params['date_to']);
         }
 
@@ -131,7 +130,7 @@ class PaymentModel extends Model
      * 잔여액에 도달할 때까지 부분 환불을 여러 번 처리할 수 있다.
      *
      * @throws RuntimeException 유효하지 않은 환불 유형·금액
-     * @throws Throwable DB 트랜잭션 오류
+     * @throws Throwable        DB 트랜잭션 오류
      */
     public function processRefund(int $paymentId, int $amount, int $refundType, int $userId): void
     {
@@ -176,10 +175,10 @@ class PaymentModel extends Model
 
             // 환불 내역 기록 (전체/부분 구분 — 결제 전액 환불이면 전체)
             $db->table('refunds')->insert([
-                'user_id'           => (int) ($payment['user_id'] ?? 0),
-                'payment_id'        => $paymentId,
-                'trans_no'          => (string) ($payment['trans_no'] ?? ''),
-                'term_type'         => $amount >= (int) $payment['amount']
+                'user_id'    => (int) ($payment['user_id'] ?? 0),
+                'payment_id' => $paymentId,
+                'trans_no'   => (string) ($payment['trans_no'] ?? ''),
+                'term_type'  => $amount >= (int) $payment['amount']
                     ? RefundModel::TERM_FULL
                     : RefundModel::TERM_PARTIAL,
                 'contract_id'       => (int) $payment['contract_id'],
@@ -205,6 +204,7 @@ class PaymentModel extends Model
             $db->transCommit();
         } catch (Throwable $e) {
             $db->transRollback();
+
             throw $e;
         }
     }

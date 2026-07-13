@@ -20,17 +20,20 @@ use CodeIgniter\Model;
  */
 class ReportModel extends Model
 {
-    protected $table      = 'deposits';
-    protected $returnType = 'array';
-
     // 충전 — 계약충전 + 이월충전 (CPA 환불 복원 status 4 제외)
-    private const array STATUS_CHARGED  = [2, 12];
+    private const array STATUS_CHARGED = [2, 12];
+
     // 소진 — DB소진·기타차감·취소·이월소진 (환불 6·7은 별도 집계로 제외)
     private const array STATUS_CONSUMED = [3, 5, 8, 9, 10, 11];
+
     // 환불 — 발행환불 + 계약환불 (별도 KPI)
     private const array STATUS_REFUNDED = [6, 7];
+
     // CPA 환불 복원 — 신청DB 환불요청 승인 시 기록되는 소진 상계 거래 (status 4 전용 집계)
     private const array STATUS_CPA_REFUND = [4];
+
+    protected $table      = 'deposits';
+    protected $returnType = 'array';
 
     /**
      * 드라이버별 연도 표현식 (MySQL: YEAR / SQLite3: strftime)
@@ -100,6 +103,7 @@ class ReportModel extends Model
      * 캠페인별 신청·내원완료 통계 (call_requests 기준)
      *
      * @param array<string, string> $params 필터 (date_from, date_to, ad_title)
+     *
      * @return array<int, array<string, mixed>>
      */
     public function getCampaignStats(array $params): array
@@ -134,6 +138,7 @@ class ReportModel extends Model
      * 일자별 충전·소진·환불·CPA환불복원 합계 (AI 매출보고서용 — 전일 1일치)
      *
      * @param list<int>|null $hospitalIds 집계 대상 병원 한정 (null이면 전체)
+     *
      * @return array{charged: int, consumed: int, refunded: int, cpa_refunded: int}
      */
     public function getDailyStats(string $date, ?array $hospitalIds = null): array
@@ -155,6 +160,7 @@ class ReportModel extends Model
      * 당월 누계 충전·소진·환불·CPA환불복원·잔액 (AI 매출보고서용)
      *
      * @param list<int>|null $hospitalIds 집계 대상 병원 한정 (null이면 전체)
+     *
      * @return array{charged: int, consumed: int, refunded: int, cpa_refunded: int, balance: int}
      */
     public function getMonthToDateStats(string $fromDate, string $toDate, ?array $hospitalIds = null): array
@@ -186,6 +192,7 @@ class ReportModel extends Model
      * 원자료 충전: status IN (2, 4, 12) / 소진: status IN (3, 5, 6, 7, 8, 9, 10, 11)
      *
      * @param list<int>|null $hospitalIds 집계 대상 병원 한정 (null이면 전체)
+     *
      * @return array<int, array{hospital_id: int, hospital_name: string, charged: int, used: int, balance: int, ratio: float}>
      */
     public function getLowBalanceHospitals(float $thresholdRatio = 0.05, ?array $hospitalIds = null): array
@@ -211,6 +218,7 @@ class ReportModel extends Model
         $rows = $builder->get()->getResultArray();
 
         $result = [];
+
         foreach ($rows as $row) {
             // CPA 환불 복원(상계, status 4)을 충전·소진 양쪽에서 차감한 순액으로 비율 산정
             $cpa     = (int) $row['cpa_refunded'];
@@ -356,6 +364,7 @@ class ReportModel extends Model
      * 상태 집합의 월별 합계 (12개 배열)
      *
      * @param array<int, int> $statuses
+     *
      * @return array<int, int>
      */
     private function monthlySumByStatuses(array $statuses, int $year): array
@@ -371,11 +380,13 @@ class ReportModel extends Model
             ->getResultArray();
 
         $byMonth = [];
+
         foreach ($rows as $row) {
             $byMonth[(int) $row['month']] = (int) $row['total'];
         }
 
         $result = [];
+
         for ($m = 1; $m <= 12; $m++) {
             $result[] = $byMonth[$m] ?? 0;
         }

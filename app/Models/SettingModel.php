@@ -12,34 +12,51 @@ use CodeIgniter\Model;
  */
 class SettingModel extends Model
 {
-    protected $table      = 'settings';
-    protected $primaryKey = 'id';
-    protected $useTimestamps = true;
-    protected $returnType    = 'array';
-
-    protected $allowedFields = [
-        'setting_key',
-        'setting_value',
-    ];
-
     /**
      * 관리 대상 설정 키 → 라벨 (뷰 렌더링·검증 기준)
      *
      * @var array<string, string>
      */
     public const KEYS = [
-        'site_name'   => '사이트명',
-        'admin_email' => '대표 이메일',
+        'site_name'                => '사이트명',
+        'admin_email'              => '대표 이메일',
         'compliance_check_enabled' => '의료광고 심의 사전검사 사용',
         'lead_analysis_enabled'    => 'AI 콜(리드) 분석 사용',
         'review_quality_enabled'   => 'AI 후기 신뢰성 분석 사용',
     ];
 
-    /** 체크박스(불리언)로 다루는 설정 키 — 뷰 렌더링·검증 분기용 */
+    /**
+     * 체크박스(불리언)로 다루는 설정 키 — 뷰 렌더링·검증 분기용
+     */
     public const BOOLEAN_KEYS = [
         'compliance_check_enabled',
         'lead_analysis_enabled',
         'review_quality_enabled',
+    ];
+
+    /**
+     * 외부 앱에 공개하는 설정 키 → 기본값 (이슈 #103)
+     *
+     * 내부 운영 키(admin_email·AI 플래그 등)는 노출하지 않는다.
+     * 미설정 키는 기본값을 반환한다(앱 부트스트랩 안정성).
+     *
+     * @var array<string, string>
+     */
+    public const APP_PUBLIC_KEYS = [
+        'site_name'               => '',
+        'app_min_version_ios'     => '',
+        'app_min_version_android' => '',
+        'terms_url'               => '',
+        'privacy_url'             => '',
+    ];
+
+    protected $table         = 'settings';
+    protected $primaryKey    = 'id';
+    protected $useTimestamps = true;
+    protected $returnType    = 'array';
+    protected $allowedFields = [
+        'setting_key',
+        'setting_value',
     ];
 
     /**
@@ -52,11 +69,13 @@ class SettingModel extends Model
         $rows = $this->select('setting_key, setting_value')->findAll();
 
         $stored = [];
+
         foreach ($rows as $row) {
             $stored[(string) $row['setting_key']] = (string) ($row['setting_value'] ?? '');
         }
 
         $map = [];
+
         foreach (array_keys(self::KEYS) as $key) {
             $map[$key] = $stored[$key] ?? '';
         }
@@ -75,38 +94,24 @@ class SettingModel extends Model
     }
 
     /**
-     * 외부 앱에 공개하는 설정 키 → 기본값 (이슈 #103)
-     *
-     * 내부 운영 키(admin_email·AI 플래그 등)는 노출하지 않는다.
-     * 미설정 키는 기본값을 반환한다(앱 부트스트랩 안정성).
-     *
-     * @var array<string, string>
-     */
-    public const APP_PUBLIC_KEYS = [
-        'site_name'                => '',
-        'app_min_version_ios'      => '',
-        'app_min_version_android'  => '',
-        'terms_url'                => '',
-        'privacy_url'              => '',
-    ];
-
-    /**
      * 외부 앱 공개 설정 맵 — 공개 키만, 저장값 없으면 기본값. (이슈 #103)
      *
      * @return array<string, string>
      */
     public function getPublicMap(): array
     {
-        $rows   = $this->select('setting_key, setting_value')
+        $rows = $this->select('setting_key, setting_value')
             ->whereIn('setting_key', array_keys(self::APP_PUBLIC_KEYS))
             ->findAll();
 
         $stored = [];
+
         foreach ($rows as $row) {
             $stored[(string) $row['setting_key']] = (string) ($row['setting_value'] ?? '');
         }
 
         $map = [];
+
         foreach (self::APP_PUBLIC_KEYS as $key => $default) {
             $map[$key] = $stored[$key] ?? $default;
         }
@@ -122,7 +127,7 @@ class SettingModel extends Model
     public function saveMany(array $values): void
     {
         foreach ($values as $key => $value) {
-            if (!isset(self::KEYS[$key])) {
+            if (! isset(self::KEYS[$key])) {
                 continue;
             }
 

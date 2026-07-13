@@ -17,7 +17,7 @@ final class AuthControllerTest extends CIUnitTestCase
     protected $migrate     = true;
     protected $migrateOnce = true;
     protected $refresh     = false;
-    protected $namespace   = null;
+    protected $namespace;
 
     protected function setUp(): void
     {

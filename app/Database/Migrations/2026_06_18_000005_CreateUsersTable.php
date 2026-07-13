@@ -85,8 +85,8 @@ class CreateUsersTable extends Migration
                 'null'       => true,
             ],
             'age' => [
-                'type'    => 'TINYINT',
-                'null'    => true,
+                'type' => 'TINYINT',
+                'null' => true,
             ],
             'sex' => [
                 'type'       => 'VARCHAR',

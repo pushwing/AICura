@@ -15,7 +15,6 @@ class DepartmentModel extends Model
     protected $primaryKey    = 'id';
     protected $useTimestamps = true;
     protected $returnType    = 'array';
-
     protected $allowedFields = [
         'code',
         'name',
@@ -23,7 +22,9 @@ class DepartmentModel extends Model
         'is_active',
     ];
 
-    /** @var array<string, string> */
+    /**
+     * @var array<string, string>
+     */
     protected $validationRules = [
         'code' => 'required|max_length[30]',
         'name' => 'required|max_length[100]',
@@ -71,7 +72,7 @@ class DepartmentModel extends Model
         // 중복·0 제거 후 일괄 삽입
         $ids = array_values(array_unique(array_filter(
             array_map(intval(...), $departmentIds),
-            static fn (int $id): bool => $id > 0
+            static fn (int $id): bool => $id > 0,
         )));
 
         if ($ids === []) {
@@ -80,7 +81,7 @@ class DepartmentModel extends Model
 
         $rows = array_map(
             static fn (int $id): array => ['hospital_id' => $hospitalId, 'department_id' => $id],
-            $ids
+            $ids,
         );
         $pivot->insertBatch($rows);
     }
@@ -99,6 +100,7 @@ class DepartmentModel extends Model
             ->getResultArray();
 
         $map = [];
+
         foreach ($rows as $row) {
             $map[(int) $row['department_id']] = (int) $row['cnt'];
         }
@@ -133,6 +135,7 @@ class DepartmentModel extends Model
      * 병원 ID 묶음 → 병원별 진료과 목록 (N+1 방지용 배치 조회).
      *
      * @param list<int> $hospitalIds
+     *
      * @return array<int, list<array{id: int, code: string, name: string}>> hospital_id => 진료과 목록
      */
     public function byHospitalIds(array $hospitalIds): array
@@ -152,6 +155,7 @@ class DepartmentModel extends Model
             ->getResultArray();
 
         $map = [];
+
         foreach ($rows as $row) {
             $map[(int) $row['hospital_id']][] = [
                 'id'   => (int) $row['id'],

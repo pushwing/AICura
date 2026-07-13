@@ -7,9 +7,9 @@ namespace App\Filters;
 use App\Exceptions\TokenException;
 use App\Libraries\Auth;
 use App\Libraries\JwtLibrary;
+use CodeIgniter\Filters\FilterInterface;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
-use CodeIgniter\Filters\FilterInterface;
 
 /**
  * 선택적 JWT 인증 필터.
@@ -24,14 +24,14 @@ class OptionalJwtAuthFilter implements FilterInterface
     {
         $authHeader = $request->getHeaderLine('Authorization');
 
-        if (!str_starts_with($authHeader, 'Bearer ')) {
+        if (! str_starts_with($authHeader, 'Bearer ')) {
             return null; // 익명 통과
         }
 
         $token = substr($authHeader, 7);
 
         try {
-            $payload = new JwtLibrary()->validateAccessToken($token);
+            $payload = (new JwtLibrary())->validateAccessToken($token);
             Auth::setUserId((int) $payload['sub']);
         } catch (TokenException) {
             // 만료·무효 토큰은 익명으로 처리 (열람은 허용)

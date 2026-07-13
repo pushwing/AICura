@@ -24,18 +24,20 @@ use CodeIgniter\Model;
  */
 class PortalReportModel extends Model
 {
-    protected $table      = 'deposits';
-    protected $returnType = 'array';
-
     private const array STATUS_CHARGED  = [2, 4, 12];
     private const array STATUS_CONSUMED = [3, 5, 8, 9, 10, 11];
     private const array STATUS_REFUNDED = [6, 7];
+
     // CPA 환불 복원(상계) — 신청DB 환불요청 승인 시 기록되는 기타충전. 충전(status 4)에 이미 포함된 별도 표시용 지표.
     private const array STATUS_CPA_REFUND = [4];
+    private const int CALL_VISITED        = 7;
 
-    private const int CALL_VISITED = 7;
+    protected $table      = 'deposits';
+    protected $returnType = 'array';
 
-    /** 드라이버별 연도 표현식 (MySQL: YEAR / SQLite3: strftime) */
+    /**
+     * 드라이버별 연도 표현식 (MySQL: YEAR / SQLite3: strftime)
+     */
     private function yearExpr(string $col): string
     {
         return str_starts_with($this->db->DBDriver, 'MySQLi')
@@ -112,6 +114,7 @@ class PortalReportModel extends Model
 
         $charged  = array_fill(0, 12, 0);
         $consumed = array_fill(0, 12, 0);
+
         foreach ($rows as $row) {
             $idx = (int) $row['month'] - 1;
             if ($idx >= 0 && $idx < 12) {
@@ -219,7 +222,7 @@ class PortalReportModel extends Model
         // 2) 광고주별 call_requests 집계 (hospital_id 기준) — 별도 쿼리로 행 곱셈 방지
         $hospitalIds = array_values(array_unique(array_map(
             static fn (array $r): int => (int) $r['hospital_id'],
-            $depRows
+            $depRows,
         )));
 
         $callRows = $this->db->table('call_requests cr')
@@ -234,6 +237,7 @@ class PortalReportModel extends Model
             ->getResultArray();
 
         $callByHospital = [];
+
         foreach ($callRows as $row) {
             $callByHospital[(int) $row['hospital_id']] = [
                 'requested' => (int) $row['requested'],
@@ -242,6 +246,7 @@ class PortalReportModel extends Model
         }
 
         $result = [];
+
         foreach ($depRows as $row) {
             $hospitalId = (int) $row['hospital_id'];
             $charged    = (int) $row['charged'];
@@ -255,13 +260,13 @@ class PortalReportModel extends Model
                 'hospital_id'   => $hospitalId,
                 'hospital_name' => (string) ($row['hospital_name'] ?? ''),
                 // 충전·소진은 CPA 환불 복원(상계, status 4) 차감한 순액. 잔액은 raw 기준이라 항등식 유지.
-                'charged'       => $charged - $cpa,
-                'consumed'      => $consumed - $cpa,
-                'refunded'      => $refunded,
-                'cpa_refunded'  => $cpa,
-                'balance'       => $charged - $consumed - $refunded,
-                'requested'     => $call['requested'],
-                'visited'       => $call['visited'],
+                'charged'      => $charged - $cpa,
+                'consumed'     => $consumed - $cpa,
+                'refunded'     => $refunded,
+                'cpa_refunded' => $cpa,
+                'balance'      => $charged - $consumed - $refunded,
+                'requested'    => $call['requested'],
+                'visited'      => $call['visited'],
             ];
         }
 
@@ -272,29 +277,30 @@ class PortalReportModel extends Model
      * 광고주별 집계 행 목록을 합산한 대행사 전체 KPI
      *
      * @param list<array<string, mixed>> $breakdown getAgencyAdvertiserBreakdown() 결과
+     *
      * @return array{advertiser_count: int, charged: int, consumed: int, refunded: int, cpa_refunded: int, balance: int, requested: int, visited: int}
      */
     public function summarizeAgency(array $breakdown): array
     {
         $sum = [
             'advertiser_count' => count($breakdown),
-            'charged'      => 0,
-            'consumed'     => 0,
-            'refunded'     => 0,
-            'cpa_refunded' => 0,
-            'balance'      => 0,
-            'requested'    => 0,
-            'visited'      => 0,
+            'charged'          => 0,
+            'consumed'         => 0,
+            'refunded'         => 0,
+            'cpa_refunded'     => 0,
+            'balance'          => 0,
+            'requested'        => 0,
+            'visited'          => 0,
         ];
 
         foreach ($breakdown as $row) {
-            $sum['charged']      += (int) $row['charged'];
-            $sum['consumed']     += (int) $row['consumed'];
-            $sum['refunded']     += (int) $row['refunded'];
+            $sum['charged'] += (int) $row['charged'];
+            $sum['consumed'] += (int) $row['consumed'];
+            $sum['refunded'] += (int) $row['refunded'];
             $sum['cpa_refunded'] += (int) $row['cpa_refunded'];
-            $sum['balance']      += (int) $row['balance'];
-            $sum['requested']    += (int) $row['requested'];
-            $sum['visited']      += (int) $row['visited'];
+            $sum['balance'] += (int) $row['balance'];
+            $sum['requested'] += (int) $row['requested'];
+            $sum['visited'] += (int) $row['visited'];
         }
 
         return $sum;

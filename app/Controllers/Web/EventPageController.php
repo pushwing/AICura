@@ -2,7 +2,6 @@
 
 namespace App\Controllers\Web;
 
-use Override;
 use App\Exceptions\NotFoundException;
 use App\Libraries\Seo\JsonLdBuilder;
 use App\Services\EventService;
@@ -10,6 +9,7 @@ use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
+use Override;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -26,7 +26,7 @@ class EventPageController extends BaseWebController
     public function initController(
         RequestInterface $request,
         ResponseInterface $response,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ): void {
         parent::initController($request, $response, $logger);
         $this->events = Services::eventService();

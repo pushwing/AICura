@@ -2,16 +2,33 @@
 
 namespace App\Models;
 
-use RuntimeException;
 use CodeIgniter\Model;
+use RuntimeException;
 
 class CampaignReviewRequestModel extends Model
 {
-    protected $table      = 'campaign_review_requests';
-    protected $primaryKey = 'id';
+    /**
+     * 검수 요청에 포함되는 모든 캠페인 콘텐츠 필드
+     */
+    public const CONTENT_FIELDS = [
+        'ad_title', 'ad_detail_info', 'ad_type', 'ad_start_date', 'ad_end_date',
+        'cost_type', 'general_cost', 'discount_cost', 'text_cost', 'db_cost',
+        'cpm_price', 'cpc_price',
+        'category', 'exposure', 'contract_id', 'contract_order_id',
+        'region', 'keyword', 'deliberation_code', 'channel',
+        't1_image_name', 't2_image_name', 'd_image_json',
+    ];
+
+    public const REVIEW_TRANSITIONS = [
+        'pending'  => ['approved', 'rejected'],
+        'approved' => [],
+        'rejected' => [],
+    ];
+
+    protected $table         = 'campaign_review_requests';
+    protected $primaryKey    = 'id';
     protected $useTimestamps = true;
     protected $returnType    = 'array';
-
     protected $allowedFields = [
         'campaign_id',
         'request_type',
@@ -45,22 +62,6 @@ class CampaignReviewRequestModel extends Model
         'created_by',
     ];
 
-    /** 검수 요청에 포함되는 모든 캠페인 콘텐츠 필드 */
-    public const CONTENT_FIELDS = [
-        'ad_title', 'ad_detail_info', 'ad_type', 'ad_start_date', 'ad_end_date',
-        'cost_type', 'general_cost', 'discount_cost', 'text_cost', 'db_cost',
-        'cpm_price', 'cpc_price',
-        'category', 'exposure', 'contract_id', 'contract_order_id',
-        'region', 'keyword', 'deliberation_code', 'channel',
-        't1_image_name', 't2_image_name', 'd_image_json',
-    ];
-
-    public const REVIEW_TRANSITIONS = [
-        'pending'  => ['approved', 'rejected'],
-        'approved' => [],
-        'rejected' => [],
-    ];
-
     // ── 기록 ──────────────────────────────────────────
 
     /**
@@ -72,7 +73,7 @@ class CampaignReviewRequestModel extends Model
         int $campaignId,
         array $contentData,
         ?int $createdBy,
-        string $requestType = 'update'
+        string $requestType = 'update',
     ): int {
         $payload = ['campaign_id' => $campaignId, 'request_type' => $requestType, 'created_by' => $createdBy];
 
@@ -87,8 +88,9 @@ class CampaignReviewRequestModel extends Model
     /**
      * 검수 승인 — 콘텐츠 필드 배열을 반환 (campaigns 테이블 복사용)
      *
-     * @throws RuntimeException
      * @return array<string, mixed>
+     *
+     * @throws RuntimeException
      */
     public function approve(int $id, int $reviewedBy, ?string $memo = null): array
     {
@@ -206,6 +208,7 @@ class CampaignReviewRequestModel extends Model
      * 검수 대기 목록
      *
      * @param array<string, mixed> $params
+     *
      * @return array<string, mixed>
      */
     public function getPendingList(array $params = []): array
@@ -221,7 +224,7 @@ class CampaignReviewRequestModel extends Model
             ->where('crr.review_status', 'pending')
             ->where('c.is_deleted', 0);
 
-        if (!empty($params['keyword'])) {
+        if (! empty($params['keyword'])) {
             $builder->groupStart()
                 ->like('crr.ad_title', $params['keyword'])
                 ->orLike('c.ad_title', $params['keyword'])
@@ -250,9 +253,9 @@ class CampaignReviewRequestModel extends Model
     private function assertTransition(string $from, string $to): void
     {
         $allowed = self::REVIEW_TRANSITIONS[$from] ?? [];
-        if (!in_array($to, $allowed, true)) {
+        if (! in_array($to, $allowed, true)) {
             throw new RuntimeException(
-                sprintf('"%s" 상태에서 "%s"로 변경할 수 없습니다.', $from, $to)
+                sprintf('"%s" 상태에서 "%s"로 변경할 수 없습니다.', $from, $to),
             );
         }
     }

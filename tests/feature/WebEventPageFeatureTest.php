@@ -22,10 +22,9 @@ final class WebEventPageFeatureTest extends CIUnitTestCase
     use DatabaseTestTrait;
     use FeatureTestTrait;
 
-    protected $migrate   = true;
-    protected $refresh   = true;
-    protected $namespace = null;
-
+    protected $migrate = true;
+    protected $refresh = true;
+    protected $namespace;
     private int $hospitalId   = 0;
     private int $visibleId    = 0;
     private int $hiddenId     = 0;
@@ -40,12 +39,12 @@ final class WebEventPageFeatureTest extends CIUnitTestCase
         $now = date('Y-m-d H:i:s');
 
         $db->table('users')->insert([
-            'email' => 'webguest@aicura.test', 'user_type' => UserModel::TYPE_USER,
+            'email'     => 'webguest@aicura.test', 'user_type' => UserModel::TYPE_USER,
             'is_active' => 1, 'created_at' => $now, 'updated_at' => $now,
         ]);
 
         $db->table('hospitals')->insert([
-            'name' => '강남웹병원', 'type' => 1, 'status' => 'active', 'is_deleted' => 0,
+            'name'    => '강남웹병원', 'type' => 1, 'status' => 'active', 'is_deleted' => 0,
             'address' => '서울 강남구', 'phone' => '02-123-4567', 'created_at' => $now, 'updated_at' => $now,
         ]);
         $this->hospitalId = (int) $db->insertID();
@@ -54,7 +53,7 @@ final class WebEventPageFeatureTest extends CIUnitTestCase
         $tomorrow  = date('Y-m-d', strtotime('+1 day'));
 
         $this->visibleId = $this->insertCampaign([
-            'ad_title' => '강남 리프팅 이벤트', 'exposure' => 1, 'region' => '서울 강남',
+            'ad_title'      => '강남 리프팅 이벤트', 'exposure' => 1, 'region' => '서울 강남',
             'discount_cost' => 10000, 'general_cost' => 20000,
             'ad_start_date' => $yesterday, 'ad_end_date' => $tomorrow,
             't1_image_name' => 'w1.jpg',
@@ -70,17 +69,19 @@ final class WebEventPageFeatureTest extends CIUnitTestCase
         ]);
     }
 
-    /** @param array<string, mixed> $overrides */
+    /**
+     * @param array<string, mixed> $overrides
+     */
     private function insertCampaign(array $overrides): int
     {
         $db  = db_connect();
         $now = date('Y-m-d H:i:s');
         $row = array_merge([
-            'ad_title' => '이벤트', 'hospital_id' => $this->hospitalId, 'status' => 'active',
+            'ad_title'      => '이벤트', 'hospital_id' => $this->hospitalId, 'status' => 'active',
             'review_status' => 'approved', // 검수완료 기본 — 노출 조건 (이슈 #137)
-            'exposure' => 1, 'is_deleted' => 0, 'category' => 0, 'region' => '서울',
-            'ad_type' => 1, 'cost_type' => 1, 'general_cost' => 0, 'discount_cost' => 0,
-            'created_at' => $now, 'updated_at' => $now,
+            'exposure'      => 1, 'is_deleted' => 0, 'category' => 0, 'region' => '서울',
+            'ad_type'       => 1, 'cost_type' => 1, 'general_cost' => 0, 'discount_cost' => 0,
+            'created_at'    => $now, 'updated_at' => $now,
         ], $overrides);
         $db->table('campaigns')->insert($row);
 
@@ -95,7 +96,9 @@ final class WebEventPageFeatureTest extends CIUnitTestCase
         return html_entity_decode($body, ENT_QUOTES | ENT_HTML5, 'UTF-8');
     }
 
-    /** [W1] 목록 — 비로그인 200 + 노출 이벤트 렌더 */
+    /**
+     * [W1] 목록 — 비로그인 200 + 노출 이벤트 렌더
+     */
     public function testIndexRendersVisibleEvent(): void
     {
         $result = $this->get('events');
@@ -107,7 +110,9 @@ final class WebEventPageFeatureTest extends CIUnitTestCase
         $this->assertStringNotContainsString('비노출이벤트', $body);
     }
 
-    /** [W2] 목록 — SEO 메타 출력 (색인 허용 전제) */
+    /**
+     * [W2] 목록 — SEO 메타 출력 (색인 허용 전제)
+     */
     public function testIndexEmitsSeoMeta(): void
     {
         $raw  = $this->get('events')->getBody();
@@ -120,7 +125,9 @@ final class WebEventPageFeatureTest extends CIUnitTestCase
         $this->assertStringContainsString('property="og:title"', $raw);
     }
 
-    /** [W3] 상세 — 노출 건 200 + 제목/병원 렌더, 스크립트 태그 제거 */
+    /**
+     * [W3] 상세 — 노출 건 200 + 제목/병원 렌더, 스크립트 태그 제거
+     */
     public function testShowRendersVisibleEvent(): void
     {
         $result = $this->get('events/' . $this->visibleId);
@@ -139,14 +146,18 @@ final class WebEventPageFeatureTest extends CIUnitTestCase
         $this->assertStringNotContainsString('alert(document.cookie)', $raw);
     }
 
-    /** [W4] 상세 — 비노출 건은 404(PageNotFoundException) */
+    /**
+     * [W4] 상세 — 비노출 건은 404(PageNotFoundException)
+     */
     public function testShowHiddenReturns404(): void
     {
         $this->expectException(PageNotFoundException::class);
         $this->get('events/' . $this->hiddenId);
     }
 
-    /** [W5] 이슈 #137 — 검수 미완료 이벤트는 목록 미노출 */
+    /**
+     * [W5] 이슈 #137 — 검수 미완료 이벤트는 목록 미노출
+     */
     public function testUnreviewedEventNotListed(): void
     {
         $body = $this->decode($this->get('events')->getBody());
@@ -154,7 +165,9 @@ final class WebEventPageFeatureTest extends CIUnitTestCase
         $this->assertStringNotContainsString('검수안된이벤트', $body);
     }
 
-    /** [W6] 이슈 #137 — 검수 미완료 이벤트 상세는 404 */
+    /**
+     * [W6] 이슈 #137 — 검수 미완료 이벤트 상세는 404
+     */
     public function testUnreviewedEventDetailReturns404(): void
     {
         $this->expectException(PageNotFoundException::class);

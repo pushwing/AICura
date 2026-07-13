@@ -2,18 +2,58 @@
 
 namespace App\Models;
 
-use RuntimeException;
 use CodeIgniter\Model;
+use RuntimeException;
 
 class UserModel extends Model
 {
-    protected $table      = 'users';
-    protected $primaryKey = 'id';
+    /**
+     * @var array<int, string> 가입 경로 라벨 (where_from)
+     */
+    public const WHERE_FROM_LABELS = [
+        1 => '웹',
+        2 => 'iOS',
+        3 => 'Android',
+        4 => '어드민',
+    ];
+
+    /**
+     * @var array<int, string> 로그인 방식 라벨 (provider)
+     */
+    public const PROVIDER_LABELS = [
+        9 => '이메일',
+        1 => 'Facebook',
+        2 => 'Naver',
+        3 => 'Kakao',
+    ];
+
+    // user_type 상수
+    public const TYPE_USER          = 1;   // 일반 사용자
+    public const TYPE_OPERATOR      = 2;   // 운영자
+    public const TYPE_HOSPITAL_AD   = 201; // 광고주병원
+    public const TYPE_HOSPITAL_GENE = 202; // 일반병원
+    public const TYPE_HOSPITAL_RECV = 203; // 접수병원
+    public const TYPE_ADMIN         = 401; // 관리자
+    public const TYPE_STATS         = 402; // 통계운영자
+    public const TYPE_GENERAL       = 403; // 일반운영자
+    public const TYPE_INSTALL       = 404; // 접수설치
+    public const TYPE_EXTERNAL      = 405; // 외부운영자
+
+    /**
+     * @var list<int> 포털(광고주) 로그인 허용 병원 유형
+     */
+    public const PORTAL_HOSPITAL_TYPES = [
+        self::TYPE_HOSPITAL_AD,
+        self::TYPE_HOSPITAL_GENE,
+        self::TYPE_HOSPITAL_RECV,
+    ];
+
+    protected $table          = 'users';
+    protected $primaryKey     = 'id';
     protected $useTimestamps  = true;
     protected $useSoftDeletes = true;
-    protected $returnType = 'array';
-
-    protected $allowedFields = [
+    protected $returnType     = 'array';
+    protected $allowedFields  = [
         'email',
         'password',
         'username',
@@ -39,43 +79,19 @@ class UserModel extends Model
         'is_active',
     ];
 
-    /** @var list<string> */
+    /**
+     * @var list<string>
+     */
     protected $hidden = ['password', 'oauth_token'];
 
-    /** @var array<string, string> */
+    /**
+     * @var array<string, string>
+     */
     protected $validationRules = [
-        'email'    => 'required|valid_email|max_length[255]',
+        'email' => 'required|valid_email|max_length[255]',
         // 소셜 계정은 비밀번호가 없으므로(null) permit_empty — 값이 있을 때만 길이 검증
         'password' => 'permit_empty|min_length[8]',
     ];
-
-    /** @var array<int, string> 가입 경로 라벨 (where_from) */
-    public const WHERE_FROM_LABELS = [
-        1 => '웹',
-        2 => 'iOS',
-        3 => 'Android',
-        4 => '어드민',
-    ];
-
-    /** @var array<int, string> 로그인 방식 라벨 (provider) */
-    public const PROVIDER_LABELS = [
-        9 => '이메일',
-        1 => 'Facebook',
-        2 => 'Naver',
-        3 => 'Kakao',
-    ];
-
-    // user_type 상수
-    public const TYPE_USER           = 1;   // 일반 사용자
-    public const TYPE_OPERATOR       = 2;   // 운영자
-    public const TYPE_HOSPITAL_AD    = 201; // 광고주병원
-    public const TYPE_HOSPITAL_GENE  = 202; // 일반병원
-    public const TYPE_HOSPITAL_RECV  = 203; // 접수병원
-    public const TYPE_ADMIN          = 401; // 관리자
-    public const TYPE_STATS          = 402; // 통계운영자
-    public const TYPE_GENERAL        = 403; // 일반운영자
-    public const TYPE_INSTALL        = 404; // 접수설치
-    public const TYPE_EXTERNAL       = 405; // 외부운영자
 
     /**
      * 어드민 로그인 인증용 — password 포함 조회 ($hidden 우회)
@@ -102,13 +118,6 @@ class UserModel extends Model
             ->getRowArray() ?: null;
     }
 
-    /** @var list<int> 포털(광고주) 로그인 허용 병원 유형 */
-    public const PORTAL_HOSPITAL_TYPES = [
-        self::TYPE_HOSPITAL_AD,
-        self::TYPE_HOSPITAL_GENE,
-        self::TYPE_HOSPITAL_RECV,
-    ];
-
     /**
      * 포털 로그인 인증용 — password 포함 조회 ($hidden 우회)
      *
@@ -122,8 +131,8 @@ class UserModel extends Model
             ->select('id, email, username, user_type, is_agency_account, password, is_active, created_at')
             ->where('email', $email)
             ->groupStart()
-                ->where('is_agency_account', 1)
-                ->orWhereIn('user_type', self::PORTAL_HOSPITAL_TYPES)
+            ->where('is_agency_account', 1)
+            ->orWhereIn('user_type', self::PORTAL_HOSPITAL_TYPES)
             ->groupEnd()
             ->where('is_active', 1)
             ->where('deleted_at IS NULL', null, false)
@@ -167,9 +176,9 @@ class UserModel extends Model
      *
      * 어드민 광고주 등록 시 owner 계정을 함께 생성할 때 사용한다.
      *
-     * @return int|false 생성된 user id, 실패 시 false
+     * @return false|int 생성된 user id, 실패 시 false
      */
-    public function createHospitalOwner(string $email, string $plainPassword, ?string $username, ?string $phone): int|false
+    public function createHospitalOwner(string $email, string $plainPassword, ?string $username, ?string $phone): false|int
     {
         $data = [
             'email'             => $email,
@@ -266,6 +275,7 @@ class UserModel extends Model
      * 외부 앱(소비자) 계정 생성 — user_type=1 고정, 비밀번호 해시 처리 (이슈 #96)
      *
      * @param array<string, mixed> $data email·password(평문, 선택)·username·phone·age·sex·where_from·provider·uid·picture
+     *
      * @return int 생성된 user id
      */
     public function createAppUser(array $data): int
@@ -273,8 +283,8 @@ class UserModel extends Model
         $plainPassword = $data['password'] ?? null;
 
         $row = [
-            'email'      => $data['email'],
-            'password'   => is_string($plainPassword) && $plainPassword !== ''
+            'email'    => $data['email'],
+            'password' => is_string($plainPassword) && $plainPassword !== ''
                 ? password_hash($plainPassword, PASSWORD_DEFAULT)
                 : null,
             'username'   => $data['username'] ?? null,
@@ -314,6 +324,7 @@ class UserModel extends Model
      * 목록 조회 (user_type 필터, 검색, 페이징)
      *
      * @param array<string, mixed> $params
+     *
      * @return array<string, mixed>
      */
     public function getList(array $params): array
@@ -321,15 +332,15 @@ class UserModel extends Model
         $builder = $this->builder()
             ->where($this->table . '.deleted_at IS NULL', null, false);
 
-        if (!empty($params['is_agency'])) {
+        if (! empty($params['is_agency'])) {
             $builder->where('is_agency_account', 1);
         } else {
             // 대행사 계정은 '대행사' 탭에서만 노출 — 다른 탭에서는 제외
             $builder->where('is_agency_account', 0);
 
-            if (!empty($params['user_types']) && is_array($params['user_types'])) {
+            if (! empty($params['user_types']) && is_array($params['user_types'])) {
                 $builder->whereIn('user_type', array_map(intval(...), $params['user_types']));
-            } elseif (!empty($params['user_type'])) {
+            } elseif (! empty($params['user_type'])) {
                 $builder->where('user_type', (int) $params['user_type']);
             }
         }
@@ -339,7 +350,7 @@ class UserModel extends Model
             $builder->where('is_dormant', (int) $params['is_dormant']);
         }
 
-        if (!empty($params['search_word'])) {
+        if (! empty($params['search_word'])) {
             $builder->groupStart()
                 ->like('email', $params['search_word'])
                 ->orLike('username', $params['search_word'])
@@ -380,7 +391,7 @@ class UserModel extends Model
         $update = [];
 
         if ($isDormant !== null) {
-            if (!in_array($isDormant, [0, 1], true)) {
+            if (! in_array($isDormant, [0, 1], true)) {
                 throw new RuntimeException('유효하지 않은 휴면 상태입니다.');
             }
             $update['is_dormant'] = $isDormant;
@@ -389,7 +400,7 @@ class UserModel extends Model
         }
 
         if ($isActive !== null) {
-            if (!in_array($isActive, [0, 1], true)) {
+            if (! in_array($isActive, [0, 1], true)) {
                 throw new RuntimeException('유효하지 않은 계정 활성 상태입니다.');
             }
             $update['is_active'] = $isActive;

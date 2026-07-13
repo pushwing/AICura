@@ -16,7 +16,9 @@ use Config\Services;
  */
 class LlmsController extends BaseController
 {
-    /** 나열할 발행 가이드 최대 수 */
+    /**
+     * 나열할 발행 가이드 최대 수
+     */
     private const int GUIDE_LIMIT = 100;
 
     public function index(): ResponseInterface
@@ -73,6 +75,7 @@ class LlmsController extends BaseController
         $result = $guideService->publishedList(['page' => 1, 'limit' => self::GUIDE_LIMIT]);
 
         $lines = [];
+
         foreach ($result['items'] as $guide) {
             $url     = base_url('guides/' . rawurlencode((string) $guide['slug']));
             $summary = trim((string) ($guide['summary'] ?? ''));
@@ -94,6 +97,7 @@ class LlmsController extends BaseController
     private function categoryLines(EventService $eventService): array
     {
         $lines = [];
+
         foreach ($eventService->categories() as $category) {
             $title = trim((string) ($category['title'] ?? ''));
             if ($title !== '') {

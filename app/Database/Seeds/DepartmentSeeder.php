@@ -20,14 +20,14 @@ class DepartmentSeeder extends Seeder
 
         // 진료과 고정 코드 마스터
         $departments = [
-            ['id' => 1, 'code' => 'plastic_surgery',   'name' => '성형외과'],
-            ['id' => 2, 'code' => 'dermatology',       'name' => '피부과'],
-            ['id' => 3, 'code' => 'dental',            'name' => '치과'],
-            ['id' => 4, 'code' => 'ophthalmology',     'name' => '안과'],
-            ['id' => 5, 'code' => 'hair_transplant',   'name' => '모발이식'],
-            ['id' => 6, 'code' => 'obesity',           'name' => '비만·체형'],
+            ['id' => 1, 'code' => 'plastic_surgery', 'name' => '성형외과'],
+            ['id' => 2, 'code' => 'dermatology', 'name' => '피부과'],
+            ['id' => 3, 'code' => 'dental', 'name' => '치과'],
+            ['id' => 4, 'code' => 'ophthalmology', 'name' => '안과'],
+            ['id' => 5, 'code' => 'hair_transplant', 'name' => '모발이식'],
+            ['id' => 6, 'code' => 'obesity', 'name' => '비만·체형'],
             ['id' => 7, 'code' => 'oriental_medicine', 'name' => '한의원'],
-            ['id' => 8, 'code' => 'urology',           'name' => '비뇨기과'],
+            ['id' => 8, 'code' => 'urology', 'name' => '비뇨기과'],
         ];
 
         foreach ($departments as $row) {

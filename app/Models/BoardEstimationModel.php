@@ -14,20 +14,19 @@ use Throwable;
  */
 class BoardEstimationModel extends Model
 {
-    protected $table      = 'board_estimations';
-    protected $primaryKey = 'id';
+    public const TYPE_LIKE   = 1;
+    public const TYPE_REPORT = 2;
+
+    protected $table         = 'board_estimations';
+    protected $primaryKey    = 'id';
     protected $useTimestamps = true;
     protected $updatedField  = ''; // updated_at 없음
     protected $returnType    = 'array';
-
     protected $allowedFields = [
         'type',
         'board_id',
         'user_id',
     ];
-
-    public const TYPE_LIKE   = 1;
-    public const TYPE_REPORT = 2;
 
     /**
      * 좋아요 토글 — 있으면 삭제, 없으면 추가. 토글 후 좋아요 상태(true=좋아요)를 반환한다.
@@ -81,6 +80,7 @@ class BoardEstimationModel extends Model
      * 주어진 후기 ID 중 사용자가 좋아요한 board_id만 반환 — is_liked 오버레이용.
      *
      * @param array<int, int> $boardIds
+     *
      * @return array<int, int>
      */
     public function likedBoardIds(int $userId, array $boardIds): array

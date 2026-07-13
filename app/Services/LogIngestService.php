@@ -20,7 +20,9 @@ class LogIngestService
     {
     }
 
-    /** 큐를 지연 해석 — 공유 인스턴스가 생성 시점 큐를 고정하지 않도록 매 호출 resolve. */
+    /**
+     * 큐를 지연 해석 — 공유 인스턴스가 생성 시점 큐를 고정하지 않도록 매 호출 resolve.
+     */
     private function queue(): RedisQueue
     {
         return $this->queue ?? service('redisQueue');
@@ -30,7 +32,7 @@ class LogIngestService
      * 로그 1건을 큐에 적재. Redis 미연결 시 원시 파일로 폴백.
      *
      * @param array<string, mixed> $payload 앱이 전송한 로그 본문
-     * @param int|null $userId 인증된 경우 사용자 id
+     * @param int|null             $userId  인증된 경우 사용자 id
      */
     public function ingest(array $payload, ?int $userId = null): void
     {
@@ -58,7 +60,7 @@ class LogIngestService
     public function writeRaw(string $line): void
     {
         $dir = rtrim(WRITEPATH, '/\\') . '/logs/raw/';
-        if (!is_dir($dir)) {
+        if (! is_dir($dir)) {
             mkdir($dir, 0775, true);
         }
 

@@ -23,8 +23,8 @@ class BingSiteVerificationController extends BaseController
         }
 
         $xml = '<?xml version="1.0"?>' . "\n"
-            . '<users>' . "\n"
-            . '    <user>' . $code . '</user>' . "\n"
+            . "<users>\n"
+            . '    <user>' . $code . "</user>\n"
             . '</users>';
 
         return $this->response

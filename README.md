@@ -1,17 +1,27 @@
 # AI Cura
 
-AI 기반 성형·토탈 광고 솔루션 — 앱/웹용 REST API + 관리자 툴
+AI 기반 성형·토탈 광고 솔루션 — 소비자 앱 REST API + 운영자/광고주 관리 툴 + 공개 웹(SEO/GEO)
 
 ---
 
 ## 개요
 
+CodeIgniter 4 단일 프로젝트에 네 개의 진입면(surface)이 공존한다.
+
+| 진입면 | 대상 | 인증 | 컨트롤러 |
+|--------|------|------|----------|
+| **Admin** | 운영자 | 세션 | `app/Controllers/Admin/` |
+| **Portal** | 광고주·대행사 | 세션 | `app/Controllers/Portal/` |
+| **API v1** | 소비자 앱(Flutter) | JWT Bearer | `app/Controllers/Api/V1/` |
+| **공개 웹** | 검색·AI 크롤러 (SEO/GEO) | 없음 | `app/Controllers/Web/` |
+
 | 항목 | 내용 |
 |------|------|
-| **스택** | PHP 8.4+ · CodeIgniter 4 · FrankenPHP |
-| **Admin** | CI4 MVC · 세션 인증 · DB 직접 접근 |
-| **API** | REST · JWT 인증 · JSON 응답 |
-| **문서** | Swagger UI (`/api/docs`) |
+| **스택** | PHP 8.4+ (CLI) / 8.5 (FrankenPHP) · CodeIgniter 4 |
+| **웹 서버** | FrankenPHP(로컬 `make serve`) / 아파치 mod_php(프로덕션) |
+| **API 문서** | RapiDoc (`/api/docs`) — `zircote/swagger-php` 로 스펙 생성 |
+| **AI** | Groq(`llama-3.3-70b-versatile`) — 일일 보고서·리드 분석·후기 품질·카피·컴플라이언스 |
+| **모바일 앱** | Flutter (`app-mobile/`) |
 
 ---
 
@@ -51,12 +61,17 @@ GROQ_MODEL = llama-3.3-70b-versatile   # 선택 (기본값 동일)
 
 ### DB 생성
 
-```bash
-# MySQL root 접속 후 실행 (dev-docs/db-setup.sql 참고)
-mysql -u root -p < dev-docs/db-setup.sql
+MySQL에 접속해 데이터베이스와 계정을 생성합니다.
+
+```sql
+CREATE DATABASE aicura CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+CREATE USER 'aicura'@'localhost' IDENTIFIED BY 'Aicura@2026!Dev';
+GRANT ALL PRIVILEGES ON aicura.* TO 'aicura'@'localhost';
+FLUSH PRIVILEGES;
 ```
 
-생성되는 계정: `aicura / Aicura@2026!Dev` — `.env`에 동일하게 설정합니다.
+생성한 계정(`aicura / Aicura@2026!Dev`)을 위 `.env`의 `database.default.*`에 동일하게 설정합니다.
+로컬에서 root 계정을 그대로 쓴다면 이 단계는 생략하고 데이터베이스만 만들어도 됩니다.
 
 ### 마이그레이션 및 서버 실행
 
@@ -90,22 +105,30 @@ php spark db:seed AdminUserSeeder
 
 | 경로 | 설명 | 인증 |
 |------|------|------|
-| `/admin/login` | 관리자 로그인 | 없음 |
-| `/admin/*` | 관리자 패널 | 세션 |
-| `/api/docs` | Swagger UI | 없음 |
-| `/api/docs/spec` | OpenAPI JSON | 없음 |
-| `/api/v1/auth/*` | JWT 발급·갱신 | 없음 |
-| `/api/v1/*` | REST API | JWT Bearer |
+| `/admin/login` | 운영자 로그인 | 없음 |
+| `/admin/*` | 운영자 패널 | 세션 |
+| `/portal/login` | 광고주·대행사 로그인 | 없음 |
+| `/portal/*` | 광고주·대행사 포털 | 세션(portal_auth) |
+| `/api/docs` · `/api/docs/spec` | RapiDoc UI · OpenAPI JSON | 없음 |
+| `/api/v1/auth/*` | JWT 발급·갱신·소셜 로그인 | 없음 |
+| `/api/v1/campaigns` · `/hospitals` · `/boards` 등 조회 | 소비자 앱 열람 | 선택적(jwt_optional) |
+| `/api/v1/*` (찜·신청·예약 등) | 소비자 앱 쓰기 | JWT Bearer |
+| `/events` · `/hospitals` · `/reviews` · `/guides` | 공개 랜딩 페이지 (SEO/GEO) | 없음 |
+| `/sitemap.xml` · `/robots.txt` · `/llms.txt` | 크롤러 진입점(동적 생성) | 없음 |
 
 ---
 
-## API 문서 (Swagger)
+## API 문서 (RapiDoc)
 
+OpenAPI 스펙은 `zircote/swagger-php`로 생성하고, **RapiDoc**이 이를 렌더링합니다.
 개발 서버 실행 후 브라우저에서 확인합니다.
 
 ```
 http://localhost:8300/api/docs
 ```
+
+- `/api/docs` — RapiDoc UI (`app/Views/api/rapidoc.php`)
+- `/api/docs/spec` — OpenAPI JSON (개발: 동적 생성 / 운영: `public/swagger.json` 서빙)
 
 ### 정적 스펙 파일 생성 (운영 배포 시)
 
@@ -182,31 +205,32 @@ POST /api/v1/auth/refresh
 AICura/
 ├── app/
 │   ├── Controllers/
-│   │   ├── Admin/          — 관리자 컨트롤러 (세션 인증)
+│   │   ├── Admin/          — 운영자 컨트롤러 (세션 인증)
+│   │   ├── Portal/         — 광고주·대행사 포털 (세션 인증)
+│   │   ├── Web/            — 공개 웹 페이지·크롤러 진입점 (SEO/GEO)
 │   │   └── Api/
-│   │       ├── DocsController.php   — Swagger UI & 스펙 엔드포인트
+│   │       ├── DocsController.php   — RapiDoc & 스펙 엔드포인트
 │   │       └── V1/         — REST API 컨트롤러 (JWT 인증)
-│   ├── Models/             — Admin·API 공유 모델
-│   ├── Filters/
-│   │   ├── AdminAuthFilter.php
-│   │   └── JwtAuthFilter.php
+│   ├── Models/             — Admin·Portal·API 공유 모델
+│   ├── Services/           — 비즈니스 로직 (AI 보고서·리드·후기·헬스포인트 등)
+│   ├── Enums/              — Backed Enum (AppLogEvent, PointReason)
+│   ├── Exceptions/         — 도메인 예외
+│   ├── Filters/            — AdminAuth / PortalAuth / JwtAuth / OptionalJwtAuth / RateLimit
 │   ├── Libraries/
-│   │   └── JwtLibrary.php
-│   ├── Commands/
-│   │   └── SwaggerGenerate.php   — php spark swagger:generate
-│   ├── Views/
-│   │   ├── admin/
-│   │   └── api/swagger_ui.php
-│   └── Config/
-│       ├── Routes.php
-│       └── Filters.php
+│   │   ├── JwtLibrary.php
+│   │   ├── MarkdownRenderer.php
+│   │   └── Ai/             — AiClientInterface · GroqClient · AiClientFactory
+│   ├── Commands/           — swagger:generate · reports:generate-ai · logs:* · leads:analyze · reviews:analyze
+│   ├── Database/
+│   │   ├── Migrations/
+│   │   └── Seeds/          — AdminUserSeeder 등
+│   ├── Views/              — admin / portal / web / reports / api
+│   └── Config/             — Routes.php · Filters.php 등
+├── app-mobile/             — Flutter 소비자 앱
 ├── public/                 — 웹 루트 (index.php)
 ├── assets/logo/            — 브랜드 로고 SVG
-├── docs/                   — 프로젝트 문서
-│   ├── branding.md
-│   ├── design-system.md
-│   ├── ui-guide.md
-│   └── architecture.md
+├── docs/                   — 프로젝트 문서 (아래 문서 표 참고)
+├── .githooks/              — pre-commit (php-cs-fixer 자동 적용)
 └── ui/                     — UI 컴포넌트 (aicura.css, components.html)
 ```
 
@@ -220,14 +244,22 @@ make serve-spark                 # CI4 내장 개발 서버 (포트 8300)
 php spark migrate                # DB 마이그레이션 (default 그룹)
 php spark migrate --group tests  # 테스트 DB 마이그레이션
 php spark migrate:rollback       # 마이그레이션 롤백
-php spark swagger:generate       # OpenAPI 스펙 생성
 php spark routes                 # 등록된 라우트 확인
+php spark swagger:generate       # OpenAPI 스펙 생성 (public/swagger.json)
+
+# AI·큐 배치 (crontab/데몬으로 주기 실행)
 php spark reports:generate-ai    # Groq AI 일일 매출·소진 보고서 생성 (이슈 #65)
+php spark leads:analyze          # 대기 중 이벤트 신청 AI 분석 (전환점수·요약·다음액션)
+php spark reviews:analyze        # 대기 중 후기 AI 분석 (감성·신뢰점수·플래그)
 php spark logs:consume           # 로그 큐 소비 → app_logs 적재 (이슈 #115)
 php spark logs:aggregate         # app_logs 시간별 집계 → hourly_event_stats (이슈 #120)
+
+# 품질 검증 (composer)
 composer test                    # PHPUnit 단위·통합 테스트
 composer analyse                 # PHPStan 정적 분석 (level 6)
 composer check                   # PHPStan + PHPUnit 순차 실행
+composer cs                      # PHP CS Fixer 검사 (dry-run)
+composer cs:fix                  # PHP CS Fixer 자동 수정 (커밋 시 pre-commit 훅으로도 적용)
 ```
 
 ---
@@ -377,9 +409,10 @@ gh pr create --base dev --head feature/기능명
 gh pr create --base main --head dev --title "release: YYYY-MM-DD"
 ```
 
-- Merge 방식: **Squash and merge**
+- Merge 방식: `feature/* → dev` 는 **Squash and merge**, `dev → main` 배포는 **Merge commit** (Squash 금지 — 조상 관계 유지)
 - PR 머지 후 `feature/*` 브랜치 자동 삭제
 - `main` · `dev` 직접 push 금지
+- 커밋 시 `.githooks/pre-commit` 이 스테이징된 PHP 파일에 **php-cs-fixer(CI4 표준)** 를 자동 적용한다 (`composer install` 이 훅 경로를 등록)
 
 자세한 내용: [`docs/git-workflow.md`](docs/git-workflow.md)
 
@@ -534,9 +567,13 @@ cd <DEPLOY_PATH> && php spark db:seed AdminUserSeeder
 
 | 문서 | 경로 |
 |------|------|
+| 아키텍처 설계 | `docs/architecture.md` |
+| 기술 요구사항 정의(TRD) | `docs/TRD.md` |
+| Git 워크플로우 | `docs/git-workflow.md` |
+| 운영자 매뉴얼 | `docs/admin-manual.md` (`.pdf`) |
+| 광고주·대행사 포털 매뉴얼 | `docs/portal-manual.md` (`.pdf`) |
 | 브랜딩 가이드 | `docs/branding.md` |
 | 디자인 시스템 | `docs/design-system.md` |
 | UI 컴포넌트 가이드 | `docs/ui-guide.md` |
-| 아키텍처 설계 | `docs/architecture.md` |
 | GEO 적용 전략 (SEO→GEO) | `docs/geo-strategy.md` |
 | UI 쇼케이스 | `ui/components.html` |

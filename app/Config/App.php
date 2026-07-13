@@ -32,29 +32,6 @@ class App extends BaseConfig
     public array $allowedHostnames = [];
 
     /**
-     * 로컬 개발 환경에서 FrankenPHP(8300)·CI4 내장 서버(8080)를 동시에 띄워두고 쓰는 경우,
-     * 요청 Host 헤더에 따라 baseURL 을 맞춰준다. Host header injection 방지를 위해
-     * 화이트리스트에 있는 host:port 조합만 허용한다.
-     */
-    public function __construct()
-    {
-        parent::__construct();
-
-        if (ENVIRONMENT === 'development') {
-            $allowedLocalHosts = [
-                'localhost:8080', '127.0.0.1:8080',
-                'localhost:8300', '127.0.0.1:8300',
-            ];
-
-            $host = service('superglobals')->server('HTTP_HOST') ?? '';
-
-            if (in_array($host, $allowedLocalHosts, true)) {
-                $this->baseURL = "http://{$host}/";
-            }
-        }
-    }
-
-    /**
      * --------------------------------------------------------------------------
      * Index File
      * --------------------------------------------------------------------------
@@ -223,4 +200,38 @@ class App extends BaseConfig
      * @see http://www.w3.org/TR/CSP/
      */
     public bool $CSPEnabled = false;
+
+    /**
+     * 로컬 개발 환경에서 요청 Host 헤더에 따라 baseURL 을 맞춰준다.
+     *
+     * base_url() 로 생성되는 절대 URL(이미지 썸네일 등)이 요청 Host 에 묶이므로,
+     * 앱이 접근한 호스트를 그대로 반영해야 에뮬레이터·실기기에서 이미지가 열린다(이슈 #130).
+     * Host header injection 방지를 위해 사설/로컬 호스트 + 개발 포트 조합만 허용한다.
+     */
+    public function __construct()
+    {
+        parent::__construct();
+
+        if (ENVIRONMENT === 'development') {
+            $host = service('superglobals')->server('HTTP_HOST') ?? '';
+
+            if (self::isAllowedDevHost($host)) {
+                $this->baseURL = "http://{$host}/";
+            }
+        }
+    }
+
+    /**
+     * 개발 환경에서 요청 Host 를 baseURL 로 채택해도 되는지 검사한다.
+     *
+     * 허용: localhost · 127.0.0.1 · 10.0.2.2(Android 에뮬레이터) · 192.168.x.x(실기기 LAN)
+     *       + 개발 포트(8080 · 8300). 그 외(외부 도메인·비허용 포트·형식 오류)는 injection 방어로 거부.
+     */
+    public static function isAllowedDevHost(string $host): bool
+    {
+        return preg_match(
+            '/^(?:localhost|127\.0\.0\.1|10\.0\.2\.2|192\.168\.\d{1,3}\.\d{1,3}):(?:8080|8300)$/',
+            $host,
+        ) === 1;
+    }
 }

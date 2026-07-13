@@ -14,8 +14,7 @@ final class ReportModelDatabaseTest extends CIUnitTestCase
     protected $migrate     = true;
     protected $migrateOnce = true;
     protected $refresh     = false;
-    protected $namespace   = null;
-
+    protected $namespace;
     private int $hospitalId    = 0;
     private int $campaignId    = 0;
     private int $contractId    = 9001;
@@ -26,8 +25,8 @@ final class ReportModelDatabaseTest extends CIUnitTestCase
     {
         parent::setUp();
 
-        $db  = db_connect();
-        $now = date('Y-m-d H:i:s');
+        $db         = db_connect();
+        $now        = date('Y-m-d H:i:s');
         $this->year = (int) date('Y');
 
         $db->table('hospitals')->insert([
@@ -200,6 +199,7 @@ final class ReportModelDatabaseTest extends CIUnitTestCase
         ]);
 
         $row = null;
+
         foreach ($stats as $s) {
             if ((int) $s['campaign_id'] === $this->campaignId) {
                 $row = $s;

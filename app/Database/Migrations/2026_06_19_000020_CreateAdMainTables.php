@@ -20,13 +20,13 @@ class CreateAdMainTables extends Migration
     {
         // ── ad_mains ────────────────────────────────────────────
         $this->forge->addField([
-            'id' => ['type' => 'BIGINT', 'unsigned' => true, 'auto_increment' => true],
-            'campaign_id' => ['type' => 'BIGINT', 'unsigned' => true],
-            'ad_title'    => ['type' => 'VARCHAR', 'constraint' => 200, 'default' => ''],
-            'hospital_id' => ['type' => 'INT'],
+            'id'             => ['type' => 'BIGINT', 'unsigned' => true, 'auto_increment' => true],
+            'campaign_id'    => ['type' => 'BIGINT', 'unsigned' => true],
+            'ad_title'       => ['type' => 'VARCHAR', 'constraint' => 200, 'default' => ''],
+            'hospital_id'    => ['type' => 'INT'],
             'agency_user_id' => ['type' => 'INT', 'null' => true],
-            'created_at'  => ['type' => 'DATETIME', 'null' => true],
-            'updated_at'  => ['type' => 'DATETIME', 'null' => true],
+            'created_at'     => ['type' => 'DATETIME', 'null' => true],
+            'updated_at'     => ['type' => 'DATETIME', 'null' => true],
         ]);
         $this->forge->addKey('id', true);
         $this->forge->addKey('campaign_id', false, false, 'idx_ad_mains_campaign_id');
@@ -36,16 +36,16 @@ class CreateAdMainTables extends Migration
         // ── ad_main_maps ─────────────────────────────────────────
         // 소재(campaign) 버전마다 레코드 생성 — 검수 이력 관리 기반
         $this->forge->addField([
-            'id'           => ['type' => 'BIGINT', 'unsigned' => true, 'auto_increment' => true],
-            'ad_main_id'   => ['type' => 'BIGINT', 'unsigned' => true],
-            'campaign_id'  => ['type' => 'BIGINT', 'unsigned' => true],
+            'id'          => ['type' => 'BIGINT', 'unsigned' => true, 'auto_increment' => true],
+            'ad_main_id'  => ['type' => 'BIGINT', 'unsigned' => true],
+            'campaign_id' => ['type' => 'BIGINT', 'unsigned' => true],
             // 1 메인노출, 2 미노출
-            'is_main'      => ['type' => 'TINYINT', 'default' => 1],
+            'is_main' => ['type' => 'TINYINT', 'default' => 1],
             // 1 검수완료, 2 미검수
-            'is_inspect'   => ['type' => 'TINYINT', 'default' => 2],
-            'url'          => ['type' => 'TEXT', 'null' => true],
-            'created_at'   => ['type' => 'DATETIME', 'null' => true],
-            'updated_at'   => ['type' => 'DATETIME', 'null' => true],
+            'is_inspect' => ['type' => 'TINYINT', 'default' => 2],
+            'url'        => ['type' => 'TEXT', 'null' => true],
+            'created_at' => ['type' => 'DATETIME', 'null' => true],
+            'updated_at' => ['type' => 'DATETIME', 'null' => true],
         ]);
         $this->forge->addKey('id', true);
         $this->forge->addKey('ad_main_id', false, false, 'idx_ad_main_maps_ad_main_id');
@@ -54,13 +54,13 @@ class CreateAdMainTables extends Migration
 
         // ── ad_recommend_maps ────────────────────────────────────
         $this->forge->addField([
-            'id'          => ['type' => 'BIGINT', 'unsigned' => true, 'auto_increment' => true],
-            'campaign_id' => ['type' => 'BIGINT', 'unsigned' => true],
+            'id'            => ['type' => 'BIGINT', 'unsigned' => true, 'auto_increment' => true],
+            'campaign_id'   => ['type' => 'BIGINT', 'unsigned' => true],
             'admin_user_id' => ['type' => 'INT', 'null' => true],
-            'ads_order'   => ['type' => 'INT', 'null' => true],
-            'is_delete'   => ['type' => 'TINYINT', 'default' => 0],
-            'created_at'  => ['type' => 'DATETIME', 'null' => true],
-            'updated_at'  => ['type' => 'DATETIME', 'null' => true],
+            'ads_order'     => ['type' => 'INT', 'null' => true],
+            'is_delete'     => ['type' => 'TINYINT', 'default' => 0],
+            'created_at'    => ['type' => 'DATETIME', 'null' => true],
+            'updated_at'    => ['type' => 'DATETIME', 'null' => true],
         ]);
         $this->forge->addKey('id', true);
         $this->forge->addKey('campaign_id', false, false, 'idx_ad_recommend_maps_campaign_id');

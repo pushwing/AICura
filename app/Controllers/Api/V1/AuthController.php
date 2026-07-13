@@ -29,10 +29,10 @@ class AuthController extends BaseApiController
         content: new OA\JsonContent(
             required: ['email', 'password'],
             properties: [
-                new OA\Property(property: 'email',    type: 'string', format: 'email', example: 'appuser01@aicura.test'),
+                new OA\Property(property: 'email', type: 'string', format: 'email', example: 'appuser01@aicura.test'),
                 new OA\Property(property: 'password', type: 'string', format: 'password', example: 'password1234'),
-            ]
-        )
+            ],
+        ),
     ), tags: ['Auth'], responses: [
         new OA\Response(response: 200, description: '로그인 성공'),
         new OA\Response(response: 401, description: '이메일 또는 비밀번호 불일치'),
@@ -45,7 +45,7 @@ class AuthController extends BaseApiController
             'password' => 'required|min_length[6]',
         ];
 
-        if (!$this->validate($rules)) {
+        if (! $this->validate($rules)) {
             return $this->error('VALIDATION_ERROR', implode(' ', $this->validator->getErrors()), 422);
         }
 
@@ -65,15 +65,15 @@ class AuthController extends BaseApiController
         content: new OA\JsonContent(
             required: ['email', 'password'],
             properties: [
-                new OA\Property(property: 'email',      type: 'string', format: 'email', example: 'newuser@aicura.test'),
-                new OA\Property(property: 'password',   type: 'string', format: 'password', example: 'password1234'),
-                new OA\Property(property: 'username',   type: 'string', example: '홍길동'),
-                new OA\Property(property: 'phone',      type: 'string', example: '01012345678'),
-                new OA\Property(property: 'age',        type: 'integer', example: 29),
-                new OA\Property(property: 'sex',        type: 'string', example: 'F'),
+                new OA\Property(property: 'email', type: 'string', format: 'email', example: 'newuser@aicura.test'),
+                new OA\Property(property: 'password', type: 'string', format: 'password', example: 'password1234'),
+                new OA\Property(property: 'username', type: 'string', example: '홍길동'),
+                new OA\Property(property: 'phone', type: 'string', example: '01012345678'),
+                new OA\Property(property: 'age', type: 'integer', maximum: 127, example: 29),
+                new OA\Property(property: 'sex', type: 'string', enum: ['M', 'F'], example: 'F'),
                 new OA\Property(property: 'where_from', description: '2 iOS · 3 Android', type: 'integer', example: 2),
-            ]
-        )
+            ],
+        ),
     ), tags: ['Auth'], responses: [
         new OA\Response(response: 201, description: '가입 성공 (자동 로그인 토큰 발급)'),
         new OA\Response(response: 409, description: '이미 가입된 이메일'),
@@ -86,12 +86,12 @@ class AuthController extends BaseApiController
             'password'   => 'required|min_length[8]|max_length[72]',
             'username'   => 'permit_empty|max_length[100]',
             'phone'      => 'permit_empty|max_length[30]',
-            'age'        => 'permit_empty|is_natural_no_zero|less_than[150]',
-            'sex'        => 'permit_empty|max_length[10]',
+            'age'        => 'permit_empty|is_natural_no_zero|less_than[128]',
+            'sex'        => 'permit_empty|in_list[M,F]',
             'where_from' => 'permit_empty|in_list[2,3]',
         ];
 
-        if (!$this->validate($rules)) {
+        if (! $this->validate($rules)) {
             return $this->error('VALIDATION_ERROR', implode(' ', $this->validator->getErrors()), 422);
         }
 
@@ -109,11 +109,11 @@ class AuthController extends BaseApiController
         content: new OA\JsonContent(
             required: ['provider', 'access_token'],
             properties: [
-                new OA\Property(property: 'provider',     type: 'string', example: 'kakao', enum: ['naver', 'kakao']),
+                new OA\Property(property: 'provider', type: 'string', example: 'kakao', enum: ['naver', 'kakao']),
                 new OA\Property(property: 'access_token', description: '소셜 제공자 발급 액세스 토큰 (서버가 검증)', type: 'string', example: 'AAAA...'),
-                new OA\Property(property: 'where_from',   description: '2 iOS · 3 Android', type: 'integer', example: 3),
-            ]
-        )
+                new OA\Property(property: 'where_from', description: '2 iOS · 3 Android', type: 'integer', example: 3),
+            ],
+        ),
     ), tags: ['Auth'], responses: [
         new OA\Response(response: 200, description: '로그인 성공'),
         new OA\Response(response: 401, description: '소셜 토큰 검증 실패 (SOCIAL_AUTH_FAILED)'),
@@ -127,7 +127,7 @@ class AuthController extends BaseApiController
             'access_token' => 'required|max_length[4096]',
         ];
 
-        if (!$this->validate($rules)) {
+        if (! $this->validate($rules)) {
             return $this->error('VALIDATION_ERROR', implode(' ', $this->validator->getErrors()), 422);
         }
 
@@ -146,15 +146,15 @@ class AuthController extends BaseApiController
             required: ['email'],
             properties: [
                 new OA\Property(property: 'email', type: 'string', format: 'email', example: 'newuser@aicura.test'),
-            ]
-        )
+            ],
+        ),
     ), tags: ['Auth'], responses: [
         new OA\Response(response: 200, description: '확인 성공 (available: 가입 가능 여부)'),
         new OA\Response(response: 422, description: '유효성 검사 실패'),
     ])]
     public function checkEmail(): ResponseInterface
     {
-        if (!$this->validate(['email' => 'required|valid_email'])) {
+        if (! $this->validate(['email' => 'required|valid_email'])) {
             return $this->error('VALIDATION_ERROR', implode(' ', $this->validator->getErrors()), 422);
         }
 
@@ -169,8 +169,8 @@ class AuthController extends BaseApiController
             required: ['refresh_token'],
             properties: [
                 new OA\Property(property: 'refresh_token', type: 'string'),
-            ]
-        )
+            ],
+        ),
     ), tags: ['Auth'], responses: [
         new OA\Response(response: 200, description: '토큰 갱신 성공'),
         new OA\Response(response: 401, description: '유효하지 않은 리프레시 토큰'),
@@ -203,7 +203,7 @@ class AuthController extends BaseApiController
         responses: [
             new OA\Response(response: 200, description: '로그아웃 성공'),
             new OA\Response(response: 401, description: '인증 필요'),
-        ]
+        ],
     )]
     public function logout(): ResponseInterface
     {

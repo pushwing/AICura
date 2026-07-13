@@ -2,14 +2,14 @@
 
 namespace App\Controllers\Portal;
 
-use Override;
-use CodeIgniter\HTTP\RequestInterface;
-use CodeIgniter\HTTP\ResponseInterface;
-use Psr\Log\LoggerInterface;
 use App\Models\AdvertiserModel;
 use App\Models\ContractModel;
 use App\Models\ContractOrderModel;
 use CodeIgniter\HTTP\RedirectResponse;
+use CodeIgniter\HTTP\RequestInterface;
+use CodeIgniter\HTTP\ResponseInterface;
+use Override;
+use Psr\Log\LoggerInterface;
 
 /**
  * 포털 계약 관리 (이슈 #32)
@@ -27,7 +27,7 @@ class ContractController extends BasePortalController
     public function initController(
         RequestInterface $request,
         ResponseInterface $response,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ): void {
         parent::initController($request, $response, $logger);
         $this->contractModel   = model(ContractModel::class);
@@ -57,16 +57,17 @@ class ContractController extends BasePortalController
         /** @var list<int> $hospitalIds */
         $hospitalIds = array_values(array_unique(array_map(
             static fn (array $a): int => (int) $a['hospital_id'],
-            $advertisers
+            $advertisers,
         )));
 
         $summary = $this->contractModel->getSummaryByHospitalIds($hospitalIds);
 
         $rows = array_map(static function (array $a) use ($summary): array {
-            $s = $summary[(int) $a['hospital_id']] ?? ['order_count' => 0, 'total_price' => 0];
+            $s                = $summary[(int) $a['hospital_id']] ?? ['order_count' => 0, 'total_price' => 0];
             $a['order_count'] = $s['order_count'];
             $a['total_price'] = $s['total_price'];
-            $a['agreed']      = !empty($a['contract_agreed_at']);
+            $a['agreed']      = ! empty($a['contract_agreed_at']);
+
             return $a;
         }, $advertisers);
 
@@ -87,7 +88,7 @@ class ContractController extends BasePortalController
 
         $advertiser = $advertiserId !== null ? $this->advertiserModel->find($advertiserId) : null;
         $agreedAt   = $advertiser['contract_agreed_at'] ?? null;
-        $agreed     = !empty($agreedAt);
+        $agreed     = ! empty($agreedAt);
 
         $contract = $hospitalId !== null ? $this->contractModel->findByHospital($hospitalId) : null;
 
@@ -103,6 +104,7 @@ class ContractController extends BasePortalController
             $orders = array_map(function (array $o) use ($balances): array {
                 $o['balance']        = $balances[(int) $o['id']] ?? 0;
                 $o['created_at_kst'] = empty($o['created_at']) ? '-' : $this->toKst($o['created_at']);
+
                 return $o;
             }, $rawOrders);
         }
@@ -130,7 +132,7 @@ class ContractController extends BasePortalController
     // 광고주 — 수주계약 상세 + 거래내역 (이슈 #49)
     // ──────────────────────────────────────────────
 
-    public function orderShow(int $id): string|RedirectResponse
+    public function orderShow(int $id): RedirectResponse|string
     {
         $this->requireAdvertiser();
 
@@ -148,16 +150,17 @@ class ContractController extends BasePortalController
 
         $history = array_map(function (array $h): array {
             $h['created_at_kst'] = empty($h['created_at']) ? '-' : $this->toKst($h['created_at']);
+
             return $h;
         }, $this->orderModel->getDepositHistory($id));
 
         return $this->render('portal/contracts/order_show', [
-            'pageTitle'         => '수주계약 상세',
-            'order'             => $order,
-            'history'           => $history,
-            'adTypeLabels'      => ContractOrderModel::AD_TYPE2_LABELS,
-            'statusLabels'      => ContractOrderModel::STATUS_LABELS,
-            'depositLabels'     => ContractOrderModel::DEPOSIT_STATUS_LABELS,
+            'pageTitle'     => '수주계약 상세',
+            'order'         => $order,
+            'history'       => $history,
+            'adTypeLabels'  => ContractOrderModel::AD_TYPE2_LABELS,
+            'statusLabels'  => ContractOrderModel::STATUS_LABELS,
+            'depositLabels' => ContractOrderModel::DEPOSIT_STATUS_LABELS,
         ]);
     }
 
@@ -184,10 +187,10 @@ class ContractController extends BasePortalController
         $agreed = $this->advertiserModel->agreeContract(
             $advertiserId,
             $hospitalId,
-            (string) $advertiser['hospital_name']
+            (string) $advertiser['hospital_name'],
         );
 
-        if (!$agreed) {
+        if (! $agreed) {
             return redirect()->to('/portal/contracts')->with('error', '이미 계약에 동의하셨습니다.');
         }
 
@@ -198,7 +201,7 @@ class ContractController extends BasePortalController
     // 광고주 — 수주계약(충전) 신청 폼
     // ──────────────────────────────────────────────
 
-    public function orderNew(): string|RedirectResponse
+    public function orderNew(): RedirectResponse|string
     {
         $this->requireAdvertiser();
 
@@ -231,17 +234,17 @@ class ContractController extends BasePortalController
         }
 
         $rules = [
-            'ad_type2'  => 'required|in_list[1,2,3,4,5]',
-            'ad_price'  => 'required|integer|greater_than[0]|less_than_equal_to[50000000]',
-            'pay_type'  => 'required|in_list[1,2]',
+            'ad_type2' => 'required|in_list[1,2,3,4,5]',
+            'ad_price' => 'required|integer|greater_than[0]|less_than_equal_to[50000000]',
+            'pay_type' => 'required|in_list[1,2]',
         ];
         $messages = [
             'ad_price' => [
-                'greater_than'        => '충전 금액은 0보다 커야 합니다.',
-                'less_than_equal_to'  => '충전 금액은 1회 5천만 원을 초과할 수 없습니다.',
+                'greater_than'       => '충전 금액은 0보다 커야 합니다.',
+                'less_than_equal_to' => '충전 금액은 1회 5천만 원을 초과할 수 없습니다.',
             ],
         ];
-        if (!$this->validate($rules, $messages)) {
+        if (! $this->validate($rules, $messages)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
@@ -251,15 +254,15 @@ class ContractController extends BasePortalController
         }
 
         $this->orderModel->registerWithContract([
-            'contract_id'   => (int) $contract['id'],
-            'contract_type' => 2, // 기존 계약에 수주계약 추가 (parent_order_id 없음 → 이월 미발생)
-            'hospital_id'   => $hospitalId,
-            'hospital_name' => $advertiser['hospital_name'],
-            'ad_type'       => 1,
-            'ad_type2'      => (int) $this->request->getPost('ad_type2'),
-            'ad_price'      => (int) $this->request->getPost('ad_price'),
+            'contract_id'     => (int) $contract['id'],
+            'contract_type'   => 2, // 기존 계약에 수주계약 추가 (parent_order_id 없음 → 이월 미발생)
+            'hospital_id'     => $hospitalId,
+            'hospital_name'   => $advertiser['hospital_name'],
+            'ad_type'         => 1,
+            'ad_type2'        => (int) $this->request->getPost('ad_type2'),
+            'ad_price'        => (int) $this->request->getPost('ad_price'),
             'contract_status' => 1,
-            'pay_type'      => (int) $this->request->getPost('pay_type'),
+            'pay_type'        => (int) $this->request->getPost('pay_type'),
         ]);
 
         return redirect()->to('/portal/contracts')

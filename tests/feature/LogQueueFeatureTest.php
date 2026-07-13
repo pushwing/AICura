@@ -2,9 +2,11 @@
 
 use App\Models\AppLogModel;
 use CodeIgniter\Config\Services;
+use CodeIgniter\I18n\Time;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use CodeIgniter\Test\FeatureTestTrait;
+use CodeIgniter\Throttle\Throttler;
 use Tests\Support\Libraries\FakeRedisQueue;
 
 /**
@@ -22,10 +24,9 @@ final class LogQueueFeatureTest extends CIUnitTestCase
     use DatabaseTestTrait;
     use FeatureTestTrait;
 
-    protected $migrate   = true;
-    protected $refresh   = true;
-    protected $namespace = null;
-
+    protected $migrate = true;
+    protected $refresh = true;
+    protected $namespace;
     private string $rawFile;
 
     protected function setUp(): void
@@ -38,8 +39,8 @@ final class LogQueueFeatureTest extends CIUnitTestCase
         // 벽시계 1초 경계를 넘으면 토큰이 1개 보충돼 61회째가 통과(202)해 버린다.
         // 느린 환경(PHP 8.4 + 전체 스위트)에서만 재현되던 간헐 실패의 원인 →
         // 시계를 고정해 재충전을 차단, 실행 속도와 무관하게 결정적으로 동작시킨다.
-        $throttler = new \CodeIgniter\Throttle\Throttler(cache());
-        $throttler->setTestTime(\CodeIgniter\I18n\Time::now()->getTimestamp());
+        $throttler = new Throttler(cache());
+        $throttler->setTestTime(Time::now()->getTimestamp());
         Services::injectMock('throttler', $throttler);
 
         // 날짜별 원시/dead-letter 파일을 깨끗한 상태로 시작
@@ -49,7 +50,9 @@ final class LogQueueFeatureTest extends CIUnitTestCase
         }
     }
 
-    /** [L1] 큐 적재 → 컨슈머 → DB 적재 + 원시 파일 보존 */
+    /**
+     * [L1] 큐 적재 → 컨슈머 → DB 적재 + 원시 파일 보존
+     */
     public function testQueueToConsumerPersistsLog(): void
     {
         $queue = new FakeRedisQueue(true);
@@ -82,7 +85,9 @@ final class LogQueueFeatureTest extends CIUnitTestCase
         $this->assertStringContainsString('이벤트 상세 진입', (string) file_get_contents($this->rawFile));
     }
 
-    /** [L2] Redis 미연결 → 원시 파일 폴백 */
+    /**
+     * [L2] Redis 미연결 → 원시 파일 폴백
+     */
     public function testFallbackWritesRawFileWhenRedisUnavailable(): void
     {
         Services::injectMock('redisQueue', new FakeRedisQueue(false));
@@ -96,7 +101,9 @@ final class LogQueueFeatureTest extends CIUnitTestCase
         $this->assertSame(0, model(AppLogModel::class)->countAllResults());
     }
 
-    /** [L3] Rate Limit — 분당 60회 초과 시 429 */
+    /**
+     * [L3] Rate Limit — 분당 60회 초과 시 429
+     */
     public function testRateLimitBlocksAfterThreshold(): void
     {
         Services::injectMock('redisQueue', new FakeRedisQueue(false));

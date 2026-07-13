@@ -24,7 +24,9 @@ final class LogConsumeTransformTest extends CIUnitTestCase
         $this->command = (new ReflectionClass(LogConsumeQueue::class))->newInstanceWithoutConstructor();
     }
 
-    /** [T1] 표준 필드 분리 + context 보존 */
+    /**
+     * [T1] 표준 필드 분리 + context 보존
+     */
     public function testTransformSplitsStandardFieldsAndKeepsContext(): void
     {
         $row = $this->command->transform([
@@ -53,7 +55,9 @@ final class LogConsumeTransformTest extends CIUnitTestCase
         $this->assertArrayNotHasKey('message', $context);
     }
 
-    /** [T2] 누락 필드 기본값 */
+    /**
+     * [T2] 누락 필드 기본값
+     */
     public function testTransformAppliesDefaults(): void
     {
         $row = $this->command->transform([
@@ -69,7 +73,9 @@ final class LogConsumeTransformTest extends CIUnitTestCase
         $this->assertNull($row['context']); // 부가 컨텍스트 없음
     }
 
-    /** [T3] payload 가 배열이 아니어도 안전하게 기본값 처리 */
+    /**
+     * [T3] payload 가 배열이 아니어도 안전하게 기본값 처리
+     */
     public function testTransformHandlesMissingPayload(): void
     {
         $row = $this->command->transform(['received_at' => '2026-06-30 12:00:00']);

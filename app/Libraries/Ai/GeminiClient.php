@@ -22,15 +22,21 @@ use RuntimeException;
 class GeminiClient implements AiClientInterface
 {
     private const string ENDPOINT_TEMPLATE = 'https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent';
-    private const string DEFAULT_MODEL      = 'gemini-2.0-flash';
+    private const string DEFAULT_MODEL     = 'gemini-2.0-flash';
 
-    /** 응답 토큰 상한 — 위반 플래그 JSON이 잘리지 않을 만큼 충분, 과금 폭주 방지 */
+    /**
+     * 응답 토큰 상한 — 위반 플래그 JSON이 잘리지 않을 만큼 충분, 과금 폭주 방지
+     */
     private const int MAX_TOKENS = 2048;
 
-    /** 429·5xx 재시도 횟수 (총 시도 = MAX_RETRIES + 1) */
+    /**
+     * 429·5xx 재시도 횟수 (총 시도 = MAX_RETRIES + 1)
+     */
     private const int MAX_RETRIES = 3;
 
-    /** 백오프 상한(초) — 공급자 권장 대기가 비정상적으로 길어도 이 값으로 캡 */
+    /**
+     * 백오프 상한(초) — 공급자 권장 대기가 비정상적으로 길어도 이 값으로 캡
+     */
     private const int MAX_BACKOFF = 30;
 
     private readonly string $apiKey;
@@ -67,14 +73,16 @@ class GeminiClient implements AiClientInterface
         return $decoded;
     }
 
-    /** 공통 호출 루프 — $json=true면 JSON 모드로 요청하고 본문 문자열을 반환 */
+    /**
+     * 공통 호출 루프 — $json=true면 JSON 모드로 요청하고 본문 문자열을 반환
+     */
     private function request(string $systemPrompt, string $userPrompt, bool $json): string
     {
         if (! $this->isConfigured()) {
             throw new RuntimeException('GEMINI_API_KEY가 설정되지 않았습니다.');
         }
 
-        for ($attempt = 0; ; $attempt++) {
+        for ($attempt = 0;; $attempt++) {
             $response = $this->send($systemPrompt, $userPrompt, $json);
             $status   = $response->getStatusCode();
             $body     = (string) $response->getBody();
@@ -107,6 +115,7 @@ class GeminiClient implements AiClientInterface
             if ($retryable) {
                 throw new AiRateLimitException($status, $wait, "Gemini API 일시 오류 (HTTP {$status})");
             }
+
             throw new RuntimeException("Gemini API 응답 오류 (HTTP {$status})");
         }
     }
@@ -130,8 +139,8 @@ class GeminiClient implements AiClientInterface
 
         return $client->post(sprintf(self::ENDPOINT_TEMPLATE, $this->model), [
             'headers' => [
-                'Content-Type'    => 'application/json',
-                'x-goog-api-key'  => $this->apiKey,
+                'Content-Type'   => 'application/json',
+                'x-goog-api-key' => $this->apiKey,
             ],
             'json' => [
                 'systemInstruction' => [
@@ -197,7 +206,9 @@ class GeminiClient implements AiClientInterface
         return 0;
     }
 
-    /** "14s"·"14.19s"·"898ms" 형태의 기간 문자열을 올림한 정수 초로 변환 */
+    /**
+     * "14s"·"14.19s"·"898ms" 형태의 기간 문자열을 올림한 정수 초로 변환
+     */
     private function durationToSeconds(string $duration): int
     {
         $duration = trim($duration);

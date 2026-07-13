@@ -2,18 +2,18 @@
 
 namespace App\Controllers\Admin;
 
-use Override;
-use CodeIgniter\HTTP\RequestInterface;
-use CodeIgniter\HTTP\ResponseInterface;
-use Psr\Log\LoggerInterface;
-use CodeIgniter\Exceptions\PageNotFoundException;
-use App\Libraries\MarkdownRenderer;
-use App\Models\HourlyEventStatModel;
 use App\Enums\AppLogEvent;
+use App\Libraries\MarkdownRenderer;
 use App\Models\AiReportModel;
+use App\Models\HourlyEventStatModel;
 use App\Models\ReportModel;
 use App\Services\AiReportService;
+use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
+use CodeIgniter\HTTP\RequestInterface;
+use CodeIgniter\HTTP\ResponseInterface;
+use Override;
+use Psr\Log\LoggerInterface;
 use Throwable;
 
 /**
@@ -29,6 +29,12 @@ class ReportController extends BaseAdminController
 {
     private const int AI_LIST_PER_PAGE = 20;
 
+    // ──────────────────────────────────────────────
+    // 앱 액션 로그 통계 (이슈 #120) — 시간별/일별 추이
+    // ──────────────────────────────────────────────
+
+    private const int APP_LOG_DAILY_RANGE = 14; // 일별 모드에서 보여줄 최근 일수
+
     private ReportModel $reportModel;
     private AiReportModel $aiReportModel;
 
@@ -36,7 +42,7 @@ class ReportController extends BaseAdminController
     public function initController(
         RequestInterface $request,
         ResponseInterface $response,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ): void {
         parent::initController($request, $response, $logger);
         $this->reportModel   = model(ReportModel::class);
@@ -53,12 +59,12 @@ class ReportController extends BaseAdminController
         $monthly = $this->reportModel->getMonthlyRevenue($year);
 
         return $this->render('admin/reports/index', [
-            'year'    => $year,
-            'years'   => $this->yearOptions(),
-            'kpi'     => $this->reportModel->getYearKpi($year),
-            'labels'  => array_map(static fn (int $m): string => $m . '월', range(1, 12)),
-            'charged' => $monthly['charged'],
-            'consumed' => $monthly['consumed'],
+            'year'          => $year,
+            'years'         => $this->yearOptions(),
+            'kpi'           => $this->reportModel->getYearKpi($year),
+            'labels'        => array_map(static fn (int $m): string => $m . '월', range(1, 12)),
+            'charged'       => $monthly['charged'],
+            'consumed'      => $monthly['consumed'],
             'aiRevenue'     => $this->aiReportModel->latestByType(AiReportModel::TYPE_REVENUE),
             'aiConsumption' => $this->aiReportModel->latestByType(AiReportModel::TYPE_CONSUMPTION),
         ]);
@@ -81,7 +87,7 @@ class ReportController extends BaseAdminController
 
         return view('reports/ai_show', [
             'report'      => $report,
-            'contentHtml' => new MarkdownRenderer()->toSafeHtml((string) $report['content']),
+            'contentHtml' => (new MarkdownRenderer())->toSafeHtml((string) $report['content']),
         ]);
     }
 
@@ -148,12 +154,6 @@ class ReportController extends BaseAdminController
         ]);
     }
 
-    // ──────────────────────────────────────────────
-    // 앱 액션 로그 통계 (이슈 #120) — 시간별/일별 추이
-    // ──────────────────────────────────────────────
-
-    private const int APP_LOG_DAILY_RANGE = 14; // 일별 모드에서 보여줄 최근 일수
-
     /**
      * 앱 액션 로그 통계 화면.
      *   ?mode=hourly&date=YYYY-MM-DD  — 해당 날짜의 0~23시 추이 (기본, 1시간 전까지 반영)
@@ -193,8 +193,9 @@ class ReportController extends BaseAdminController
      * 행: {<bucketKey>, event, total} → 이벤트별 series + 이벤트별 합계.
      *
      * @param list<array<string, mixed>> $rows
-     * @param 'stat_hour'|'stat_date'    $bucketKey
-     * @param list<int|string>           $buckets    라벨 순서를 고정하는 버킷 목록
+     * @param 'stat_date'|'stat_hour'    $bucketKey
+     * @param list<int|string>           $buckets   라벨 순서를 고정하는 버킷 목록
+     *
      * @return array{datasets: list<array{label: string, event: string, data: list<int>}>, totals: array<string, int>}
      */
     private function pivotSeries(array $rows, string $bucketKey, array $buckets): array
@@ -225,6 +226,7 @@ class ReportController extends BaseAdminController
         arsort($totals);
 
         $datasets = [];
+
         foreach (array_keys($totals) as $event) {
             $datasets[] = [
                 'label' => AppLogEvent::labelFor($event),
@@ -246,6 +248,7 @@ class ReportController extends BaseAdminController
         $days  = [];
         $start = strtotime($from);
         $end   = strtotime($to);
+
         for ($t = $start; $t <= $end; $t += 86400) {
             $days[] = date('Y-m-d', $t);
         }

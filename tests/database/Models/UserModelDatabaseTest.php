@@ -16,9 +16,11 @@ final class UserModelDatabaseTest extends CIUnitTestCase
     protected $migrate     = true;
     protected $migrateOnce = true;
     protected $refresh     = false;
-    protected $namespace   = null;
+    protected $namespace;
 
-    /** @var list<int> */
+    /**
+     * @var list<int>
+     */
     private array $insertedIds = [];
 
     protected function setUp(): void
@@ -30,35 +32,35 @@ final class UserModelDatabaseTest extends CIUnitTestCase
 
         $fixtures = [
             [
-                'email'     => '__user_general__@test.invalid',
-                'user_type' => UserModel::TYPE_USER,
-                'is_dormant'=> 1,  // 활성
-                'is_active' => 1,
-                'username'  => '__일반사용자__',
-                'phone'     => '010-1111-0001',
+                'email'      => '__user_general__@test.invalid',
+                'user_type'  => UserModel::TYPE_USER,
+                'is_dormant' => 1,  // 활성
+                'is_active'  => 1,
+                'username'   => '__일반사용자__',
+                'phone'      => '010-1111-0001',
             ],
             [
-                'email'     => '__user_admin__@test.invalid',
-                'user_type' => UserModel::TYPE_ADMIN,
-                'is_dormant'=> 1,
-                'is_active' => 1,
-                'username'  => '__관리자__',
-                'phone'     => '010-1111-0002',
+                'email'      => '__user_admin__@test.invalid',
+                'user_type'  => UserModel::TYPE_ADMIN,
+                'is_dormant' => 1,
+                'is_active'  => 1,
+                'username'   => '__관리자__',
+                'phone'      => '010-1111-0002',
             ],
             [
-                'email'     => '__user_dormant__@test.invalid',
-                'user_type' => UserModel::TYPE_USER,
-                'is_dormant'=> 0,  // 휴면
-                'is_active' => 1,
-                'username'  => '__휴면사용자__',
+                'email'      => '__user_dormant__@test.invalid',
+                'user_type'  => UserModel::TYPE_USER,
+                'is_dormant' => 0,  // 휴면
+                'is_active'  => 1,
+                'username'   => '__휴면사용자__',
             ],
             [
-                'email'     => '__user_deleted__@test.invalid',
-                'user_type' => UserModel::TYPE_USER,
-                'is_dormant'=> 1,
-                'is_active' => 0,
-                'username'  => '__탈퇴사용자__',
-                'deleted_at'=> $now,
+                'email'      => '__user_deleted__@test.invalid',
+                'user_type'  => UserModel::TYPE_USER,
+                'is_dormant' => 1,
+                'is_active'  => 0,
+                'username'   => '__탈퇴사용자__',
+                'deleted_at' => $now,
             ],
         ];
 
@@ -72,7 +74,7 @@ final class UserModelDatabaseTest extends CIUnitTestCase
 
     protected function tearDown(): void
     {
-        if (!empty($this->insertedIds)) {
+        if (! empty($this->insertedIds)) {
             db_connect()->table('users')
                 ->whereIn('id', $this->insertedIds)
                 ->delete();
@@ -132,6 +134,7 @@ final class UserModelDatabaseTest extends CIUnitTestCase
         ]);
 
         $this->assertNotEmpty($result['list']);
+
         foreach ($result['list'] as $row) {
             $this->assertSame(UserModel::TYPE_ADMIN, (int) $row['user_type']);
         }
@@ -168,6 +171,7 @@ final class UserModelDatabaseTest extends CIUnitTestCase
         ]);
 
         $this->assertNotEmpty($result['list']);
+
         foreach ($result['list'] as $row) {
             $this->assertSame(0, (int) $row['is_dormant']);
         }

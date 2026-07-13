@@ -2,9 +2,6 @@
 
 namespace App\Controllers\Portal;
 
-use Override;
-use CodeIgniter\HTTP\RequestInterface;
-use Psr\Log\LoggerInterface;
 use App\Models\AdvertiserModel;
 use App\Models\AdvertiserOwnerInviteModel;
 use App\Models\ContractModel;
@@ -13,7 +10,10 @@ use App\Models\HospitalModel;
 use App\Models\UserModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
+use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
+use Override;
+use Psr\Log\LoggerInterface;
 
 /**
  * 대행사 광고주 관리 (이슈 #32)
@@ -29,7 +29,7 @@ class AdvertiserController extends BasePortalController
     public function initController(
         RequestInterface $request,
         ResponseInterface $response,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ): void {
         parent::initController($request, $response, $logger);
         $this->advertiserModel = model(AdvertiserModel::class);
@@ -51,6 +51,7 @@ class AdvertiserController extends BasePortalController
 
         $advertisers = array_map(function (array $row): array {
             $row['created_at_kst'] = empty($row['created_at']) ? '-' : $this->toKst($row['created_at']);
+
             return $row;
         }, $result['list']);
 
@@ -71,7 +72,7 @@ class AdvertiserController extends BasePortalController
             throw PageNotFoundException::forPageNotFound();
         }
 
-        $advertiser['created_at_kst']        = empty($advertiser['created_at']) ? '-' : $this->toKst($advertiser['created_at']);
+        $advertiser['created_at_kst']         = empty($advertiser['created_at']) ? '-' : $this->toKst($advertiser['created_at']);
         $advertiser['contract_agreed_at_kst'] = empty($advertiser['contract_agreed_at']) ? '' : $this->toKst($advertiser['contract_agreed_at']);
 
         // 표준계약서 갑(광고대행사) 정보 — 광고주 계약 화면과 동일하게 노출
@@ -84,12 +85,12 @@ class AdvertiserController extends BasePortalController
             ->getOrdersByHospitalIds([$hospitalId])[$hospitalId] ?? [];
 
         return $this->render('portal/advertisers/show', [
-            'pageTitle'         => '광고주 상세',
-            'advertiser'        => $advertiser,
-            'hasInvite'         => $this->inviteModel->hasPendingForAdvertiser($id),
-            'agencyInfo'        => $agencyInfo,
-            'orders'            => $orders,
-            'adType2Labels'     => ContractOrderModel::AD_TYPE2_LABELS,
+            'pageTitle'     => '광고주 상세',
+            'advertiser'    => $advertiser,
+            'hasInvite'     => $this->inviteModel->hasPendingForAdvertiser($id),
+            'agencyInfo'    => $agencyInfo,
+            'orders'        => $orders,
+            'adType2Labels' => ContractOrderModel::AD_TYPE2_LABELS,
         ]);
     }
 
@@ -122,15 +123,15 @@ class AdvertiserController extends BasePortalController
             ],
         ];
 
-        if (!$this->validate($rules, $messages)) {
+        if (! $this->validate($rules, $messages)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
         // 광고주 계정(owner) 연결 — 즉시 바인딩하지 않고 초대를 생성한다 (이슈 #38).
         // owner_user_id 는 당사자가 로그인 후 초대를 수락해야 확정된다.
         // 이메일이 입력된 경우 등록 전에 초대 대상(병원유형·미연결 계정)을 먼저 검증한다.
-        $ownerEmail   = trim((string) $this->request->getPost('owner_email'));
-        $inviteeId    = null;
+        $ownerEmail = trim((string) $this->request->getPost('owner_email'));
+        $inviteeId  = null;
         if ($ownerEmail !== '') {
             $resolved = $this->resolveInvitee($ownerEmail);
             if (isset($resolved['error'])) {
@@ -183,7 +184,7 @@ class AdvertiserController extends BasePortalController
 
         $back = redirect()->to('/portal/advertisers/' . $id);
 
-        if (!empty($advertiser['owner_user_id'])) {
+        if (! empty($advertiser['owner_user_id'])) {
             return $back->with('error', '이미 광고주 계정이 연결되어 있습니다.');
         }
         if ($this->inviteModel->hasPendingForAdvertiser($id)) {
@@ -191,7 +192,7 @@ class AdvertiserController extends BasePortalController
         }
 
         // create()와 동일한 검증 경로 통일
-        if (!$this->validate(['owner_email' => 'required|valid_email|max_length[255]'])) {
+        if (! $this->validate(['owner_email' => 'required|valid_email|max_length[255]'])) {
             return $back->with('error', '올바른 이메일을 입력해주세요.');
         }
 
@@ -209,7 +210,7 @@ class AdvertiserController extends BasePortalController
     /**
      * 초대 대상 계정 해석 — 병원유형·미연결 계정만 허용
      *
-     * @return array{userId: int}|array{error: string}
+     * @return array{error: string}|array{userId: int}
      */
     private function resolveInvitee(string $email): array
     {

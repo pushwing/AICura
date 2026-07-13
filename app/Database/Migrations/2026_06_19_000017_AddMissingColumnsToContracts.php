@@ -12,25 +12,25 @@ class AddMissingColumnsToContracts extends Migration
     {
         $fields = [
             'contract_date' => [
-                'type' => 'DATE',
-                'null' => true,
+                'type'  => 'DATE',
+                'null'  => true,
                 'after' => 'title',
             ],
             // 이벤트신청(CPA) / 기간노출(CPM)
             'ad_type' => [
-                'type'    => 'TINYINT',
-                'null'    => true,
-                'after'   => 'contract_date',
+                'type'  => 'TINYINT',
+                'null'  => true,
+                'after' => 'contract_date',
             ],
             // 1 이벤트, 2 메인배너
             'ad_type2' => [
-                'type'    => 'TINYINT',
-                'null'    => true,
-                'after'   => 'ad_type',
+                'type'  => 'TINYINT',
+                'null'  => true,
+                'after' => 'ad_type',
             ],
             'main_contract' => [
-                'type' => 'TEXT',
-                'null' => true,
+                'type'  => 'TEXT',
+                'null'  => true,
                 'after' => 'ad_type2',
             ],
             // 1 진행, 2 종료
@@ -46,28 +46,28 @@ class AddMissingColumnsToContracts extends Migration
             ],
             // term_list FK (사용안할 수 있으나 ERD 보존)
             'term_list_id' => [
-                'type' => 'INT',
-                'null' => true,
+                'type'  => 'INT',
+                'null'  => true,
                 'after' => 'is_deleted',
             ],
             'channel_id' => [
-                'type' => 'INT',
-                'null' => true,
+                'type'  => 'INT',
+                'null'  => true,
                 'after' => 'term_list_id',
             ],
             'agency_user_id' => [
-                'type' => 'INT',
-                'null' => true,
+                'type'  => 'INT',
+                'null'  => true,
                 'after' => 'channel_id',
             ],
             'manage_user_id' => [
-                'type' => 'INT',
-                'null' => true,
+                'type'  => 'INT',
+                'null'  => true,
                 'after' => 'agency_user_id',
             ],
             'agency_company_id' => [
-                'type' => 'INT',
-                'null' => true,
+                'type'  => 'INT',
+                'null'  => true,
                 'after' => 'manage_user_id',
             ],
             'agency_company_name' => [

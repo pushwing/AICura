@@ -37,6 +37,7 @@ class DashboardController extends BasePortalController
 
         $recent = array_map(function (array $row): array {
             $row['created_at_kst'] = empty($row['created_at']) ? '-' : $this->toKst($row['created_at']);
+
             return $row;
         }, $all['list']);
 
@@ -60,7 +61,7 @@ class DashboardController extends BasePortalController
 
         if ($advertiserId !== null) {
             $advertiser = model(AdvertiserModel::class)->find($advertiserId);
-            $agreed     = $advertiser !== null && !empty($advertiser['contract_agreed_at']);
+            $agreed     = $advertiser !== null && ! empty($advertiser['contract_agreed_at']);
         }
 
         if ($hospitalId !== null) {
@@ -80,6 +81,7 @@ class DashboardController extends BasePortalController
         if ($advertiserId === null) {
             $invites = array_map(function (array $row): array {
                 $row['expires_at_kst'] = empty($row['expires_at']) ? '' : $this->toKst($row['expires_at']);
+
                 return $row;
             }, model(AdvertiserOwnerInviteModel::class)->findPendingForInvitee($this->userId()));
         }

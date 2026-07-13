@@ -31,7 +31,7 @@ class CreateGuidesTable extends Migration
             // 관련 시술명 (MedicalProcedure.name) — 선택
             'procedure_name' => ['type' => 'VARCHAR', 'constraint' => 100, 'null' => true],
             // 발행 상태: draft | published
-            'status' => ['type' => 'VARCHAR', 'constraint' => 20, 'default' => 'draft'],
+            'status'       => ['type' => 'VARCHAR', 'constraint' => 20, 'default' => 'draft'],
             'published_at' => ['type' => 'DATETIME', 'null' => true],
             'created_at'   => ['type' => 'DATETIME', 'null' => true],
             'updated_at'   => ['type' => 'DATETIME', 'null' => true],

@@ -6,11 +6,10 @@ use CodeIgniter\Model;
 
 class CampaignHistoryModel extends Model
 {
-    protected $table      = 'campaign_histories';
-    protected $primaryKey = 'id';
+    protected $table         = 'campaign_histories';
+    protected $primaryKey    = 'id';
     protected $useTimestamps = true;
     protected $returnType    = 'array';
-
     protected $allowedFields = [
         'campaign_id',
         'action',
@@ -22,6 +21,7 @@ class CampaignHistoryModel extends Model
 
     /**
      * @param array<string, mixed> $params
+     *
      * @return array<string, mixed>
      */
     public function getList(int $campaignId, array $params = []): array

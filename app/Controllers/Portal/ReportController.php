@@ -2,14 +2,14 @@
 
 namespace App\Controllers\Portal;
 
-use Override;
-use CodeIgniter\HTTP\RequestInterface;
-use CodeIgniter\HTTP\ResponseInterface;
-use Psr\Log\LoggerInterface;
 use App\Libraries\MarkdownRenderer;
 use App\Models\AiReportModel;
 use App\Models\PortalReportModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
+use CodeIgniter\HTTP\RequestInterface;
+use CodeIgniter\HTTP\ResponseInterface;
+use Override;
+use Psr\Log\LoggerInterface;
 
 /**
  * 포털 리포트 컨트롤러 (이슈 #56, #65)
@@ -31,7 +31,7 @@ class ReportController extends BasePortalController
     public function initController(
         RequestInterface $request,
         ResponseInterface $response,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ): void {
         parent::initController($request, $response, $logger);
         $this->reportModel   = model(PortalReportModel::class);
@@ -58,16 +58,16 @@ class ReportController extends BasePortalController
         // 병원 미연결(계약 전) 광고주는 빈 상태 안내
         if ($hospitalId === null) {
             return $this->render('portal/reports/advertiser', [
-                'pageTitle'    => '리포트',
-                'year'         => $year,
-                'years'        => $this->yearOptions(),
-                'hasHospital'  => false,
-                'kpi'          => ['charged' => 0, 'consumed' => 0, 'refunded' => 0, 'cpa_refunded' => 0, 'balance' => 0],
-                'call'         => ['requested' => 0, 'visited' => 0],
-                'labels'       => $this->monthLabels(),
-                'charged'      => array_fill(0, 12, 0),
-                'consumed'     => array_fill(0, 12, 0),
-                'campaigns'    => [],
+                'pageTitle'     => '리포트',
+                'year'          => $year,
+                'years'         => $this->yearOptions(),
+                'hasHospital'   => false,
+                'kpi'           => ['charged' => 0, 'consumed' => 0, 'refunded' => 0, 'cpa_refunded' => 0, 'balance' => 0],
+                'call'          => ['requested' => 0, 'visited' => 0],
+                'labels'        => $this->monthLabels(),
+                'charged'       => array_fill(0, 12, 0),
+                'consumed'      => array_fill(0, 12, 0),
+                'campaigns'     => [],
                 'aiRevenue'     => null,
                 'aiConsumption' => null,
             ]);
@@ -117,7 +117,7 @@ class ReportController extends BasePortalController
     public function aiReportShow(int $id): string
     {
         [$scopeType, $scopeId] = $this->aiScope();
-        $report = $this->aiReportModel->findScoped($id, $scopeType, $scopeId);
+        $report                = $this->aiReportModel->findScoped($id, $scopeType, $scopeId);
 
         if ($report === null) {
             throw PageNotFoundException::forPageNotFound();
@@ -125,7 +125,7 @@ class ReportController extends BasePortalController
 
         return view('reports/ai_show', [
             'report'      => $report,
-            'contentHtml' => new MarkdownRenderer()->toSafeHtml((string) $report['content']),
+            'contentHtml' => (new MarkdownRenderer())->toSafeHtml((string) $report['content']),
         ]);
     }
 
@@ -139,8 +139,8 @@ class ReportController extends BasePortalController
         }
 
         [$scopeType, $scopeId] = $this->aiScope();
-        $page    = max(1, (int) ($this->request->getGet('page') ?? 1));
-        $history = $this->aiReportModel->historyByType($type, $page, self::AI_LIST_PER_PAGE, $scopeType, $scopeId);
+        $page                  = max(1, (int) ($this->request->getGet('page') ?? 1));
+        $history               = $this->aiReportModel->historyByType($type, $page, self::AI_LIST_PER_PAGE, $scopeType, $scopeId);
 
         return $this->render('portal/reports/ai_list', [
             'pageTitle' => '리포트',

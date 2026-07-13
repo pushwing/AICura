@@ -18,13 +18,13 @@ class AddMissingColumnsToContractOrders extends Migration
                 'after'      => 'parent_id',
             ],
             'contract_date' => [
-                'type' => 'DATE',
-                'null' => true,
+                'type'  => 'DATE',
+                'null'  => true,
                 'after' => 'title',
             ],
             'contract_agree_date' => [
-                'type' => 'INT',
-                'null' => true,
+                'type'  => 'INT',
+                'null'  => true,
                 'after' => 'contract_date',
             ],
             // 0 동의 전, 1 동의, 2 취소
@@ -35,13 +35,13 @@ class AddMissingColumnsToContractOrders extends Migration
             ],
             // 광고주 계약금액 입금 확인 ID
             'deposit_check_id' => [
-                'type' => 'INT',
-                'null' => true,
+                'type'  => 'INT',
+                'null'  => true,
                 'after' => 'agree',
             ],
             'main_contract' => [
-                'type' => 'TEXT',
-                'null' => true,
+                'type'  => 'TEXT',
+                'null'  => true,
                 'after' => 'deposit_check_id',
             ],
             'is_delete' => [
@@ -51,8 +51,8 @@ class AddMissingColumnsToContractOrders extends Migration
             ],
             // 차감 병원 아이디 (네트워크 모병원이 자병원 대신 결제)
             'purchase_owner_id' => [
-                'type' => 'INT',
-                'null' => true,
+                'type'  => 'INT',
+                'null'  => true,
                 'after' => 'is_delete',
             ],
             // 0 일반, 1 네트워크 모병원, 2 네트워크 자병원
@@ -103,23 +103,23 @@ class AddMissingColumnsToContractOrders extends Migration
                 'after'      => 'agency_company_charge_phone',
             ],
             'tax_issue_request_date' => [
-                'type' => 'DATE',
-                'null' => true,
+                'type'  => 'DATE',
+                'null'  => true,
                 'after' => 'tax_issue_date',
             ],
             'ads_count' => [
-                'type' => 'SMALLINT',
-                'null' => true,
+                'type'  => 'SMALLINT',
+                'null'  => true,
                 'after' => 'agency_company_charge_email',
             ],
             'ads_count_bonus' => [
-                'type' => 'TINYINT',
-                'null' => true,
+                'type'  => 'TINYINT',
+                'null'  => true,
                 'after' => 'ads_count',
             ],
             'pay_method' => [
-                'type' => 'TINYINT',
-                'null' => true,
+                'type'  => 'TINYINT',
+                'null'  => true,
                 'after' => 'ads_count_bonus',
             ],
         ];

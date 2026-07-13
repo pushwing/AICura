@@ -18,14 +18,16 @@ use App\Models\HourlyEventStatModel;
  */
 class AppLogStatService
 {
-    /** 한 번에 메모리로 읽을 로그 행 수 — 메모리 사용을 제한한다. */
+    /**
+     * 한 번에 메모리로 읽을 로그 행 수 — 메모리 사용을 제한한다.
+     */
     private const int CHUNK = 1000;
 
     public function __construct(
         private ?AppLogModel $logs = null,
         private ?HourlyEventStatModel $stats = null,
     ) {
-        $this->logs  ??= model(AppLogModel::class);
+        $this->logs ??= model(AppLogModel::class);
         $this->stats ??= model(HourlyEventStatModel::class);
     }
 
@@ -44,6 +46,7 @@ class AppLogStatService
         $logRows = 0;
 
         $offset = 0;
+
         while (true) {
             $rows = $this->logs
                 ->select('event, user_id, context')
@@ -87,11 +90,13 @@ class AppLogStatService
      * 집계 정확성(카운트·distinct user·campaign_id 추출) 검증의 단위 테스트 진입점이다.
      *
      * @param list<array<string, mixed>> $rows
+     *
      * @return list<array{event:string, campaign_id:int, count:int, uniq_users:int}>
      */
     public function summarize(array $rows): array
     {
         $grouped = [];
+
         foreach ($rows as $row) {
             $this->accumulate($grouped, $row);
         }
@@ -103,14 +108,16 @@ class AppLogStatService
      * 내부 누적 맵을 upsert 가능한 평탄 버킷 목록으로 변환.
      *
      * @param array<string, array{count:int, users:array<int, true>}> $grouped
+     *
      * @return list<array{event:string, campaign_id:int, count:int, uniq_users:int}>
      */
     private function toBuckets(array $grouped): array
     {
         $buckets = [];
+
         foreach ($grouped as $key => $agg) {
             [$event, $campaignId] = explode('|', $key, 2);
-            $buckets[] = [
+            $buckets[]            = [
                 'event'       => $event,
                 'campaign_id' => (int) $campaignId,
                 'count'       => $agg['count'],

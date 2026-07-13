@@ -11,25 +11,28 @@ use CodeIgniter\Model;
  */
 class CallMemoModel extends Model
 {
-    protected $table      = 'call_memos';
-    protected $primaryKey = 'id';
+    /**
+     * 시스템 자동 메모(상태 변경 히스토리)의 접두사 — 분석 입력에서 제외
+     */
+    private const string SYSTEM_MEMO_PREFIX = '[상태변경]';
+
+    protected $table         = 'call_memos';
+    protected $primaryKey    = 'id';
     protected $useTimestamps = true;
     protected $returnType    = 'array';
-
     protected $allowedFields = [
         'call_request_id',
         'user_id',
         'memo',
     ];
 
-    /** @var array<string, string> */
+    /**
+     * @var array<string, string>
+     */
     protected $validationRules = [
         'call_request_id' => 'required|integer',
         'memo'            => 'required|max_length[500]',
     ];
-
-    /** 시스템 자동 메모(상태 변경 히스토리)의 접두사 — 분석 입력에서 제외 */
-    private const string SYSTEM_MEMO_PREFIX = '[상태변경]';
 
     /**
      * AI 분석 입력용 메모 텍스트 목록 (오래된 순, 시스템 메모 제외)
@@ -47,6 +50,7 @@ class CallMemoModel extends Model
             ->findAll();
 
         $memos = [];
+
         foreach ($rows as $row) {
             $memo = trim((string) ($row['memo'] ?? ''));
             if ($memo === '' || str_starts_with($memo, self::SYSTEM_MEMO_PREFIX)) {

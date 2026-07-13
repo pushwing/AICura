@@ -6,11 +6,10 @@ use CodeIgniter\Model;
 
 class CampaignTempModel extends Model
 {
-    protected $table      = 'campaign_temps';
-    protected $primaryKey = 'id';
+    protected $table         = 'campaign_temps';
+    protected $primaryKey    = 'id';
     protected $useTimestamps = true;
     protected $returnType    = 'array';
-
     protected $allowedFields = [
         'campaign_id',
         'ad_title',
@@ -41,6 +40,7 @@ class CampaignTempModel extends Model
 
     /**
      * @param array<string, mixed> $params
+     *
      * @return array<string, mixed>
      */
     public function getList(array $params): array
@@ -51,10 +51,10 @@ class CampaignTempModel extends Model
             ->join('hospitals h', 'h.id = ct.hospital_id', 'left')
             ->where('ct.is_deleted', 0);
 
-        if (!empty($params['admin_user_id'])) {
+        if (! empty($params['admin_user_id'])) {
             $builder->where('ct.admin_user_id', (int) $params['admin_user_id']);
         }
-        if (!empty($params['keyword'])) {
+        if (! empty($params['keyword'])) {
             $builder->like('ct.ad_title', $params['keyword']);
         }
 
@@ -72,7 +72,9 @@ class CampaignTempModel extends Model
         return ['list' => $list, 'total' => $total];
     }
 
-    /** @return array<string, mixed>|null */
+    /**
+     * @return array<string, mixed>|null
+     */
     public function getDetail(int $id): ?array
     {
         $row = $this->db->table('campaign_temps ct')

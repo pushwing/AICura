@@ -22,7 +22,9 @@ use App\Models\UserModel;
  */
 class BoardService
 {
-    /** 상세에 함께 싣는 댓글 기본 개수 */
+    /**
+     * 상세에 함께 싣는 댓글 기본 개수
+     */
     private const int DETAIL_COMMENT_LIMIT = 20;
 
     private readonly BoardModel $boards;
@@ -48,22 +50,23 @@ class BoardService
         ?UploadService $uploads = null,
         ?HealthPointService $points = null,
     ) {
-        $this->boards      = $boards      ?? model(BoardModel::class);
-        $this->comments    = $comments    ?? model(BoardCommentModel::class);
+        $this->boards      = $boards ?? model(BoardModel::class);
+        $this->comments    = $comments ?? model(BoardCommentModel::class);
         $this->estimations = $estimations ?? model(BoardEstimationModel::class);
-        $this->files       = $files       ?? model(BoardFileModel::class);
-        $this->summaries   = $summaries   ?? model(BoardSummaryModel::class);
-        $this->campaigns   = $campaigns   ?? model(CampaignModel::class);
-        $this->hospitals   = $hospitals   ?? model(HospitalModel::class);
-        $this->users       = $users       ?? model(UserModel::class);
-        $this->uploads     = $uploads     ?? service('uploadService');
-        $this->points      = $points      ?? service('healthPointService');
+        $this->files       = $files ?? model(BoardFileModel::class);
+        $this->summaries   = $summaries ?? model(BoardSummaryModel::class);
+        $this->campaigns   = $campaigns ?? model(CampaignModel::class);
+        $this->hospitals   = $hospitals ?? model(HospitalModel::class);
+        $this->users       = $users ?? model(UserModel::class);
+        $this->uploads     = $uploads ?? service('uploadService');
+        $this->points      = $points ?? service('healthPointService');
     }
 
     /**
      * 후기 목록
      *
      * @param array<string, mixed> $params
+     *
      * @return array{items: array<int, array<string, mixed>>, total: int}
      */
     public function list(int $userId, array $params): array
@@ -79,6 +82,7 @@ class BoardService
      * 후기 상세 (이미지·댓글·평점·is_liked)
      *
      * @return array<string, mixed>
+     *
      * @throws NotFoundException
      */
     public function detail(int $userId, int $id): array
@@ -88,7 +92,7 @@ class BoardService
             throw NotFoundException::of('후기를 찾을 수 없습니다.');
         }
 
-        $item = $this->transformDetail($row);
+        $item             = $this->transformDetail($row);
         $item['images']   = array_map($this->uploads->urlFor(...), $this->files->fileNames($id));
         $item['is_liked'] = $this->estimations->likedBoardIds($userId, [$id]) !== [];
 
@@ -123,7 +127,7 @@ class BoardService
             default                   => null,
         };
 
-        if (!is_array($row)) {
+        if (! is_array($row)) {
             return null;
         }
 
@@ -136,7 +140,9 @@ class BoardService
      * 후기 작성
      *
      * @param array<string, mixed> $input type·target_id·subject·contents·rating·images[]
+     *
      * @return array<string, mixed>
+     *
      * @throws NotFoundException 노출 불가 대상
      */
     public function create(int $userId, array $input): array
@@ -179,7 +185,9 @@ class BoardService
      * 후기 수정 (본인)
      *
      * @param array<string, mixed> $input
+     *
      * @return array<string, mixed>
+     *
      * @throws NotFoundException
      */
     public function update(int $userId, int $id, array $input): array
@@ -250,6 +258,7 @@ class BoardService
      * 좋아요 토글
      *
      * @return array{liked: bool}
+     *
      * @throws NotFoundException
      */
     public function toggleLike(int $userId, int $id): array
@@ -266,6 +275,7 @@ class BoardService
      * 신고 (1인 1회)
      *
      * @return array{reported: bool}
+     *
      * @throws NotFoundException
      */
     public function report(int $userId, int $id): array
@@ -284,6 +294,7 @@ class BoardService
      * 댓글 목록
      *
      * @return array{items: array<int, array<string, mixed>>, total: int}
+     *
      * @throws NotFoundException
      */
     public function comments(int $id, int $page, int $limit): array
@@ -299,6 +310,7 @@ class BoardService
      * 댓글 작성
      *
      * @return array<string, mixed>
+     *
      * @throws NotFoundException
      */
     public function addComment(int $userId, int $id, string $contents): array
@@ -342,7 +354,7 @@ class BoardService
             default                   => false,
         };
 
-        if (!$visible) {
+        if (! $visible) {
             throw NotFoundException::of('후기를 작성할 수 있는 대상이 아닙니다.');
         }
     }
@@ -352,7 +364,7 @@ class BoardService
      */
     private function assertReviewVisible(int $id): void
     {
-        if (!$this->boards->isVisibleReview($id)) {
+        if (! $this->boards->isVisibleReview($id)) {
             throw NotFoundException::of('후기를 찾을 수 없습니다.');
         }
     }
@@ -361,6 +373,7 @@ class BoardService
      * is_liked 일괄 오버레이 (N+1 방지)
      *
      * @param array<int, array<string, mixed>> $items
+     *
      * @return array<int, array<string, mixed>>
      */
     private function overlayLikes(int $userId, array $items): array
@@ -384,6 +397,7 @@ class BoardService
      * 목록·상세 공통 필드.
      *
      * @param array<string, mixed> $row
+     *
      * @return array<string, mixed>
      */
     private function baseFields(array $row): array
@@ -409,6 +423,7 @@ class BoardService
      * 목록 아이템 — 본문은 발췌(excerpt)만 노출해 페이로드를 최소화한다.
      *
      * @param array<string, mixed> $row
+     *
      * @return array<string, mixed>
      */
     private function transformListItem(array $row): array
@@ -420,6 +435,7 @@ class BoardService
      * 상세 아이템 — 본문 전체와 작성자·신고수를 포함한다.
      *
      * @param array<string, mixed> $row
+     *
      * @return array<string, mixed>
      */
     private function transformDetail(array $row): array
@@ -433,6 +449,7 @@ class BoardService
 
     /**
      * @param array<string, mixed> $row
+     *
      * @return array<string, mixed>
      */
     private function transformComment(array $row): array
@@ -453,11 +470,12 @@ class BoardService
      */
     private function normalizeImages(mixed $images): array
     {
-        if (!is_array($images)) {
+        if (! is_array($images)) {
             return [];
         }
 
         $out = [];
+
         foreach ($images as $name) {
             if (is_string($name) && $name !== '' && $name === basename($name)) {
                 $out[] = $name;

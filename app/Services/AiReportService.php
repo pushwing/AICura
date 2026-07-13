@@ -15,7 +15,9 @@ use App\Models\ReportModel;
  */
 class AiReportService
 {
-    /** 소진보고서 잔액 임계 비율 — 충전금의 5% 이하 */
+    /**
+     * 소진보고서 잔액 임계 비율 — 충전금의 5% 이하
+     */
     private const float LOW_BALANCE_RATIO = 0.05;
 
     private readonly ReportModel $reportModel;
@@ -25,17 +27,18 @@ class AiReportService
     public function __construct(
         ?ReportModel $reportModel = null,
         ?AiReportModel $aiReportModel = null,
-        ?AiClientInterface $ai = null
+        ?AiClientInterface $ai = null,
     ) {
-        $this->reportModel   = $reportModel   ?? model(ReportModel::class);
+        $this->reportModel   = $reportModel ?? model(ReportModel::class);
         $this->aiReportModel = $aiReportModel ?? model(AiReportModel::class);
-        $this->ai            = $ai            ?? AiClientFactory::make();
+        $this->ai            = $ai ?? AiClientFactory::make();
     }
 
     /**
      * 매출보고서 생성 — 전일 1일치 + 당월 누계 현황·특이점
      *
      * @param ReportScope|null $scope 생성 범위 (null이면 전체)
+     *
      * @return int 저장된 보고서 ID
      */
     public function generateRevenueReport(?ReportScope $scope = null, ?string $reportDate = null): int
@@ -58,7 +61,7 @@ class AiReportService
 
         $content = $this->ai->complete(
             $this->revenueSystemPrompt(),
-            $this->revenueUserPrompt($scope, $date, $monthFrom, $daily, $monthToDate)
+            $this->revenueUserPrompt($scope, $date, $monthFrom, $daily, $monthToDate),
         );
 
         return (int) $this->aiReportModel->insert([
@@ -76,6 +79,7 @@ class AiReportService
      * 소진보고서 생성 — 충전금의 5% 이하만 남은 광고주(병원) 분석
      *
      * @param ReportScope|null $scope 생성 범위 (null이면 전체)
+     *
      * @return int 저장된 보고서 ID
      */
     public function generateConsumptionReport(?ReportScope $scope = null, ?string $reportDate = null): int
@@ -94,7 +98,7 @@ class AiReportService
 
         $content = $this->ai->complete(
             $this->consumptionSystemPrompt($scope),
-            $this->consumptionUserPrompt($scope, $date, $lowBalance)
+            $this->consumptionUserPrompt($scope, $date, $lowBalance),
         );
 
         return (int) $this->aiReportModel->insert([
@@ -108,7 +112,9 @@ class AiReportService
         ], true);
     }
 
-    /** 비-전체 스코프일 때 제목 앞에 주체명 표기 */
+    /**
+     * 비-전체 스코프일 때 제목 앞에 주체명 표기
+     */
     private function titlePrefix(ReportScope $scope): string
     {
         return $scope->type === AiReportModel::SCOPE_GLOBAL ? '' : '[' . $scope->label . '] ';
@@ -118,7 +124,9 @@ class AiReportService
     // 프롬프트
     // ──────────────────────────────────────────────
 
-    /** 스코프별 보고서 대상 설명 (프롬프트 문맥) */
+    /**
+     * 스코프별 보고서 대상 설명 (프롬프트 문맥)
+     */
     private function scopeContext(ReportScope $scope): string
     {
         return match ($scope->type) {
@@ -144,7 +152,7 @@ class AiReportService
     }
 
     /**
-     * @param array{charged: int, consumed: int, refunded: int, cpa_refunded: int} $daily
+     * @param array{charged: int, consumed: int, refunded: int, cpa_refunded: int}               $daily
      * @param array{charged: int, consumed: int, refunded: int, cpa_refunded: int, balance: int} $monthToDate
      */
     private function revenueUserPrompt(ReportScope $scope, string $date, string $monthFrom, array $daily, array $monthToDate): string
@@ -158,7 +166,7 @@ class AiReportService
                 '환불'        => $daily['refunded'],
                 'CPA환불복원' => $daily['cpa_refunded'],
             ],
-            '당월_누계'   => [
+            '당월_누계' => [
                 '충전'        => $monthToDate['charged'],
                 '소진'        => $monthToDate['consumed'],
                 '환불'        => $monthToDate['refunded'],
@@ -202,18 +210,18 @@ class AiReportService
     private function consumptionUserPrompt(ReportScope $scope, string $date, array $lowBalance): string
     {
         $rows = array_map(static fn (array $h): array => [
-            '병원명'    => $h['hospital_name'],
-            '충전금'    => $h['charged'],
-            '소진'      => $h['used'],
-            '잔액'      => $h['balance'],
-            '잔액비율'  => round($h['ratio'] * 100, 1) . '%',
+            '병원명'   => $h['hospital_name'],
+            '충전금'   => $h['charged'],
+            '소진'     => $h['used'],
+            '잔액'     => $h['balance'],
+            '잔액비율' => round($h['ratio'] * 100, 1) . '%',
         ], $lowBalance);
 
         $payload = json_encode([
-            '기준일'         => $date,
-            '임계_잔액비율'  => '5%',
-            '대상_광고주수'  => count($lowBalance),
-            '대상_목록'      => $rows,
+            '기준일'        => $date,
+            '임계_잔액비율' => '5%',
+            '대상_광고주수' => count($lowBalance),
+            '대상_목록'     => $rows,
         ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 
         return $this->scopeContext($scope) . "\n\n다음은 충전금의 5% 이하만 남은 광고주 목록입니다. 소진 보고서를 작성하세요. (단위: 원)\n\n{$payload}";

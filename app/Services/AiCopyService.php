@@ -16,16 +16,22 @@ use CodeIgniter\Cache\CacheInterface;
  */
 class AiCopyService
 {
-    /** 캐시 TTL(초) — 동일 입력 반복 생성 방어 */
+    /**
+     * 캐시 TTL(초) — 동일 입력 반복 생성 방어
+     */
     private const int CACHE_TTL = 3600;
 
     // CI4 캐시 키는 콜론(:) 등을 예약 문자로 금지(app/Config/Cache.php)하므로 언더스코어 사용
     private const string CACHE_PREFIX = 'ai_copy_';
 
-    /** 생성 제목 후보 개수 */
+    /**
+     * 생성 제목 후보 개수
+     */
     private const int TITLE_COUNT = 3;
 
-    /** 상세문구에 허용하는 HTML 태그 (Tiptap StarterKit 출력 호환) */
+    /**
+     * 상세문구에 허용하는 HTML 태그 (Tiptap StarterKit 출력 호환)
+     */
     private const string ALLOWED_TAGS = '<p><br><strong><em><s><ul><ol><li><h3><h4><blockquote>';
 
     private readonly AiClientInterface $ai;
@@ -34,7 +40,7 @@ class AiCopyService
     public function __construct(?AiClientInterface $ai = null, ?CacheInterface $cache = null)
     {
         // 이슈 #71·#73은 Gemini 사용 — 공급자 명시 고정 (#65 보고서는 Groq 유지)
-        $this->ai    = $ai    ?? AiClientFactory::make('gemini');
+        $this->ai    = $ai ?? AiClientFactory::make('gemini');
         $this->cache = $cache ?? cache();
     }
 
@@ -77,7 +83,7 @@ class AiCopyService
      */
     public function normalize(array $raw): array
     {
-        $titles   = [];
+        $titles    = [];
         $rawTitles = $raw['titles'] ?? [];
         if (is_array($rawTitles)) {
             foreach ($rawTitles as $title) {
@@ -143,9 +149,9 @@ class AiCopyService
     private function userPrompt(array $input): string
     {
         $payload = json_encode([
-            '키워드'    => $input['keyword'] !== '' ? $input['keyword'] : '(미지정)',
-            '병원유형'  => $input['hospital_type'] !== '' ? $input['hospital_type'] : '(미지정)',
-            '카테고리'  => $input['category'] !== '' ? $input['category'] : '(미지정)',
+            '키워드'   => $input['keyword'] !== '' ? $input['keyword'] : '(미지정)',
+            '병원유형' => $input['hospital_type'] !== '' ? $input['hospital_type'] : '(미지정)',
+            '카테고리' => $input['category'] !== '' ? $input['category'] : '(미지정)',
         ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 
         return "다음 조건으로 의료광고 카피를 생성하세요.\n\n{$payload}";

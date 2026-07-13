@@ -2,13 +2,13 @@
 
 namespace App\Controllers\Portal;
 
-use Override;
-use CodeIgniter\HTTP\RequestInterface;
-use CodeIgniter\HTTP\ResponseInterface;
-use Psr\Log\LoggerInterface;
 use App\Models\ContractOrderModel;
 use App\Models\UserModel;
 use CodeIgniter\HTTP\RedirectResponse;
+use CodeIgniter\HTTP\RequestInterface;
+use CodeIgniter\HTTP\ResponseInterface;
+use Override;
+use Psr\Log\LoggerInterface;
 
 /**
  * 포털 내 정보 관리 (이슈 #49)
@@ -24,13 +24,13 @@ class ProfileController extends BasePortalController
     public function initController(
         RequestInterface $request,
         ResponseInterface $response,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ): void {
         parent::initController($request, $response, $logger);
         $this->userModel = model(UserModel::class);
     }
 
-    public function index(): string|RedirectResponse
+    public function index(): RedirectResponse|string
     {
         $user = $this->userModel->findWithPasswordById($this->userId());
         if ($user === null) {
@@ -40,7 +40,7 @@ class ProfileController extends BasePortalController
         // 광고주만 — 연결된 대행사 정보 (수주계약 기준)
         $agency     = null;
         $hospitalId = $this->hospitalId();
-        if (!$this->isAgency() && $hospitalId !== null) {
+        if (! $this->isAgency() && $hospitalId !== null) {
             $agency = model(ContractOrderModel::class)->findAgencyInfoByHospital($hospitalId);
         }
 
@@ -57,7 +57,7 @@ class ProfileController extends BasePortalController
             'username' => 'required|max_length[100]',
             'phone'    => 'permit_empty|max_length[30]',
         ];
-        if (!$this->validate($rules)) {
+        if (! $this->validate($rules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
@@ -88,7 +88,7 @@ class ProfileController extends BasePortalController
             'confirm_password' => ['matches' => '새 비밀번호 확인이 일치하지 않습니다.'],
             'new_password'     => ['min_length' => '비밀번호는 8자 이상이어야 합니다.'],
         ];
-        if (!$this->validate($rules, $messages)) {
+        if (! $this->validate($rules, $messages)) {
             return redirect()->back()->with('errors', $this->validator->getErrors());
         }
 
@@ -98,7 +98,7 @@ class ProfileController extends BasePortalController
         }
 
         $current = (string) $this->request->getPost('current_password');
-        if (!password_verify($current, (string) $user['password'])) {
+        if (! password_verify($current, (string) $user['password'])) {
             return redirect()->to('/portal/profile')->with('error', '현재 비밀번호가 올바르지 않습니다.');
         }
 

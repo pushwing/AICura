@@ -2,22 +2,20 @@
 
 namespace App\Controllers\Admin;
 
-use Override;
-use CodeIgniter\HTTP\RequestInterface;
-use Psr\Log\LoggerInterface;
-use CodeIgniter\Exceptions\PageNotFoundException;
-use App\Models\ContractOrderModel;
-use RuntimeException;
 use App\Models\AdvertiserModel;
 use App\Models\BoardModel;
 use App\Models\CallRequestModel;
+use App\Models\ContractOrderModel;
 use App\Models\UserModel;
+use CodeIgniter\Exceptions\PageNotFoundException;
+use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
+use Override;
+use Psr\Log\LoggerInterface;
+use RuntimeException;
 
 class UserController extends BaseAdminController
 {
-    private UserModel $userModel;
-
     // 목록 페이지당 행 수
     private const int PER_PAGE = 20;
 
@@ -36,18 +34,19 @@ class UserController extends BaseAdminController
     // user_type 그룹 → 실제 user_type 값 매핑
     private const array TYPE_GROUPS = [
         self::TAB_USER => [UserModel::TYPE_USER],
-        2 => [UserModel::TYPE_OPERATOR, UserModel::TYPE_ADMIN, UserModel::TYPE_STATS, UserModel::TYPE_GENERAL, UserModel::TYPE_INSTALL, UserModel::TYPE_EXTERNAL],
-        3 => [UserModel::TYPE_HOSPITAL_AD, UserModel::TYPE_HOSPITAL_GENE, UserModel::TYPE_HOSPITAL_RECV],
+        2              => [UserModel::TYPE_OPERATOR, UserModel::TYPE_ADMIN, UserModel::TYPE_STATS, UserModel::TYPE_GENERAL, UserModel::TYPE_INSTALL, UserModel::TYPE_EXTERNAL],
+        3              => [UserModel::TYPE_HOSPITAL_AD, UserModel::TYPE_HOSPITAL_GENE, UserModel::TYPE_HOSPITAL_RECV],
     ];
-
     private const array TAB_LABELS = [
-        self::TAB_USER => '사용자',
-        2 => '운영자',
-        3 => '광고주/병원',
+        self::TAB_USER   => '사용자',
+        2                => '운영자',
+        3                => '광고주/병원',
         self::TAB_AGENCY => '대행사',
     ];
 
-    /** @var array<int, string> */
+    /**
+     * @var array<int, string>
+     */
     private const array USER_TYPE_LABELS = [
         UserModel::TYPE_USER          => '일반 사용자',
         UserModel::TYPE_OPERATOR      => '운영자',
@@ -61,11 +60,13 @@ class UserController extends BaseAdminController
         UserModel::TYPE_EXTERNAL      => '외부운영자',
     ];
 
+    private UserModel $userModel;
+
     #[Override]
     public function initController(
         RequestInterface $request,
         ResponseInterface $response,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ): void {
         parent::initController($request, $response, $logger);
         $this->userModel = model(UserModel::class);
@@ -79,7 +80,7 @@ class UserController extends BaseAdminController
     {
         $typeGroup = (int) ($this->request->getGet('type') ?? self::TAB_DEFAULT);
         // 유효 탭(1·2·3·4)이 아니면 기본 탭으로
-        if (!isset(self::TAB_LABELS[$typeGroup])) {
+        if (! isset(self::TAB_LABELS[$typeGroup])) {
             $typeGroup = self::TAB_DEFAULT;
         }
         $subType    = (int) ($this->request->getGet('sub_type') ?? 0);
@@ -113,10 +114,11 @@ class UserController extends BaseAdminController
             $stats     = model(AdvertiserModel::class)->getAgencyStats($agencyIds);
 
             $users = array_map(static function (array $u) use ($stats): array {
-                $s = $stats[(int) $u['id']] ?? ['advertiser_count' => 0, 'order_count' => 0, 'total_price' => 0];
+                $s                     = $stats[(int) $u['id']] ?? ['advertiser_count' => 0, 'order_count' => 0, 'total_price' => 0];
                 $u['advertiser_count'] = $s['advertiser_count'];
                 $u['order_count']      = $s['order_count'];
                 $u['total_price']      = $s['total_price'];
+
                 return $u;
             }, $users);
         }
@@ -229,6 +231,7 @@ class UserController extends BaseAdminController
      * 신청 이벤트 행을 뷰·AJAX 공용 표현형으로 변환.
      *
      * @param array<string, mixed> $row
+     *
      * @return array{id: int, campaign_title: string, status_label: string, created_at: string}
      */
     private function formatEvent(array $row): array
@@ -245,6 +248,7 @@ class UserController extends BaseAdminController
      * 작성 후기 행을 뷰·AJAX 공용 표현형으로 변환.
      *
      * @param array<string, mixed> $row
+     *
      * @return array{id: int, type_label: string, subject: string, rate: int, is_deleted: bool, created_at: string}
      */
     private function formatReview(array $row): array

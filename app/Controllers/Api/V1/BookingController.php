@@ -2,12 +2,12 @@
 
 namespace App\Controllers\Api\V1;
 
-use Override;
 use App\Exceptions\DomainException;
 use App\Services\BookingService;
 use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
 use OpenApi\Attributes as OA;
+use Override;
 
 /**
  * 외부(소비자) 앱 예약 컨트롤러 (이슈 #101)
@@ -34,8 +34,8 @@ class BookingController extends BaseApiController
                 new OA\Property(property: 'phone', type: 'string', example: '01012345678'),
                 new OA\Property(property: 'book_date', type: 'string', format: 'date-time', example: '2026-07-01 14:00:00'),
                 new OA\Property(property: 'call_request_id', description: '연결할 상담 신청(선택)', type: 'integer', example: 12),
-            ]
-        )
+            ],
+        ),
     ), tags: ['Bookings'], responses: [
         new OA\Response(response: 201, description: '예약 생성'),
         new OA\Response(response: 404, description: '병원/상담건 없음'),
@@ -51,7 +51,7 @@ class BookingController extends BaseApiController
             'call_request_id' => 'permit_empty|is_natural_no_zero',
         ];
 
-        if (!$this->validate($rules)) {
+        if (! $this->validate($rules)) {
             return $this->error('VALIDATION_ERROR', implode(' ', $this->validator->getErrors()), 422);
         }
 
@@ -71,7 +71,7 @@ class BookingController extends BaseApiController
         responses: [
             new OA\Response(response: 200, description: '예약 상세'),
             new OA\Response(response: 404, description: '존재하지 않거나 권한 없는 예약'),
-        ]
+        ],
     )]
     #[Override]
     public function show($id = null): ResponseInterface
@@ -93,17 +93,17 @@ class BookingController extends BaseApiController
             new OA\Response(response: 200, description: '변경 성공'),
             new OA\Response(response: 404, description: '존재하지 않거나 권한 없는 예약'),
             new OA\Response(response: 409, description: '이미 취소된 예약'),
-        ]
+        ],
     )]
     #[Override]
     public function update($id = null): ResponseInterface
     {
         $rules = [
-            'name'      => 'permit_empty|max_length[255]',
-            'phone'     => 'permit_empty|max_length[255]',
+            'name'  => 'permit_empty|max_length[255]',
+            'phone' => 'permit_empty|max_length[255]',
         ];
 
-        if (!$this->validate($rules)) {
+        if (! $this->validate($rules)) {
             return $this->error('VALIDATION_ERROR', implode(' ', $this->validator->getErrors()), 422);
         }
 
@@ -124,7 +124,7 @@ class BookingController extends BaseApiController
             new OA\Response(response: 200, description: '취소 성공'),
             new OA\Response(response: 404, description: '존재하지 않거나 권한 없는 예약'),
             new OA\Response(response: 409, description: '이미 취소된 예약'),
-        ]
+        ],
     )]
     #[Override]
     public function delete($id = null): ResponseInterface
