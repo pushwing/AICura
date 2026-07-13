@@ -16,8 +16,10 @@ if [ -x "$FIXER" ]; then
     STAGED_PHP="$(git diff --cached --name-only --diff-filter=ACMR -- '*.php')"
     if [ -n "$STAGED_PHP" ]; then
         # 설정의 finder(app·tests) 와 교집합만 처리 — 그 외 경로는 자동 무시된다.
+        # --config 미지정 시 php-cs-fixer 는 여러 경로를 받으면 "config parameter is required"
+        # 로 종료코드 16 을 반환한다(PR #201 이후 잠재 버그). 설정 파일을 명시해 회피한다.
         # shellcheck disable=SC2086
-        echo "$STAGED_PHP" | xargs "$FIXER" fix --path-mode=intersection --quiet
+        echo "$STAGED_PHP" | xargs "$FIXER" fix --config=.php-cs-fixer.dist.php --path-mode=intersection --quiet
         # 포맷으로 수정된 파일을 다시 스테이징
         # shellcheck disable=SC2086
         echo "$STAGED_PHP" | xargs git add
