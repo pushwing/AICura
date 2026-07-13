@@ -11,10 +11,51 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# 최소권한 — changes 잡의 paths-filter 가 PR 변경 파일을 API 로 조회하려면
+# pull-requests:read 가 필요하다. 그 외 잡은 checkout(contents:read)만 사용한다.
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
+  # ───────────────────────────── 변경 영역 감지 ─────────────────────────────
+  # 이번 push/PR 에서 실제로 바뀐 경로를 판별해 관련 잡만 실행한다.
+  # (문서 전용 → 둘 다 skip / 백엔드만 → app skip / 앱만 → backend skip)
+  changes:
+    name: 변경 영역 감지
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      app: ${{ steps.filter.outputs.app }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'app/**'
+              - 'tests/**'
+              - 'public/**'
+              - 'composer.json'
+              - 'composer.lock'
+              - 'phpstan.neon'
+              - 'phpunit.dist.xml'
+              - 'rector.php'
+              - '.php-cs-fixer.dist.php'
+              - 'env'
+              - 'spark'
+              - '.github/workflows/ci.yml'
+            app:
+              - 'app-mobile/**'
+              - '.github/workflows/ci.yml'
+
   # ───────────────────────────── 백엔드 (CodeIgniter 4) ─────────────────────────────
   backend:
     name: Backend (PHP 8.5 · PHPStan · PHPUnit)
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
 
     services:
@@ -101,6 +142,8 @@ jobs:
   # ───────────────────────────── 앱 (Flutter) ─────────────────────────────
   app:
     name: App (Flutter · analyze · test)
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
