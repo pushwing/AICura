@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+#
+# pre-push — 푸시 전에 CI(backend·app) 검사를 로컬에서 그대로 수행해
+#            "푸시 → CI 실패 → 재수정" 3분 왕복을 40초 로컬 검증으로 대체한다.
+#
+# 이번 푸시로 올라가는 커밋의 변경 파일 종류에 따라 필요한 검사만 실행한다.
+#   - PHP 변경(app-mobile 제외) → composer check  (cs → analyse → test, CI backend 잡과 동일)
+#   - app-mobile 변경           → dart format 검사 · flutter analyze · flutter test (CI app 잡과 동일)
+#   - 문서 전용 등 그 외        → 검사 없이 즉시 통과
+#
+# 활성화: git config core.hooksPath .githooks  (composer install 시 자동 설정)
+# 우회:   git push --no-verify   (로컬 DB·flutter 미비 등 긴급 상황)
+
+set -uo pipefail
+
+ZERO="0000000000000000000000000000000000000000"
+
+# ── 이번 푸시로 올라가는 커밋 범위의 변경 파일을 수집 ──
+changed=""
+while read -r _local_ref local_sha _remote_ref remote_sha; do
+    [ "$local_sha" = "$ZERO" ] && continue            # 브랜치 삭제 푸시는 무시
+    if [ "$remote_sha" = "$ZERO" ]; then
+        # 원격에 없는 새 브랜치 → dev 분기 이후 커밋만 대상
+        base="$(git merge-base "$local_sha" origin/dev 2>/dev/null || true)"
+        range="${base:+$base..}$local_sha"
+    else
+        range="$remote_sha..$local_sha"
+    fi
+    changed+=$'\n'"$(git diff --name-only "$range" 2>/dev/null || true)"
+done
+
+# stdin 이 비어있으면(수동 실행 등) dev 기준 현재 HEAD 로 판단
+if [ -z "$(printf '%s' "$changed" | tr -d '[:space:]')" ]; then
+    changed="$(git diff --name-only origin/dev...HEAD 2>/dev/null || true)"
+fi
+
+php_changed="$(printf '%s\n' "$changed" | grep -E '\.php$' | grep -vE '^app-mobile/' || true)"
+app_changed="$(printf '%s\n' "$changed" | grep -E '^app-mobile/' || true)"
+
+fail=0
+
+# ── 백엔드: CI backend 잡과 동일한 composer check ──
+if [ -n "$php_changed" ]; then
+    if command -v composer >/dev/null 2>&1; then
+        echo "▶ 백엔드 검사 (composer check: cs → analyse → test)…"
+        if ! composer check; then
+            echo "✖ 백엔드 검사 실패 — 고친 뒤 다시 푸시하세요 (긴급 우회: git push --no-verify)"
+            fail=1
+        fi
+    else
+        echo "⚠ composer 미설치 — 백엔드 검사 건너뜀(푸시 후 CI 에서 검증됨)"
+    fi
+fi
+
+# ── 앱: CI app 잡과 동일한 포맷·정적분석·테스트 ──
+if [ -n "$app_changed" ]; then
+    if command -v flutter >/dev/null 2>&1; then
+        echo "▶ 앱 검사 (dart format · flutter analyze · flutter test)…"
+        if ! ( cd app-mobile \
+                && dart format --output=none --set-exit-if-changed lib test \
+                && flutter analyze \
+                && flutter test ); then
+            echo "✖ 앱 검사 실패 — 고친 뒤 다시 푸시하세요 (긴급 우회: git push --no-verify)"
+            fail=1
+        fi
+    else
+        echo "⚠ flutter 미설치 — 앱 검사 건너뜀(푸시 후 CI 에서 검증됨)"
+    fi
+fi
+
+exit "$fail"
