@@ -9,11 +9,14 @@
 | `assets/logo/logo.svg` | 기본형 — 라이트 배경용 |
 | `assets/logo/logo-dark.svg` | 다크 배경용 |
 | `assets/logo/logo-color-bg.svg` | 컬러(그린) 배경용 |
-| `assets/logo/icon.svg` | 앱 아이콘 / 파비콘 (64×64) |
+| `assets/logo/icon.svg` | 앱 아이콘 / 파비콘 원본 (64×64) |
+| `public/favicon.ico` | 브라우저 탭 파비콘 (16/32/48 멀티 해상도) |
+| `public/assets/favicon/*.png` | apple-touch-icon(180)·android-chrome(192/512) 등 파생 아이콘 |
+| `public/site.webmanifest` | PWA 매니페스트 (android-chrome 아이콘 참조) |
 
 ### 로고 구조
 
-- **마크**: 십자(Plus/Cross) — 의료·케어 아이덴티티 직결
+- **마크**: 다이아몬드(Diamond) — 정제·정확성을 상징하며 의료·케어 아이덴티티와 연결
 - **워드마크**: `AI` (Bold 700) + `Cura` (Regular 400)
 - **마크 모서리**: `rx="8"` (rounded square)
 
