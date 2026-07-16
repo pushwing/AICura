@@ -30,8 +30,8 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
-          # 명령 중 하나라도 실패하면 즉시 중단 (set -e)
-          script_stop: true
+          # 명령 중 하나라도 실패하면 즉시 중단 — 아래 스크립트 최상단 `set -euo pipefail` 로 처리한다.
+          # (구 `script_stop` 입력은 appleboy/ssh-action@v1 에서 제거되어 "Unexpected input" 경고를 유발한다.)
           script: |
             set -euo pipefail
 

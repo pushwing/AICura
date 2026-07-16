@@ -21,6 +21,9 @@ $meta['canonical'] = (string) ($meta['canonical'] ?? current_url());
     <?= MetaTagBuilder::fromArray($meta)->render() ?>
 
     <link rel="icon" href="<?= base_url('favicon.ico') ?>">
+    <link rel="icon" type="image/png" sizes="32x32" href="<?= base_url('assets/favicon/favicon-32x32.png') ?>">
+    <link rel="apple-touch-icon" sizes="180x180" href="<?= base_url('assets/favicon/apple-touch-icon.png') ?>">
+    <link rel="manifest" href="<?= base_url('site.webmanifest') ?>">
     <link rel="stylesheet" href="<?= base_url('assets/css/aicura.css') ?>">
 
     <!-- JSON-LD 구조화 데이터 (이슈 #145) — 상세 페이지에서 $jsonLd 전달 시 주입 -->
