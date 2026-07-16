@@ -2,6 +2,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= esc($title ?? 'AICura Admin') ?></title>
 <link rel="icon" href="<?= base_url('favicon.ico') ?>">
+<link rel="icon" type="image/png" sizes="32x32" href="<?= base_url('assets/favicon/favicon-32x32.png') ?>">
+<link rel="apple-touch-icon" sizes="180x180" href="<?= base_url('assets/favicon/apple-touch-icon.png') ?>">
+<link rel="manifest" href="<?= base_url('site.webmanifest') ?>">
 
 <!-- CSRF 토큰 (JS fetch 용) -->
 <meta name="csrf-token" content="<?= csrf_hash() ?>">
