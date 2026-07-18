@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "33630816179",
+    "project_id": "aicura-951b1",
+    "storage_bucket": "aicura-951b1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:33630816179:android:d66f4b018006d371ea6dc6",
+        "android_client_info": {
+          "package_name": "com.aivance.aicura"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAiDrgLTtvOfkRywxUUSdRlB0Lrda3NuRA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

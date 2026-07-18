@@ -1,4 +1,4 @@
-package com.aicura.aicura_app
+package com.aivance.aicura
 
 import io.flutter.embedding.android.FlutterActivity
 

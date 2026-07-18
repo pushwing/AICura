@@ -1,5 +1,10 @@
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  # iOS SwiftPM 이 build/ios/SourcePackages 에 패키지 소스(테스트 포함)를 그대로 vendoring 하므로 분석 대상에서 제외
+  exclude:
+    - build/**
+
 linter:
   rules:
     prefer_single_quotes: true
