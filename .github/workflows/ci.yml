@@ -23,7 +23,7 @@ jobs:
   # (문서 전용 → 둘 다 skip / 백엔드만 → app skip / 앱만 → backend skip)
   changes:
     name: 변경 영역 감지
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       app: ${{ steps.filter.outputs.app }}
@@ -56,26 +56,37 @@ jobs:
     name: Backend (PHP 8.5 · PHPStan · PHPUnit)
     needs: changes
     if: needs.changes.outputs.backend == 'true'
-    runs-on: ubuntu-latest
-
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_DATABASE: aicura
-          MYSQL_USER: aicura
-          MYSQL_PASSWORD: "Aicura@2026!Dev"
-          MYSQL_ROOT_PASSWORD: root
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=10
+    runs-on: self-hosted
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: MySQL 컨테이너 기동 (Docker)
+        # self-hosted macOS 러너는 GitHub Actions `services:`(서비스 컨테이너)를
+        # 지원하지 않는다 — Linux 러너 전용 기능이라 Mac에 설치된 Docker로 직접 기동한다.
+        # 호스트 포트는 고정하지 않고 Docker가 빈 포트를 임의 할당하게 해
+        # 같은 러너 Mac에서 이미 쓰는 로컬 MySQL·다른 저장소 CI 컨테이너와의 충돌을 피한다.
+        run: |
+          docker rm -f aicura-ci-mysql >/dev/null 2>&1 || true
+          docker run -d --name aicura-ci-mysql \
+            -e MYSQL_DATABASE=aicura \
+            -e MYSQL_USER=aicura \
+            -e MYSQL_PASSWORD="Aicura@2026!Dev" \
+            -e MYSQL_ROOT_PASSWORD=root \
+            -p 127.0.0.1::3306 \
+            mysql:8.0
+
+          MYSQL_PORT="$(docker port aicura-ci-mysql 3306/tcp | head -1 | cut -d: -f2)"
+          [ -n "$MYSQL_PORT" ] || { echo "MySQL 컨테이너 포트 확인 실패"; exit 1; }
+          echo "MYSQL_PORT=$MYSQL_PORT" >> "$GITHUB_ENV"
+
+          echo "MySQL 준비 대기 중... (포트 $MYSQL_PORT)"
+          for i in $(seq 1 30); do
+            if docker exec aicura-ci-mysql mysqladmin ping -h 127.0.0.1 -uroot -proot --silent >/dev/null 2>&1; then
+              echo "MySQL 준비 완료"; break
+            fi
+            sleep 2
+          done
 
       - name: PHP 설정
         uses: shivammathur/setup-php@v2
@@ -104,6 +115,7 @@ jobs:
             echo "app.baseURL = http://localhost:8300/"
             echo "JWT_SECRET = ci-test-secret-key-please-change-32chars-min"
             echo "database.default.hostname = 127.0.0.1"
+            echo "database.default.port = ${MYSQL_PORT}"
             echo "database.default.database = aicura"
             echo "database.default.username = aicura"
             echo "database.default.password = Aicura@2026!Dev"
@@ -124,27 +136,27 @@ jobs:
       - name: 정적 분석 (PHPStan)
         run: composer analyse
 
-      - name: MySQL 준비 대기
+      - name: 테스트 DB 연결 정보 보정 (localhost → 127.0.0.1, 동적 포트 반영)
+        # macOS(BSD) sed 는 -i 뒤에 백업 확장자 인자가 필수라 GNU sed 문법과 다르다.
         run: |
-          for i in $(seq 1 30); do
-            if mysqladmin ping -h 127.0.0.1 -P 3306 -uaicura -p"Aicura@2026!Dev" --silent; then
-              echo "MySQL ready"; break
-            fi
-            echo "waiting for mysql... ($i)"; sleep 2
-          done
-
-      - name: 테스트 DB 연결 호스트 보정 (localhost → 127.0.0.1, MySQLi TCP 강제)
-        run: sed -i 's#name="database.tests.hostname" value="localhost"#name="database.tests.hostname" value="127.0.0.1"#' phpunit.dist.xml
+          sed -i '' \
+            -e 's#name="database.tests.hostname" value="localhost"#name="database.tests.hostname" value="127.0.0.1"#' \
+            -e "s#name=\"database.tests.port\" value=\"3306\"#name=\"database.tests.port\" value=\"${MYSQL_PORT}\"#" \
+            phpunit.dist.xml
 
       - name: 단위·DB 테스트 (PHPUnit)
         run: composer test
+
+      - name: MySQL 컨테이너 정리
+        if: always()
+        run: docker rm -f aicura-ci-mysql >/dev/null 2>&1 || true
 
   # ───────────────────────────── 앱 (Flutter) ─────────────────────────────
   app:
     name: App (Flutter · analyze · test)
     needs: changes
     if: needs.changes.outputs.app == 'true'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     defaults:
       run:
         working-directory: app-mobile
@@ -177,7 +189,7 @@ jobs:
     name: Slack 알림 (CI 실패)
     needs: [backend, app]
     if: failure() && github.event_name == 'push'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
 

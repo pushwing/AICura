@@ -53,6 +53,7 @@
         <const name="PUBLICPATH" value="./public/"/>
         <!-- Database configuration -->
         <server name="database.tests.hostname" value="localhost"/>
+        <server name="database.tests.port" value="3306"/>
         <server name="database.tests.database" value="aicura"/>
         <server name="database.tests.username" value="aicura"/>
         <server name="database.tests.password" value="Aicura@2026!Dev"/>
