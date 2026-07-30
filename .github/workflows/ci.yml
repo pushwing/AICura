@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [dev, main]
+    branches: [main]
   pull_request:
-    branches: [dev, main]
+    branches: [main]
 
 # 같은 브랜치에서 새 푸시가 오면 진행 중 실행을 취소
 concurrency:
