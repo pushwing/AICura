@@ -56,16 +56,18 @@ on:
 
 ### `backend` 잡 — PHP 8.5 · PHPStan · PHPUnit
 
-`mysql:8.0` 서비스 컨테이너를 띄우고 다음 순서로 검증한다.
+Docker 로 `mysql:8.0` 컨테이너를 직접 기동하고 다음 순서로 검증한다(왜 `services:` 대신 Docker 인지는 아래 "self-hosted 러너에서 돈다" 참고).
 
-1. setup-php `8.5` (확장: `mbstring intl mysqli curl dom xml tokenizer`, 커버리지 `pcov`)
+1. `docker run` 으로 MySQL 컨테이너 기동 — 호스트 포트는 고정하지 않고 `-p 127.0.0.1::3306` 로 동적 할당, `docker port` 로 읽어 `$MYSQL_PORT` 에 저장
+2. setup-php `8.5` (확장: `mbstring intl mysqli curl dom xml tokenizer`, 커버리지 `pcov`)
    - `phpunit.dist.xml` 이 `failOnWarning` + `<coverage>` 를 켜 두어 커버리지 드라이버 없으면 경고→실패 → `pcov` 필수
-2. Composer 캐시 → `composer install`
-3. `env` → `.env` 복사 후 CI용 DB·`JWT_SECRET` 주입
-4. `writable/` 하위 디렉토리 생성 (git 미추적, `WRITEPATH` 보장)
-5. `composer analyse` (PHPStan level 6)
-6. MySQL 헬스 대기 → `phpunit.dist.xml` 의 `database.tests.hostname` 을 `localhost` → `127.0.0.1` 로 sed 치환 (MySQLi TCP 강제)
-7. `composer test` (PHPUnit 단위·DB 통합)
+3. Composer 캐시 → `composer install`
+4. `env` → `.env` 복사 후 CI용 DB(동적 포트 포함)·`JWT_SECRET` 주입
+5. `writable/` 하위 디렉토리 생성 (git 미추적, `WRITEPATH` 보장)
+6. `composer analyse` (PHPStan level 6)
+7. `phpunit.dist.xml` 의 `database.tests.hostname`(`localhost`→`127.0.0.1`)·`database.tests.port`(`3306`→`$MYSQL_PORT`) 를 sed 로 치환
+8. `composer test` (PHPUnit 단위·DB 통합)
+9. `if: always()` 로 MySQL 컨테이너 정리
 
 ### `app` 잡 — Flutter · analyze · test
 
@@ -77,6 +79,17 @@ on:
 4. `flutter test`
 
 > 새 PHP 코드는 PHPStan level 6 통과 + 관련 PHPUnit 테스트가 그린이어야 배포 PR 의 CI 를 통과한다. 새 기능에는 `tests/` 테스트를 함께 작성한다. 로컬에서 동일 검증은 위 `.githooks/pre-push` 또는 `composer check` 로 직접 수행한다.
+
+### self-hosted 러너에서 돈다
+
+GitHub 호스팅 러너(`ubuntu-latest`)가 아니라 이 저장소 개발자의 로컬 Mac 을 self-hosted 러너로 등록해서 돈다(`AIFid`·`AIPicto` 저장소에서 이미 쓰던 패턴을 AICura 에도 적용).
+
+- **러너 위치**: `~/actions-runners/AICura` (저장소 밖). `aicura-mac-local-runner` 라는 이름으로 launchd **LaunchAgent**(`~/Library/LaunchAgents/actions.runner.pushwing-AICura.aicura-mac-local-runner.plist`)로 상시 등록돼 있다 — sudo 불필요, Mac 로그인 세션이 켜져 있으면 자동으로 리스닝한다.
+- **MySQL**: self-hosted macOS 러너는 `services:` 도커 컨테이너를 지원하지 않는다(Linux 러너 전용 기능). 대신 `backend` 잡에서 `docker run` 으로 직접 기동하고 `if: always()` 스텝으로 정리한다.
+- **포트**: 호스트 포트를 고정하지 않고 `-p 127.0.0.1::3306` 로 Docker 가 빈 포트를 임의 할당하게 한다 — 같은 Mac 에서 상시 켜둔 로컬 개발용 MySQL, 그리고 `AIFid`·`AIPicto` 등 다른 저장소의 CI 컨테이너와 동시에 실행돼도 포트 충돌이 없다. 컨테이너명(`aicura-ci-mysql`)도 저장소별로 구분해 컨테이너 자체가 충돌하지 않게 한다.
+- **macOS sed 문법**: 러너가 macOS 라 `sed` 가 BSD sed 다. `sed -i 's#...#...#' file`(GNU 문법)은 macOS 에서 에러가 나므로 `sed -i '' -e '...' file` 형태를 쓴다.
+- **runner 관리**: `cd ~/actions-runners/AICura && ./svc.sh status|stop|start` 로 서비스 제어. 재등록이 필요하면 `gh api -X POST repos/pushwing/AICura/actions/runners/registration-token --jq .token` 으로 토큰을 발급받아 `./config.sh --url https://github.com/pushwing/AICura --token <TOKEN> --replace` 실행.
+- **호스팅 러너로 되돌리려면**: `ci.yml` 의 `runs-on` 을 `ubuntu-latest` 로 바꾸고, `backend` 잡의 Docker 기동/정리 스텝을 `services: mysql: ...`(고정 포트 3306) 블록으로 되돌리면 된다.
 
 ## CD (배포)
 
