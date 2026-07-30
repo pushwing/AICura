@@ -28,8 +28,9 @@
 
 # ── 공개 웹(SEO/GEO) 도메인 (이슈 #143) ──────────────────────
 # SSR 공개 페이지의 canonical·Open Graph·sitemap.xml·robots.txt 의 절대 URL 은
-# 모두 app.baseURL 기준으로 생성된다(base_url() 경유). 운영 도메인 확정 시 아래 한 줄만 설정하면
-# sitemap/robots/canonical 이 일괄 반영된다. 예) app.baseURL = 'https://www.aicura.co.kr/'
+# 모두 app.baseURL 기준으로 생성된다(base_url() 경유). 운영 도메인은 cura.aivance.kr 로 확정
+# — 아래 한 줄만 설정하면 sitemap/robots/canonical 이 일괄 반영된다.
+# 예) app.baseURL = 'https://cura.aivance.kr/'
 # 로컬: app.baseURL = 'http://localhost:8300/'
 
 #--------------------------------------------------------------------
