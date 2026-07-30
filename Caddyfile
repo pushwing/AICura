@@ -5,6 +5,6 @@
 
 :8300 {
 	root * public
-	encode zstd br gzip
+	encode zstd gzip
 	php_server
 }
