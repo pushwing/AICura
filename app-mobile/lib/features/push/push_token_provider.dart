@@ -12,6 +12,9 @@ abstract class PushTokenProvider {
 
   /// 서버 전송용 platform 코드 (2=Android, 3=iOS).
   int get platform => Platform.isIOS ? 3 : 2;
+
+  /// 토큰이 재발급될 때마다 새 토큰을 흘려보낸다. 재발급이 없는 공급자는 빈 스트림.
+  Stream<String> get onTokenRefresh => const Stream.empty();
 }
 
 /// FCM 미연동 상태의 임시 공급자.

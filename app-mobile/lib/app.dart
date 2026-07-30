@@ -18,6 +18,8 @@ import 'features/mypage/me_repository.dart';
 import 'features/mypage/my_page_provider.dart';
 import 'features/push/device_registrar.dart';
 import 'features/push/device_repository.dart';
+import 'features/push/fcm_push_token_provider.dart';
+import 'features/push/push_notification_service.dart';
 import 'features/push/push_token_provider.dart';
 import 'features/shell/main_shell.dart';
 import 'features/system/settings_provider.dart';
@@ -74,9 +76,15 @@ class _AicuraAppState extends State<AicuraApp> {
     _myPage = MyPageProvider(_meRepo);
     _settings = SettingsProvider(_systemRepo);
     _deviceRegistrar = DeviceRegistrar(
-      tokenProvider: DebugPushTokenProvider(),
+      // FCM 은 Android 전용. iOS 는 APNs 인증서 연동 전까지 임시 공급자를 유지한다.
+      tokenProvider: Platform.isAndroid
+          ? FcmPushTokenProvider()
+          : DebugPushTokenProvider(),
       repository: DeviceRepository(_api),
     );
+    if (Platform.isAndroid) {
+      PushNotificationService().init();
+    }
     // 로그인 상태가 되면 디바이스 푸시 토큰을 등록한다.
     _auth.addListener(_onAuthChanged);
     _auth.bootstrap();
@@ -101,6 +109,7 @@ class _AicuraAppState extends State<AicuraApp> {
   @override
   void dispose() {
     _auth.removeListener(_onAuthChanged);
+    _deviceRegistrar.dispose();
     super.dispose();
   }
 
