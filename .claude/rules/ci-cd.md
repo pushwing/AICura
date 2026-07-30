@@ -1,8 +1,56 @@
 # CI · CD · 클라우드 인프라
 
+## 검증 게이트 — 어디서 무엇을 돌리는가
+
+검증은 로컬에서 끝낸다. `feature/* → dev` PR 에는 CI 를 걸지 않고, CI 는 `dev → main` 배포 PR 에서만 돈다.
+
+```
+feature/*  ──[검사 없음, 코드 리뷰만]──▶  dev  ──[PR + CI]──▶  main
+                                            ↑
+                                     여기서만 CI 가 돈다
+```
+
+| 시점 | 무엇을 | 누가 |
+|------|--------|------|
+| 개발 중 | 필요할 때 수시로 `composer analyse` / `composer test:unit`(DB 불필요) | 사람 / Claude |
+| `feature/*` 푸시 | 검사 없음 — 작업 중 빠른 반복을 막지 않기 위해 | `.githooks/pre-push` 가 스킵 |
+| `feature → dev` PR | CI 없음. 코드 리뷰만 | — |
+| `dev` 직접 푸시(문서 전용 예외 등 드문 경우) | `composer check`(analyse + test) 전체 필수. 실패하면 푸시되지 않는다 | `.githooks/pre-push` |
+| `dev → main` PR | GitHub Actions 전체 (PHPStan + PHPUnit, backend/app 잡) | CI |
+
+> `feature/* → dev` 는 전역 [`git-workflow.md`](~/.claude/rules/git-workflow.md) 규칙에 따라 GitHub **Squash and merge**(`gh pr merge --squash`)로만 반영되고 로컬에서 `dev` 로 직접 push 하지 않는다. 즉 `feature → dev` 단계는 pre-push 훅도 CI 도 거치지 않으며, **코드 리뷰가 유일한 게이트**다. `dev` 로의 직접 push 는 문서 전용 변경 예외처럼 드문 경우에만 발생하고, 그때는 pre-push 훅이 실질적 검증 게이트로 동작한다.
+>
+> Claude 가 작업할 때도 동일하다 — `dev → main` 배포 PR 을 만들기 전에 `composer check` 를 실제로 실행하고 출력을 확인한 뒤 진행한다. "통과할 것 같다"로 넘어가지 않는다.
+
+### 훅으로 강제한다 (`.githooks/`)
+
+로컬 검증을 사람 기억에 의존하면 반드시 빠진다. 훅이 저장소에 커밋돼 있으니 클론 직후 1회 활성화한다.
+
+```bash
+git config core.hooksPath .githooks
+```
+
+| 훅 | 동작 |
+|----|------|
+| `pre-commit` | 스테이징된 `*.php`/`*.dart` 를 CS Fixer/`dart format` 으로 자동 수정 후 재-스테이징. 커밋을 막지는 않는다 |
+| `pre-push` | 푸시 대상이 `main` 이면 무조건 차단(배포는 `dev → main` PR 로만). `feature/*` 는 검사 없이 통과. `dev` 대상일 때만 변경 파일 종류에 따라 `composer check` 또는 `dart format`/`flutter analyze`/`flutter test` 실행, 실패 시 푸시 중단 |
+
+- 문서 전용 변경(`*.md`, `docs/**`, `.claude/rules/**` 만 바뀐 푸시)은 `dev` 대상이어도 검사할 PHP/Dart 파일이 없어 자동으로 통과한다.
+- 긴급 우회: `git push --no-verify` (로컬 DB·flutter 미비 등)
+
 ## CI (GitHub Actions)
 
-`dev` · `main` 으로의 **push / PR** 마다 자동 검증된다. 정의: `.github/workflows/ci.yml` (단일 파일, 두 잡 병렬).
+`dev → main` PR 과 `main` push(= 배포 PR 머지) 시에만 자동 검증된다. 정의: `.github/workflows/ci.yml`.
+
+```yaml
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+```
+
+`branches` 에 `dev` 를 넣지 않는 것이 핵심이다 — `feature → dev` PR 이나 `dev` 로의 push 에서는 CI 가 돌지 않는다. `dev → main` 배포 PR 은 merge commit 으로 머지하므로(전역 규칙), CI 가 통과한 커밋 조합이 그대로 `main` 에 올라간다.
 
 - **동시성**: 같은 ref 새 푸시 시 진행 중 실행 취소 (`concurrency.cancel-in-progress`)
 
@@ -28,16 +76,7 @@
 3. `flutter analyze`
 4. `flutter test`
 
-### 푸시 전 로컬 사전 검증
-
-CI 실패를 줄이기 위해 푸시 전 동일 검증을 로컬에서 수행한다.
-
-```bash
-composer check   # = analyse + test (백엔드)
-# 앱: cd app-mobile && dart format --output=none --set-exit-if-changed lib test && flutter analyze && flutter test
-```
-
-> 새 PHP 코드는 PHPStan level 6 통과 + 관련 PHPUnit 테스트가 그린이어야 CI를 통과한다. 새 기능에는 `tests/` 테스트를 함께 작성한다.
+> 새 PHP 코드는 PHPStan level 6 통과 + 관련 PHPUnit 테스트가 그린이어야 배포 PR 의 CI 를 통과한다. 새 기능에는 `tests/` 테스트를 함께 작성한다. 로컬에서 동일 검증은 위 `.githooks/pre-push` 또는 `composer check` 로 직접 수행한다.
 
 ## CD (배포)
 
