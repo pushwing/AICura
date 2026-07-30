@@ -82,14 +82,16 @@ Docker 로 `mysql:8.0` 컨테이너를 직접 기동하고 다음 순서로 검�
 
 ### self-hosted 러너에서 돈다
 
-GitHub 호스팅 러너(`ubuntu-latest`)가 아니라 이 저장소 개발자의 로컬 Mac 을 self-hosted 러너로 등록해서 돈다(`AIFid`·`AIPicto` 저장소에서 이미 쓰던 패턴을 AICura 에도 적용).
+GitHub 호스팅 러너(`ubuntu-latest`)가 아니라 이 저장소 개발자의 로컬 Mac 을 self-hosted 러너로 등록해서 돈다(`AIFid`·`AIPicto` 저장소에서 이미 쓰던 패턴을 AICura 에도 적용). `ci.yml` 뿐 아니라 `deploy.yml` 도 동일하게 self-hosted 로 돈다 — 계기는 GitHub 계정 결제 문제로 호스팅 러너 잡이 아예 시작되지 못하는 상태(`The job was not started because recent account payments have failed or your spending limit needs to be increased.`)를 실제 배포 PR(#216)에서 겪었기 때문이다.
 
-- **러너 위치**: `~/actions-runners/AICura` (저장소 밖). `aicura-mac-local-runner` 라는 이름으로 launchd **LaunchAgent**(`~/Library/LaunchAgents/actions.runner.pushwing-AICura.aicura-mac-local-runner.plist`)로 상시 등록돼 있다 — sudo 불필요, Mac 로그인 세션이 켜져 있으면 자동으로 리스닝한다.
+- **러너 위치**: `~/actions-runners/AICura` (저장소 밖). `aicura-mac-local-runner` 라는 이름으로 launchd **LaunchAgent**(`~/Library/LaunchAgents/actions.runner.pushwing-AICura.aicura-mac-local-runner.plist`)로 상시 등록돼 있다 — sudo 불필요, Mac 로그인 세션이 켜져 있으면 자동으로 리스닝한다. `ci.yml`·`deploy.yml` 모두 같은 러너를 공유한다(잡 단위가 아니라 저장소 단위 등록).
 - **MySQL**: self-hosted macOS 러너는 `services:` 도커 컨테이너를 지원하지 않는다(Linux 러너 전용 기능). 대신 `backend` 잡에서 `docker run` 으로 직접 기동하고 `if: always()` 스텝으로 정리한다.
 - **포트**: 호스트 포트를 고정하지 않고 `-p 127.0.0.1::3306` 로 Docker 가 빈 포트를 임의 할당하게 한다 — 같은 Mac 에서 상시 켜둔 로컬 개발용 MySQL, 그리고 `AIFid`·`AIPicto` 등 다른 저장소의 CI 컨테이너와 동시에 실행돼도 포트 충돌이 없다. 컨테이너명(`aicura-ci-mysql`)도 저장소별로 구분해 컨테이너 자체가 충돌하지 않게 한다.
 - **macOS sed 문법**: 러너가 macOS 라 `sed` 가 BSD sed 다. `sed -i 's#...#...#' file`(GNU 문법)은 macOS 에서 에러가 나므로 `sed -i '' -e '...' file` 형태를 쓴다.
+- **Docker 컨테이너 액션 제약**: `appleboy/ssh-action` 같은 Docker 컨테이너 액션(`uses:`)은 self-hosted macOS 러너에서 GitHub Actions 가 직접 실행해줄 수 없다(Linux 러너 전용 기능) — `deploy.yml` 은 macOS 내장 `ssh` 클라이언트로 직접 접속하는 `run:` 스텝으로 대체했다.
+- **`run:` 안에서 heredoc 쓸 때 주의**: YAML block scalar(`|`)는 첫 내용 줄의 들여쓰기를 기준으로 "공통 들여쓰기만" 제거한다. `<<'EOF'` 같은 heredoc 종료 마커는 실제 실행되는 스크립트에서 다른 본문 줄과 정확히 같은 들여쓰기(따라서 YAML 이 벗겨낸 뒤엔 flush-left)여야 한다 — 한 칸이라도 어긋나면 heredoc 이 닫히지 않고 다음 스텝 내용까지 표준입력으로 삼켜 배포가 멈춘다.
 - **runner 관리**: `cd ~/actions-runners/AICura && ./svc.sh status|stop|start` 로 서비스 제어. 재등록이 필요하면 `gh api -X POST repos/pushwing/AICura/actions/runners/registration-token --jq .token` 으로 토큰을 발급받아 `./config.sh --url https://github.com/pushwing/AICura --token <TOKEN> --replace` 실행.
-- **호스팅 러너로 되돌리려면**: `ci.yml` 의 `runs-on` 을 `ubuntu-latest` 로 바꾸고, `backend` 잡의 Docker 기동/정리 스텝을 `services: mysql: ...`(고정 포트 3306) 블록으로 되돌리면 된다.
+- **호스팅 러너로 되돌리려면**: 결제 문제가 해결됐다면 `ci.yml`·`deploy.yml` 의 `runs-on` 을 `ubuntu-latest` 로 되돌리고, `backend` 잡의 Docker 기동/정리 스텝을 `services: mysql: ...`(고정 포트 3306) 블록으로, `deploy.yml` 의 `ssh` 스텝을 `appleboy/ssh-action` 으로 되돌리면 된다.
 
 ## CD (배포)
 
@@ -97,7 +99,8 @@ GitHub 호스팅 러너(`ubuntu-latest`)가 아니라 이 저장소 개발자의
 
 - **트리거**: `main` push + `workflow_dispatch`(수동·롤백)
 - **동시성**: `deploy-production` 그룹 — 배포 동시 실행 1개, `cancel-in-progress: false`
-- **대상**: Ubuntu + mod_php 아파치 단일 서버 (appleboy/ssh-action)
+- **러너**: `self-hosted` (ci.yml 과 동일 이유·동일 러너). `appleboy/ssh-action` 은 Docker 컨테이너 액션이라 self-hosted macOS 에서 GitHub Actions 가 직접 실행해줄 수 없어(Linux 러너 전용 기능) macOS 내장 `ssh` 클라이언트로 직접 접속하도록 되어 있다(AIPicto `cd.yml` 과 동일 패턴). `sudo -n systemctl reload apache2` 가 상시 프로세스라 pty 를 할당하면 SSH 세션이 끝나지 않으므로 `-t`/`-tt` 없이 접속한다.
+- **대상**: Ubuntu + mod_php 아파치 단일 서버
 
 ### 배포 절차 (서버 SSH 실행)
 
