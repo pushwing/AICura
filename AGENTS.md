@@ -36,7 +36,17 @@ composer test
 composer check
 ```
 
-`.env`에는 `app.baseURL`, DB 접속 정보, 32자 이상 `JWT_SECRET`이 필요하다. 시크릿과 실제 `.env`는 절대 커밋하지 않는다.
+`.env`에는 아래 값이 필요하다. 시크릿과 실제 `.env`는 절대 커밋하지 않는다.
+
+```env
+app.baseURL = http://localhost:8300/
+database.default.hostname = localhost
+database.default.database = aicura
+database.default.username = root
+database.default.password =
+JWT_SECRET = 32자-이상-랜덤-문자열
+TINYMCE_API_KEY = # 리치 에디터 사용 시
+```
 
 ## 디렉터리와 아키텍처
 
@@ -54,7 +64,7 @@ composer check
 
 - Controller는 입력 검증 → Service 호출 → 응답 반환만 담당한다. 트랜잭션과 유스케이스는 Service에 둔다.
 - CI4 뷰에서 Model을 직접 호출하지 않는다. 사용자 입력을 출력할 때 `esc()` 등 문맥에 맞는 이스케이프를 적용한다.
-- API 인증 후 `JwtAuthFilter`가 `Auth::setUserId()`로 요청 사용자 ID를 저장한다. API 컨트롤러에서는 `$this->authUserId()`로 가져온다.
+- API 인증 후 `JwtAuthFilter`가 `Auth::setUserId((int) $payload['sub'])`로 요청 사용자 ID를 저장한다. API 컨트롤러에서는 `$this->authUserId()`로 가져오며, 이 정적 홀더는 요청 컨텍스트 안에서만 사용한다.
 - Admin 뷰는 반드시 `BaseAdminController::render()`를 사용한다. 기본 `view()`를 직접 호출하면 세션의 `authUser`가 누락된다.
 
 ```php
@@ -77,19 +87,43 @@ return $this->render('admin/campaigns/index', ['campaigns' => $campaigns]);
 - UI 컴포넌트와 CSS 클래스는 `docs/ui-guide.md`, 브랜드는 `docs/design-system.md`와 `assets/logo/`, 실물 컴포넌트는 `ui/components.html`을 먼저 확인한다.
 - 레이아웃에 `ui/aicura.css`를 포함한다.
 - 목록성 화면은 AG Grid Community와 `ag-theme-alpine`을 기본 사용한다. HTML 셀은 `cellRenderer`로 처리하고 `innerHTML` 직접 조작은 하지 않는다.
-- 리치 텍스트는 Tiptap을 사용한다. 저장 전 허용 태그 화이트리스트를 적용하거나 `esc($content, 'html')`로 출력한다.
-- 차트는 Chart.js를 사용하며 Primary `#0F6E56`, Secondary `#1D9E75`를 우선한다. 데이터는 컨트롤러에서 분리해 전달한다.
+- 서버 사이드 페이지네이션이 필요하면 AG Grid `serverSideDatasource`를 적용한다.
+- 리치 텍스트는 빌드 단계 없이 ES module CDN의 Tiptap을 사용한다. 폼 제출은 숨김 input에 `editor.getHTML()`을 동기화하고, 저장된 HTML은 `editor.commands.setContent(savedHtml)`로 불러온다. 구현은 `app/Views/admin/campaigns/show.php`의 메모 에디터를 참고한다. 출력 전에는 허용 태그 화이트리스트를 적용하거나 `esc($content, 'html')`로 이스케이프한다.
+- 차트는 Chart.js를 사용하며 Primary `#0F6E56`, Secondary `#1D9E75`를 우선한다. 데이터는 컨트롤러에서 `$labels`, `$values`로 분리해 전달한다. 민감한 집계 데이터는 뷰에 직접 넣지 않고 API 엔드포인트로 분리한다.
 - 엑셀은 PhpSpreadsheet를 사용한다. 1만 행 이상은 청크 처리하고 업로드·임시 파일은 `public/` 밖에 둔다.
 
 ## 검증·CI·배포
 
-- `.githooks/`를 사용한다. 필요하면 `git config core.hooksPath .githooks`로 활성화한다.
-- `feature/*` push는 빠른 반복을 위해 훅 검사를 생략한다. `dev` 대상의 PHP 변경은 `composer check`, Flutter 변경은 `dart format --output=none --set-exit-if-changed lib test && flutter analyze && flutter test`가 필요하다.
-- GitHub Actions는 `dev → main` PR과 `main` push에서 실행된다. 변경 경로에 따라 backend(PHPStan + PHPUnit)와 app(Flutter)을 선택 실행하며 self-hosted macOS runner를 사용한다.
-- CI backend의 MySQL은 Docker로 동적 포트에 기동한다. CI 설정의 macOS `sed -i ''` 문법과 컨테이너 정리 단계를 훼손하지 않는다.
-- `main` push 시 SSH 자동 배포된다. 배포는 `writable/` 생성 → `composer install --no-dev` → `php spark migrate --all -f` 결과 검사 → 캐시 정리 → Apache reload 순서다.
+- `.githooks/`를 사용한다. 클론 뒤 `git config core.hooksPath .githooks`로 활성화한다.
+- `feature/*` push와 `feature → dev` PR에는 검사·CI가 없으며 코드 리뷰만 게이트다. `dev` 직접 push는 문서 전용 예외에만 허용한다.
+- `pre-commit`은 스테이징된 PHP/Dart를 CS Fixer·`dart format`으로 자동 수정 후 재스테이징한다. `pre-push`는 `main` 직접 push를 차단하고, `feature/*`는 검사 없이 통과하며, `dev` 대상의 PHP 변경은 `composer check`, Flutter 변경은 `dart format --output=none --set-exit-if-changed lib test && flutter analyze && flutter test`를 실행한다. 문서 전용 push는 검사 대상이 없어 통과한다. 긴급 우회는 `git push --no-verify`다.
+- GitHub Actions는 `dev → main` PR과 `main` push에서만 실행된다. `dev`를 트리거에 추가하지 않는다. 변경 경로에 따라 backend(PHPStan + PHPUnit)와 app(Flutter)을 선택 실행하며, 같은 ref의 새 실행은 이전 실행을 취소한다.
+- backend CI는 Docker `mysql:8.0`을 `-p 127.0.0.1::3306` 동적 포트로 기동하고, PHP 8.5 확장과 `pcov`를 준비한다. `phpunit.dist.xml`은 coverage·`failOnWarning`을 사용하므로 `pcov`를 제거하면 안 된다. CI용 `.env`와 `writable/`을 만든 뒤, 테스트 DB host/port를 동적 포트로 치환하고 `composer analyse`, `composer test`를 실행한다. MySQL 컨테이너는 항상 정리한다.
+- Flutter CI는 `app-mobile/`에서 `flutter pub get` → `dart format --set-exit-if-changed lib test` → `flutter analyze` → `flutter test` 순서다. 새 기능은 관련 `tests/`를 추가하고 PHPStan level 6과 PHPUnit을 통과해야 한다.
+
+### self-hosted macOS runner
+
+- CI와 배포는 GitHub-hosted runner가 아닌 self-hosted macOS runner를 사용한다. runner는 `~/actions-runners/AICura`에 있고 LaunchAgent `actions.runner.pushwing-AICura.aicura-mac-local-runner.plist`로 실행된다. 상태 관리는 `./svc.sh status|stop|start`를 사용한다.
+- macOS self-hosted runner에서는 GitHub Actions `services:`와 Docker 컨테이너 액션을 사용하지 않는다. MySQL은 `docker run`으로 직접 기동하고, 배포는 `appleboy/ssh-action` 대신 macOS 내장 `ssh`를 `run:` 단계에서 사용한다.
+- macOS에서는 BSD sed 문법 `sed -i '' -e '...'`를 사용한다. GNU `sed -i` 문법을 넣지 않는다.
+- YAML `run: |` 안의 heredoc 종료 마커는 실행 스크립트에서 flush-left가 되도록 본문과 정확히 같은 들여쓰기를 유지한다. 어긋나면 heredoc이 닫히지 않아 배포가 멈춘다.
+- runner를 재등록할 때는 GitHub registration token을 새로 발급하고 `./config.sh --replace`를 사용한다. 호스팅 runner로 되돌릴 때는 `runs-on`, MySQL 서비스 구성, SSH 구현을 함께 되돌린다.
+
+### 배포
+
+- `main` push와 `workflow_dispatch`(롤백·수동 실행)로 Ubuntu + mod_php Apache 서버에 SSH 배포한다. `deploy-production` 동시성 그룹은 한 번에 하나만 실행하며 진행 중 배포를 취소하지 않는다.
+- SSH에는 TTY를 할당하지 않는다. `sudo -n systemctl reload apache2`와 Apache 자식 프로세스 때문에 `-t`/`-tt`를 쓰면 세션이 끝나지 않을 수 있다.
+- 배포는 `git reset --hard origin/main` → `writable/` 생성 → `composer install --no-dev --optimize-autoloader` → `php spark migrate --all -f` 출력 검사 → `AdminUserSeeder` 실행(재실행 안전) → 캐시 정리 → `sudo -n systemctl reload apache2` 순서다.
 - `php spark migrate`는 예외에도 종료 코드 0을 낼 수 있으므로, 배포 스크립트의 예외 출력 검사 로직을 유지한다.
 - 배포 서버의 `writable/` 권한 변경은 Apache 소유 파일 때문에 실패할 수 있으므로 best-effort 처리와 setgid 구성을 유지한다.
+- production GitHub Secrets는 `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_PORT`, `DEPLOY_PATH`다. 서버는 GitHub 읽기 전용 deploy key, 실제 DB `.env`, `apache2 reload`에 대한 NOPASSWD sudo, `public/` DocumentRoot, `www-data`가 쓰기 가능한 `writable/` 및 setgid 구성이 필요하다.
+- 저장소 설정 `delete_branch_on_merge=false`를 유지해 `dev`가 배포 PR 머지 뒤 자동 삭제되지 않게 한다.
+
+### 클라우드·인프라 참고
+
+- 기본 AWS 구성은 ECS(Fargate) + RDS + ElastiCache(Redis) + SQS다.
+- 운영 시크릿은 AWS SSM Parameter Store 또는 Secrets Manager에 두고, 로그는 구조화 JSON으로 남긴다.
+- `GET /health`는 DB·캐시 연결 상태를 포함하도록 제공한다.
 
 ## Flutter 도구 지원
 
