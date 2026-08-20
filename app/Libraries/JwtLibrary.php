@@ -31,23 +31,25 @@ class JwtLibrary
         $this->secret = $secret;
     }
 
-    public function generateAccessToken(int $userId): string
+    public function generateAccessToken(int $userId, int $tokenVersion = 1): string
     {
         return $this->encode([
             'sub'  => $userId,
             'type' => 'access',
             'exp'  => time() + $this->accessTtl,
             'iat'  => time(),
+            'ver'  => $tokenVersion,
         ]);
     }
 
-    public function generateRefreshToken(int $userId): string
+    public function generateRefreshToken(int $userId, int $tokenVersion = 1): string
     {
         return $this->encode([
             'sub'  => $userId,
             'type' => 'refresh',
             'exp'  => time() + $this->refreshTtl,
             'iat'  => time(),
+            'ver'  => $tokenVersion,
         ]);
     }
 

@@ -90,6 +90,7 @@ class MeService
      */
     public function withdraw(int $userId): void
     {
+        $this->users->revokeAppTokens($userId);
         $this->users->delete($userId);
     }
 

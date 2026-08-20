@@ -186,10 +186,11 @@ class AppAuthService
     private function finishLogin(int $userId): array
     {
         $this->users->touchLogin($userId);
+        $tokenVersion = $this->users->appAuthTokenVersion($userId);
 
         return [
-            'access_token'  => $this->jwt->generateAccessToken($userId),
-            'refresh_token' => $this->jwt->generateRefreshToken($userId),
+            'access_token'  => $this->jwt->generateAccessToken($userId, $tokenVersion),
+            'refresh_token' => $this->jwt->generateRefreshToken($userId, $tokenVersion),
             'token_type'    => 'Bearer',
             'expires_in'    => self::ACCESS_TTL,
         ];
