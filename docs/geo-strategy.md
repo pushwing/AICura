@@ -11,7 +11,7 @@
 
 | # | 항목 | 결정 | 반영 |
 |---|------|------|------|
-| 1 | 운영 도메인·HTTPS | **환경변수로 추상화** — 도메인 미확정. `app.baseURL`(.env) 기준으로 구축하고, 확정 시 값만 주입. canonical·OG·sitemap 모두 `base_url()` 경유 | §3.1, §5 |
+| 1 | 운영 도메인·HTTPS | **확정: `cura.aivance.kr`**(aivance.kr 서브도메인 — 프로젝트명 `AICura`에서 `AI` 접두어를 뗀 `cura`). `app.baseURL`(.env) 기준으로 구축해 `.env` 값만 주입하면 canonical·OG·sitemap 모두 `base_url()` 경유로 반영 | §3.1, §5 |
 | 2 | 공개 페이지 색인 정책 | **색인 허용 전제** — 공개 페이지 기본 `robots: index, follow`. 단, 미심의·저신뢰 콘텐츠는 개별 `noindex`(§4.3, §8) | §5, §8 |
 | 3 | AI 크롤러 정책 | **전체 허용** — 검색 인용·학습 크롤러(GPTBot·OAI-SearchBot·PerplexityBot·Google-Extended·ClaudeBot 등) 모두 허용. AI 검색 노출 극대화가 이슈 목표 | §6 |
 
@@ -36,7 +36,7 @@ AICura는 성형·토탈 광고 솔루션으로, 코드베이스는 세 가지 �
 추가 현황:
 - `public/robots.txt` 는 전체 허용(`Disallow:` 빈 값)이나 **sitemap.xml 없음**
 - **SSR HTML 페이지 없음**, **JSON-LD 구조화 데이터 없음**, **OG/Twitter/canonical 메타 없음**
-- `app/Config/App.php` 의 `baseURL` 이 아직 `http://localhost:8080/` (운영 도메인 미확정)
+- `app/Config/App.php` 의 `baseURL` 기본값은 `http://localhost:8080/` — 운영 도메인(`cura.aivance.kr`)은 `.env` 의 `app.baseURL` 오버라이드로 주입한다
 
 > **결론:** SEO/GEO의 1순위 전제 조건은 **소비자 콘텐츠를 공개·서버사이드 렌더링(SSR) HTML로 노출하는 웹 레이어**다.
 > 이게 선행되지 않으면 메타태그·구조화데이터·sitemap을 붙일 페이지가 존재하지 않는다.
@@ -193,8 +193,8 @@ GEO의 핵심은 **구조화 데이터로 사실을 기계 판독 가능하게**
    - `<title>`, `meta description`, `canonical`, `robots`
    - Open Graph(`og:title/description/image/type/url`), Twitter Card
 3. **sitemap.xml 동적 생성** — 활성 이벤트/병원/후기/가이드 URL, `lastmod` 포함
-4. **robots.txt 갱신** — `Sitemap: https://{도메인}/sitemap.xml` 추가
-5. **운영 도메인·HTTPS** → `app.baseURL` 환경변수화 (현재 localhost) — ✅ **환경변수 추상화로 확정**(§0). 도메인 값만 추후 주입
+4. **robots.txt 갱신** — `Sitemap: https://cura.aivance.kr/sitemap.xml` 추가
+5. **운영 도메인·HTTPS** → `app.baseURL` 환경변수화 — ✅ **`cura.aivance.kr` 확정**(§0). 서버 `.env` 의 `app.baseURL` 에 값 주입
 6. **성능(Core Web Vitals)** — 이미지 최적화/지연로딩, 서버 응답 캐시(§3.3), 모바일 우선
 7. **한국 시장 대응** — Naver(웹마스터도구·사이트맵 제출), Google Search Console 등록
 
@@ -233,7 +233,7 @@ Allow: /
 User-agent: ClaudeBot
 Allow: /
 
-Sitemap: https://{운영도메인}/sitemap.xml
+Sitemap: https://cura.aivance.kr/sitemap.xml
 ```
 
 > ✅ **결정(§0): 전체 허용.** 검색 인용 크롤러와 LLM 학습 크롤러를 모두 허용한다.
@@ -281,12 +281,12 @@ Bing API(`OAI-SearchBot`)로 발견된 것이다. 즉 Bing에 색인되지 않�
 
 ### 7.1 배포 후 측정·검증 체크리스트 (이슈 #148)
 
-> #148 은 **배포 시점까지 열어 둔다**(코드 구현이 아닌 운영 활동). 운영 도메인·HTTPS 확정 후 아래 순서로 수행한다.
+> #148 은 **배포 시점까지 열어 둔다**(코드 구현이 아닌 운영 활동). 운영 도메인은 `cura.aivance.kr` 로 확정됐다 — 서버 `.env` 반영 후 아래 순서로 수행한다.
 > 현재 구현된 크롤러 진입점: `GET /robots.txt` · `GET /sitemap.xml` · `GET /llms.txt` (모두 `base_url()` 기준 절대 URL).
 
 **A. 배포 전 확인**
-- [ ] `.env` 의 `app.baseURL` 을 운영 도메인(HTTPS)으로 설정 → canonical·OG·sitemap·robots·llms 절대 URL 자동 반영
-- [ ] `https://{도메인}/robots.txt` · `/sitemap.xml` · `/llms.txt` 200 응답·내용 확인
+- [ ] `.env` 의 `app.baseURL` 을 `https://cura.aivance.kr/` 로 설정 → canonical·OG·sitemap·robots·llms 절대 URL 자동 반영
+- [ ] `https://cura.aivance.kr/robots.txt` · `/sitemap.xml` · `/llms.txt` 200 응답·내용 확인
 - [ ] 미심의·저신뢰 콘텐츠 `noindex` 동작 확인(신고·의심 후기 상세)
 - [ ] 의료광고법 검토(§8) 완료 — 가격 표기·후기 공개 범위
 
@@ -294,7 +294,7 @@ Bing API(`OAI-SearchBot`)로 발견된 것이다. 즉 Bing에 색인되지 않�
 - [ ] Google Search Console 속성 등록 → `sitemap.xml` 제출
 - [ ] Naver 서치어드바이저 사이트 등록 → 사이트맵 제출·수집 요청
 - [ ] **Bing Webmaster Tools 등록 (필수 — ChatGPT Search 노출의 전제조건, §6.2)**
-      → `.env` 의 `BING_SITE_VERIFICATION` 설정 → `https://{도메인}/BingSiteAuth.xml` 200 확인 → 사이트맵 제출
+      → `.env` 의 `BING_SITE_VERIFICATION` 설정 → `https://cura.aivance.kr/BingSiteAuth.xml` 200 확인 → 사이트맵 제출
 
 **C. 구조화 데이터 검증** — [Rich Results Test](https://search.google.com/test/rich-results) / [Schema Validator](https://validator.schema.org)
 - [ ] 이벤트 상세(`/events/{id}`) — `Offer` 오류 0
@@ -355,7 +355,7 @@ Bing API(`OAI-SearchBot`)로 발견된 것이다. 즉 Bing에 색인되지 않�
 | 7 | 측정·검증 | GSC/Naver 등록, Rich Results 검증, 크롤러 로그 분석 | 전체 | ⏸ 배포 시점까지 보류(#148) — 운영 활동, 체크리스트 §7.1 참조 |
 
 선행 결정사항(비기술) — **모두 확정**(§0):
-1. ✅ **운영 도메인·HTTPS** — 환경변수로 추상화 (도메인 값만 추후 주입)
+1. ✅ **운영 도메인·HTTPS** — `cura.aivance.kr` 확정, 환경변수(`app.baseURL`)로 주입
 2. ✅ **AI 크롤러 정책** — 전체 허용 (검색 인용·학습 모두)
 3. ⚠️ **의료광고법 검토** (§8) — 색인 허용 전제이되 미심의 콘텐츠 `noindex` 기본 방어선. 가격·후기 공개 표기는 법무 병행
 
