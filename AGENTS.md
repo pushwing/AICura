@@ -16,7 +16,7 @@ AI 기반 성형·토탈 광고 솔루션이며, CodeIgniter 4 기반 Admin + RE
 ## 기술 스택과 로컬 실행
 
 - PHP: CLI 8.4.22, FrankenPHP 내장 8.5.7, CI는 PHP 8.5. `composer.json`은 `^8.4`를 요구한다.
-- 웹 서버: FrankenPHP v1.12(`make serve`, 포트 8300 권장) 또는 CI4 내장 서버(`make serve-spark`).
+- 웹 서버: FrankenPHP v1.12(`make serve`, 포트 8300 권장) 또는 CI4 내장 서버(`make serve-spark`). 로컬 접근은 Caddy를 경유한다.
 - 인증: Admin은 세션, API는 HMAC-SHA256 `JwtLibrary` 기반 JWT Bearer.
 - API 문서: RapiDoc(`/api/docs`), `zircote/swagger-php`로 OpenAPI 생성.
 - 정적 분석: PHPStan level 6(`app/`, Views 제외).
@@ -36,10 +36,14 @@ composer test
 composer check
 ```
 
+### 로컬 Caddy 주소 규칙
+
+로컬 개발 서버는 Caddy를 통해 접근한다. 저장소명에서 선행 `ai`를 제거하고 `.test`를 붙인 도메인을 사용한다. AICura의 로컬 주소는 `http://cura.test/`다. 신규 저장소·서비스 작업 시에도 이 규칙에 맞춰 `app.baseURL`, 테스트용 콜백 URL, 로컬 문서와 브라우저 검증 주소를 설정한다. 애플리케이션 서버 포트(`8300`)는 Caddy의 upstream 용도이며, 일반적인 로컬 브라우저 접근에 직접 사용하지 않는다.
+
 `.env`에는 아래 값이 필요하다. 시크릿과 실제 `.env`는 절대 커밋하지 않는다.
 
 ```env
-app.baseURL = http://localhost:8300/
+app.baseURL = http://cura.test/
 database.default.hostname = localhost
 database.default.database = aicura
 database.default.username = root
