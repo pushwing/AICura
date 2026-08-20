@@ -17,6 +17,14 @@ class Auth
         self::$userId = $id;
     }
 
+    /**
+     * 워커 재사용 전후에 요청 인증 컨텍스트를 비운다.
+     */
+    public static function clear(): void
+    {
+        self::$userId = 0;
+    }
+
     public static function userId(): int
     {
         return self::$userId;

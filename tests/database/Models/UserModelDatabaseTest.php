@@ -333,4 +333,19 @@ final class UserModelDatabaseTest extends CIUnitTestCase
     {
         $this->assertFalse(model(UserModel::class)->emailExists('__nobody_xyz__@test.invalid'));
     }
+
+    public function testAppTokenVersionIsRevokedAfterLogout(): void
+    {
+        $model  = model(UserModel::class);
+        $userId = $this->insertedIds[0];
+
+        $this->assertSame(1, $model->appAuthTokenVersion($userId));
+        $this->assertTrue($model->isActiveAppUser($userId, 1));
+
+        $model->revokeAppTokens($userId);
+
+        $this->assertSame(2, $model->appAuthTokenVersion($userId));
+        $this->assertFalse($model->isActiveAppUser($userId, 1));
+        $this->assertTrue($model->isActiveAppUser($userId, 2));
+    }
 }

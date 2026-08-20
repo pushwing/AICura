@@ -13,6 +13,7 @@ use App\Models\SettingModel;
 use App\Services\AiComplianceService;
 use App\Services\AiCopyService;
 use CodeIgniter\Exceptions\PageNotFoundException;
+use CodeIgniter\HTTP\Files\UploadedFile;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 use Override;
@@ -497,7 +498,7 @@ class CampaignController extends BaseAdminController
 
         foreach (['t1_image_name', 't2_image_name'] as $field) {
             $file = $this->request->getFile($field);
-            if ($file !== null && $file->isValid() && ! $file->hasMoved()) {
+            if ($file !== null && $file->isValid() && ! $file->hasMoved() && $this->isAllowedImage($file)) {
                 $newName = $file->getRandomName();
                 $file->move($uploadPath, $newName);
                 $result[$field] = 'campaigns/' . $newName;
@@ -512,7 +513,7 @@ class CampaignController extends BaseAdminController
             $paths = [];
 
             foreach ($dImages as $file) {
-                if ($file !== null && $file->isValid() && ! $file->hasMoved()) {
+                if ($file !== null && $file->isValid() && ! $file->hasMoved() && $this->isAllowedImage($file)) {
                     $newName = $file->getRandomName();
                     $file->move($uploadPath, $newName);
                     $paths[] = 'campaigns/' . $newName;
@@ -528,5 +529,11 @@ class CampaignController extends BaseAdminController
         }
 
         return $result;
+    }
+
+    private function isAllowedImage(UploadedFile $file): bool
+    {
+        return $file->getSizeByUnit('mb') <= 5
+            && in_array($file->getMimeType(), ['image/jpeg', 'image/png', 'image/webp', 'image/gif'], true);
     }
 }

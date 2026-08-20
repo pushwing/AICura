@@ -22,6 +22,7 @@ class OptionalJwtAuthFilter implements FilterInterface
 {
     public function before(RequestInterface $request, $arguments = null): mixed
     {
+        Auth::clear();
         $authHeader = $request->getHeaderLine('Authorization');
 
         if (! str_starts_with($authHeader, 'Bearer ')) {
@@ -43,6 +44,8 @@ class OptionalJwtAuthFilter implements FilterInterface
 
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null): mixed
     {
+        Auth::clear();
+
         return null;
     }
 }

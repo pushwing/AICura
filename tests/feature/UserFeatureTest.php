@@ -28,7 +28,7 @@ final class UserFeatureTest extends CIUnitTestCase
     use DatabaseTestTrait;
     use FeatureTestTrait;
 
-    private const ADMIN_SESSION = ['admin_user' => ['id' => 1, 'email' => 'admin@test.com', 'username' => 'admin']];
+    private const ADMIN_SESSION = ['admin_user' => ['id' => 1, 'email' => 'admin@test.com', 'username' => 'admin', 'user_type' => UserModel::TYPE_ADMIN]];
 
     protected $migrate = true;
     protected $refresh = true;
