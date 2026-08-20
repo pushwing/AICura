@@ -4,6 +4,7 @@ namespace App\Controllers\Api\V1;
 
 use App\Exceptions\DomainException;
 use App\Libraries\JwtLibrary;
+use App\Models\UserModel;
 use App\Services\AppAuthService;
 use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
@@ -188,8 +189,12 @@ class AuthController extends BaseApiController
             return $this->error($e->errorCode(), $e->getMessage(), $e->httpStatusCode());
         }
 
+        if (! model(UserModel::class)->isActiveAppUser((int) $payload['sub'], (int) ($payload['ver'] ?? 0))) {
+            return $this->error('UNAUTHORIZED', '사용할 수 없는 계정입니다.', 401);
+        }
+
         return $this->success([
-            'access_token' => $jwt->generateAccessToken((int) $payload['sub']),
+            'access_token' => $jwt->generateAccessToken((int) $payload['sub'], (int) $payload['ver']),
             'token_type'   => 'Bearer',
             'expires_in'   => 3600,
         ]);
@@ -207,6 +212,8 @@ class AuthController extends BaseApiController
     )]
     public function logout(): ResponseInterface
     {
+        model(UserModel::class)->revokeAppTokens($this->authUserId());
+
         return $this->success(null);
     }
 

@@ -73,7 +73,7 @@ $routes->group('admin', static function (RouteCollection $routes): void {
         $routes->get('contracts/orders/(:num)', 'Admin\ContractController::orderShow/$1');
         $routes->get('contracts/orders/(:num)/edit', 'Admin\ContractController::orderEdit/$1');
         $routes->post('contracts/orders/(:num)', 'Admin\ContractController::orderUpdate/$1');
-        $routes->post('contracts/orders/(:num)/deposit-confirm', 'Admin\ContractController::depositConfirm/$1');
+        $routes->post('contracts/orders/(:num)/deposit-confirm', 'Admin\ContractController::depositConfirm/$1', ['filter' => 'admin_super']);
         $routes->get('contracts/(:num)', 'Admin\ContractController::show/$1');
 
         // 이벤트 신청 DB 관리
@@ -105,17 +105,17 @@ $routes->group('admin', static function (RouteCollection $routes): void {
         // 결제 관리
         $routes->get('payments', 'Admin\PaymentController::index');
         $routes->get('payments/(:num)', 'Admin\PaymentController::show/$1');
-        $routes->post('payments/(:num)/refund', 'Admin\PaymentController::refund/$1');
+        $routes->post('payments/(:num)/refund', 'Admin\PaymentController::refund/$1', ['filter' => 'admin_super']);
 
         // 환불요청 관리 (이슈 #52) — 신청DB 상태변경(중복/결번/취소)에 따른 차감 복원 처리
         $routes->get('refund-requests', 'Admin\RefundRequestController::index');
-        $routes->post('refund-requests/(:num)/approve', 'Admin\RefundRequestController::approve/$1');
-        $routes->post('refund-requests/(:num)/reject', 'Admin\RefundRequestController::reject/$1');
+        $routes->post('refund-requests/(:num)/approve', 'Admin\RefundRequestController::approve/$1', ['filter' => 'admin_super']);
+        $routes->post('refund-requests/(:num)/reject', 'Admin\RefundRequestController::reject/$1', ['filter' => 'admin_super']);
 
         // 사용자 관리
         $routes->get('users', 'Admin\UserController::index');
         $routes->get('users/(:num)', 'Admin\UserController::show/$1');
-        $routes->post('users/(:num)/status', 'Admin\UserController::updateStatus/$1'); // 상태 변경(휴면·계정활성, JSON)
+        $routes->post('users/(:num)/status', 'Admin\UserController::updateStatus/$1', ['filter' => 'admin_super']); // 상태 변경(휴면·계정활성, JSON)
         $routes->get('users/(:num)/events', 'Admin\UserController::events/$1');       // 신청 이벤트 더보기(JSON)
         $routes->get('users/(:num)/reviews', 'Admin\UserController::reviews/$1');      // 작성 후기 더보기(JSON)
 
@@ -145,7 +145,7 @@ $routes->group('admin', static function (RouteCollection $routes): void {
         $routes->get('settings', 'Admin\SettingController::index');
         $routes->post('settings/profile', 'Admin\SettingController::updateProfile');
         $routes->post('settings/password', 'Admin\SettingController::updatePassword');
-        $routes->post('settings/system', 'Admin\SettingController::updateSystem');
+        $routes->post('settings/system', 'Admin\SettingController::updateSystem', ['filter' => 'admin_super']);
     });
 });
 
@@ -207,7 +207,7 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
     $routes->post('auth/social', 'AuthController::social');
     $routes->post('auth/check-email', 'AuthController::checkEmail');
     $routes->post('auth/refresh', 'AuthController::refresh');
-    $routes->post('auth/logout', 'AuthController::logout');
+    $routes->post('auth/logout', 'AuthController::logout', ['filter' => 'jwt_auth']);
 
     // 업로드 이미지 서빙 (인증 불필요 — 랜덤 파일명 capability) (이슈 #102)
     $routes->get('uploads/images/(:segment)', 'UploadController::serve/$1');

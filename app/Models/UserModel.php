@@ -73,6 +73,7 @@ class UserModel extends Model
         'last_login_at',
         'last_logout_at',
         'last_activity_at',
+        'auth_token_version',
         'oauth_token',
         'uid',
         'group_auth_code',
@@ -318,6 +319,55 @@ class UserModel extends Model
         $this->db->table($this->table)
             ->where('id', $id)
             ->update(['last_login_at' => $now, 'last_activity_at' => $now]);
+    }
+
+    /**
+     * 앱 JWT가 가리키는 활성 사용자 및 로그아웃 이후 발급 여부를 확인한다.
+     */
+    public function isActiveAppUser(int $id, int $tokenVersion): bool
+    {
+        $user = $this->db->table($this->table)
+            ->select('id, auth_token_version')
+            ->where('id', $id)
+            ->where('user_type', self::TYPE_USER)
+            ->where('is_active', 1)
+            ->where('deleted_at IS NULL', null, false)
+            ->limit(1)
+            ->get()
+            ->getRowArray();
+
+        if ($user === null) {
+            return false;
+        }
+
+        return (int) ($user['auth_token_version'] ?? 0) === $tokenVersion;
+    }
+
+    /**
+     * 앱 로그아웃 시 기존 Access/Refresh Token 발급 시각을 무효화한다.
+     */
+    public function revokeAppTokens(int $id): void
+    {
+        $this->db->table($this->table)
+            ->where('id', $id)
+            ->set('auth_token_version', 'auth_token_version + 1', false)
+            ->set('last_logout_at', date('Y-m-d H:i:s'))
+            ->update();
+    }
+
+    public function appAuthTokenVersion(int $id): int
+    {
+        $row = $this->db->table($this->table)
+            ->select('auth_token_version')
+            ->where('id', $id)
+            ->where('user_type', self::TYPE_USER)
+            ->where('is_active', 1)
+            ->where('deleted_at IS NULL', null, false)
+            ->limit(1)
+            ->get()
+            ->getRowArray();
+
+        return (int) ($row['auth_token_version'] ?? 0);
     }
 
     /**

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Config;
 
 use App\Filters\AdminAuthFilter;
+use App\Filters\AdminSuperAuthFilter;
+use App\Filters\AuthContextFilter;
 use App\Filters\JwtAuthFilter;
 use App\Filters\OptionalJwtAuthFilter;
 use App\Filters\PortalAuthFilter;
@@ -42,6 +44,8 @@ class Filters extends BaseFilters
         'pagecache'     => PageCache::class,
         'performance'   => PerformanceMetrics::class,
         'admin_auth'    => AdminAuthFilter::class,
+        'admin_super'   => AdminSuperAuthFilter::class,
+        'auth_context'  => AuthContextFilter::class,
         'jwt_auth'      => JwtAuthFilter::class,
         'jwt_optional'  => OptionalJwtAuthFilter::class,
         'portal_auth'   => PortalAuthFilter::class,
@@ -63,10 +67,12 @@ class Filters extends BaseFilters
      */
     public array $required = [
         'before' => [
+            'auth_context',
             'forcehttps', // Force Global Secure Requests
             'pagecache',  // Web Page Caching
         ],
         'after' => [
+            'auth_context',
             'pagecache',   // Web Page Caching
             'performance', // Performance Metrics
             'toolbar',     // Debug Toolbar
