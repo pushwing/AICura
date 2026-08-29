@@ -23,6 +23,8 @@ CodeIgniter 4 단일 프로젝트에 네 개의 진입면(surface)이 공존한�
 | **AI** | Groq(`llama-3.3-70b-versatile`) — 일일 보고서·리드 분석·후기 품질·카피·컴플라이언스 |
 | **모바일 앱** | Flutter (`app-mobile/`) |
 
+📐 [시스템 아키텍처 다이어그램](docs/architecture/aicura-architecture.html)
+
 ---
 
 ## 시작하기
