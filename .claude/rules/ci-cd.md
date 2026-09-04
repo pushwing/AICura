@@ -56,9 +56,9 @@ on:
 
 ### `backend` 잡 — PHP 8.5 · PHPStan · PHPUnit
 
-Docker 로 `mysql:8.0` 컨테이너를 직접 기동하고 다음 순서로 검증한다(왜 `services:` 대신 Docker 인지는 아래 "self-hosted 러너에서 돈다" 참고).
+Linux 러너 전환 이후 `services:`(서비스 컨테이너)로 `mysql:8.0` 을 기동하고 다음 순서로 검증한다.
 
-1. `docker run` 으로 MySQL 컨테이너 기동 — 호스트 포트는 고정하지 않고 `-p 127.0.0.1::3306` 로 동적 할당, `docker port` 로 읽어 `$MYSQL_PORT` 에 저장
+1. `services.mysql` 이 헬스체크(`mysqladmin ping`) 통과까지 대기한 뒤에야 스텝이 시작됨 — 호스트 포트는 고정하지 않고(`ports: [3306]`) 조직 공용 러너에서 동시에 도는 다른 저장소 CI 와의 충돌을 피한다. `${{ job.services.mysql.ports['3306'] }}` 로 실제 할당된 포트를 읽어 `$MYSQL_PORT` 에 저장
 2. setup-php `8.5` (확장: `mbstring intl mysqli curl dom xml tokenizer`, 커버리지 `pcov`)
    - `phpunit.dist.xml` 이 `failOnWarning` + `<coverage>` 를 켜 두어 커버리지 드라이버 없으면 경고→실패 → `pcov` 필수
 3. Composer 캐시 → `composer install`
@@ -67,7 +67,8 @@ Docker 로 `mysql:8.0` 컨테이너를 직접 기동하고 다음 순서로 검�
 6. `composer analyse` (PHPStan level 6)
 7. `phpunit.dist.xml` 의 `database.tests.hostname`(`localhost`→`127.0.0.1`)·`database.tests.port`(`3306`→`$MYSQL_PORT`) 를 sed 로 치환
 8. `composer test` (PHPUnit 단위·DB 통합)
-9. `if: always()` 로 MySQL 컨테이너 정리
+
+서비스 컨테이너는 잡이 끝나면 GitHub Actions 가 자동으로 정리하므로 별도 cleanup 스텝이 없다.
 
 ### `app` 잡 — Flutter · analyze · test
 
@@ -86,14 +87,13 @@ GitHub 호스팅 러너(`ubuntu-latest`)가 아니라 **조직(`aivance-kr`) 공
 
 > 이전에는 저장소별로 로컬 Mac 을 self-hosted 러너로 등록해 썼으나(`AIFid`·`AIPicto`·AICura 각자 launchd LaunchAgent), 이후 조직 계정(`aivance-kr`)의 **Linux 러너 1대를 여러 저장소가 공유**하는 구성으로 전환했다. 저장소 단위 등록이 아니라 **조직 단위 등록**이므로, 새 저장소를 추가해도 러너를 또 만들 필요는 없다 — 워크플로의 `runs-on` 라벨만 `[self-hosted, Linux, X64]` 로 맞추면 된다.
 
-- **러너 관리**: GitHub Actions 러너 배포 스크립트의 `svc.sh` 는 OS를 자동 감지해 Linux 에서는 systemd 서비스로 등록한다(macOS 의 launchd 와 동일 인터페이스) — `./svc.sh status|stop|start` 로 제어. 정확한 설치 경로·서비스명은 러너를 등록한 인프라 담당자에게 확인한다.
-- **MySQL**: Linux self-hosted 러너는 GitHub Actions `services:`(서비스 컨테이너)를 지원한다. 다만 러너 1대를 여러 저장소가 공유하므로 고정 포트 충돌을 피하려고 계속 `backend` 잡에서 `docker run` 으로 직접 기동하고 `if: always()` 스텝으로 정리하는 방식을 유지한다.
-- **포트**: 호스트 포트를 고정하지 않고 `-p 127.0.0.1::3306` 로 Docker 가 빈 포트를 임의 할당하게 한다 — 같은 러너에서 동시에 도는 다른 저장소의 CI 컨테이너와 포트 충돌이 없다. 컨테이너명(`aicura-ci-mysql`)도 저장소별로 구분해 컨테이너 자체가 충돌하지 않게 한다.
+- **러너 관리**: GitHub Actions 러너 배포 스크립트의 `svc.sh` 는 OS를 자동 감지해 Linux 에서는 systemd 서비스로 등록한다(macOS 의 launchd 와 동일 인터페이스) — `./svc.sh status|stop|start` 로 제어. 정확한 설치 경로·서비스명은 러너를 등록한 인프라 담당자에게 확인한다(**확인 필요 — 문서에 반영 안 됨**).
+- **MySQL**: Linux self-hosted 러너는 GitHub Actions `services:`(서비스 컨테이너)를 지원해 `backend` 잡에서 `docker run`/수동 정리 스텝을 걷어내고 `services.mysql` 로 옮겼다. 호스트 포트는 고정하지 않고(`ports: [3306]`) Docker가 빈 포트를 임의 할당하게 해, 러너 1대를 공유하는 다른 저장소 CI 컨테이너와 충돌하지 않는다 — 실제 포트는 `${{ job.services.mysql.ports['3306'] }}` 로 읽는다. 헬스체크(`mysqladmin ping`)가 끝나야 다음 스텝이 시작되므로 별도 polling 루프가 필요 없다.
 - **sed 문법**: 러너가 Linux 라 `sed` 는 GNU sed 다. `sed -i -e '...' file` 형태를 쓴다(macOS BSD sed 의 `sed -i '' -e '...' file` 문법은 쓰지 않는다).
-- **SSH 배포 스텝**: Linux 러너에서는 `appleboy/ssh-action`(Docker 컨테이너 액션) 도 쓸 수 있지만, `deploy.yml` 은 검증된 기존 방식 — 러너에 내장된 `ssh` 클라이언트로 직접 접속하는 `run:` 스텝 — 을 그대로 유지한다.
+- **SSH 배포 스텝은 그대로 유지**: Linux 러너에서는 `appleboy/ssh-action`(Docker 컨테이너 액션) 도 쓸 수 있게 됐지만, 얻는 이득이 없고 `deploy.yml` 의 수동 ssh 방식은 pty 미할당 등 과거 사고(AIPicto)로 다져진 검증된 구현이라 **의도적으로 바꾸지 않았다**. 바꾸려면 pty·타임아웃 동작을 새 러너에서 별도로 검증해야 한다.
 - **`run:` 안에서 heredoc 쓸 때 주의**: YAML block scalar(`|`)는 첫 내용 줄의 들여쓰기를 기준으로 "공통 들여쓰기만" 제거한다. `<<'EOF'` 같은 heredoc 종료 마커는 실제 실행되는 스크립트에서 다른 본문 줄과 정확히 같은 들여쓰기(따라서 YAML 이 벗겨낸 뒤엔 flush-left)여야 한다 — 한 칸이라도 어긋나면 heredoc 이 닫히지 않고 다음 스텝 내용까지 표준입력으로 삼켜 배포가 멈춘다.
 - **재등록**: 조직 러너 재등록이 필요하면 `gh api -X POST orgs/aivance-kr/actions/runners/registration-token --jq .token` 으로 토큰을 발급받아 `./config.sh --url https://github.com/aivance-kr --token <TOKEN> --replace` 실행(저장소 단위가 아닌 **조직 단위 URL**).
-- **호스팅 러너로 되돌리려면**: 결제 문제가 해결됐다면 `ci.yml`·`deploy.yml` 의 `runs-on` 을 `ubuntu-latest` 로 되돌리고, `backend` 잡의 Docker 기동/정리 스텝을 `services: mysql: ...`(고정 포트 3306) 블록으로 되돌리면 된다(SSH 스텝은 이미 Linux 호환 방식이라 그대로 둬도 된다).
+- **호스팅 러너로 되돌리려면**: 결제 문제가 해결됐다면 `ci.yml`·`deploy.yml` 의 `runs-on` 을 `ubuntu-latest` 로 되돌린다(MySQL `services:`·SSH 스텝은 이미 호스팅 Linux 러너와도 호환되므로 그대로 둬도 된다).
 
 ## CD (배포)
 

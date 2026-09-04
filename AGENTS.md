@@ -108,7 +108,7 @@ return $this->render('admin/campaigns/index', ['campaigns' => $campaigns]);
 ### self-hosted Linux runner (조직 공용 1대)
 
 - CI와 배포는 GitHub-hosted runner가 아닌 조직(`aivance-kr`) 공용 self-hosted runner 1대(Linux, X64)를 사용한다. `runs-on: [self-hosted, Linux, X64]`. 저장소별 등록이 아니라 조직 단위 등록이라 다른 저장소와 러너를 공유한다. 상태 관리는 `./svc.sh status|stop|start`(Linux에서는 systemd로 등록됨)를 사용한다.
-- Linux self-hosted runner는 GitHub Actions `services:`를 지원하지만, 러너를 여러 저장소가 공유하므로 고정 포트 충돌을 피하려고 MySQL은 계속 `docker run`으로 직접 기동한다. 배포는 `appleboy/ssh-action`도 쓸 수 있으나 검증된 기존 방식(러너 내장 `ssh`를 `run:` 단계에서 사용)을 유지한다.
+- Linux self-hosted runner는 GitHub Actions `services:`를 지원해 MySQL은 `docker run` 수동 기동/정리 대신 `services.mysql`로 옮겼다. 호스트 포트는 고정하지 않아(`ports: [3306]`) 러너를 공유하는 다른 저장소 CI와 충돌하지 않으며, 실제 포트는 `${{ job.services.mysql.ports['3306'] }}`로 읽는다. 배포는 `appleboy/ssh-action`도 쓸 수 있게 됐지만 얻는 이득이 없고 기존 수동 ssh 방식이 과거 사고로 다져진 검증된 구현이라 의도적으로 유지한다.
 - sed는 GNU sed 문법 `sed -i -e '...'`를 사용한다(macOS BSD sed의 `sed -i '' -e '...'` 문법은 쓰지 않는다).
 - YAML `run: |` 안의 heredoc 종료 마커는 실행 스크립트에서 flush-left가 되도록 본문과 정확히 같은 들여쓰기를 유지한다. 어긋나면 heredoc이 닫히지 않아 배포가 멈춘다.
 - runner를 재등록할 때는 조직 단위 GitHub registration token(`orgs/aivance-kr/actions/runners/registration-token`)을 새로 발급하고 `./config.sh --url https://github.com/aivance-kr --replace`를 사용한다. 호스팅 runner로 되돌릴 때는 `runs-on`, MySQL 서비스 구성을 함께 되돌린다.
