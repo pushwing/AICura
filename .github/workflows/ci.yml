@@ -23,7 +23,7 @@ jobs:
   # (문서 전용 → 둘 다 skip / 백엔드만 → app skip / 앱만 → backend skip)
   changes:
     name: 변경 영역 감지
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64]
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       app: ${{ steps.filter.outputs.app }}
@@ -56,16 +56,16 @@ jobs:
     name: Backend (PHP 8.5 · PHPStan · PHPUnit)
     needs: changes
     if: needs.changes.outputs.backend == 'true'
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64]
 
     steps:
       - uses: actions/checkout@v4
 
       - name: MySQL 컨테이너 기동 (Docker)
-        # self-hosted macOS 러너는 GitHub Actions `services:`(서비스 컨테이너)를
-        # 지원하지 않는다 — Linux 러너 전용 기능이라 Mac에 설치된 Docker로 직접 기동한다.
-        # 호스트 포트는 고정하지 않고 Docker가 빈 포트를 임의 할당하게 해
-        # 같은 러너 Mac에서 이미 쓰는 로컬 MySQL·다른 저장소 CI 컨테이너와의 충돌을 피한다.
+        # 조직 공용 self-hosted 러너 1대를 여러 저장소가 공유하므로 `services:`
+        # 고정 포트 대신 직접 docker run 으로 기동한다. 호스트 포트는 고정하지 않고
+        # Docker가 빈 포트를 임의 할당하게 해 같은 러너에서 동시에 도는 다른
+        # 저장소 CI 컨테이너·로컬 MySQL과의 충돌을 피한다.
         run: |
           docker rm -f -v aicura-ci-mysql >/dev/null 2>&1 || true
           docker run -d --name aicura-ci-mysql \
@@ -137,9 +137,9 @@ jobs:
         run: composer analyse
 
       - name: 테스트 DB 연결 정보 보정 (localhost → 127.0.0.1, 동적 포트 반영)
-        # macOS(BSD) sed 는 -i 뒤에 백업 확장자 인자가 필수라 GNU sed 문법과 다르다.
+        # Linux 러너의 GNU sed 문법. -i 뒤에 백업 확장자를 붙이지 않는다(BSD sed와 다름).
         run: |
-          sed -i '' \
+          sed -i \
             -e 's#name="database.tests.hostname" value="localhost"#name="database.tests.hostname" value="127.0.0.1"#' \
             -e "s#name=\"database.tests.port\" value=\"3306\"#name=\"database.tests.port\" value=\"${MYSQL_PORT}\"#" \
             phpunit.dist.xml
@@ -156,7 +156,7 @@ jobs:
     name: App (Flutter · analyze · test)
     needs: changes
     if: needs.changes.outputs.app == 'true'
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64]
     defaults:
       run:
         working-directory: app-mobile
@@ -189,7 +189,7 @@ jobs:
     name: Slack 알림 (CI 실패)
     needs: [backend, app]
     if: failure() && github.event_name == 'push'
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
 
