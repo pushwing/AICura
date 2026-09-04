@@ -105,13 +105,13 @@ return $this->render('admin/campaigns/index', ['campaigns' => $campaigns]);
 - backend CI는 Docker `mysql:8.0`을 `-p 127.0.0.1::3306` 동적 포트로 기동하고, PHP 8.5 확장과 `pcov`를 준비한다. `phpunit.dist.xml`은 coverage·`failOnWarning`을 사용하므로 `pcov`를 제거하면 안 된다. CI용 `.env`와 `writable/`을 만든 뒤, 테스트 DB host/port를 동적 포트로 치환하고 `composer analyse`, `composer test`를 실행한다. MySQL 컨테이너는 항상 정리한다.
 - Flutter CI는 `app-mobile/`에서 `flutter pub get` → `dart format --set-exit-if-changed lib test` → `flutter analyze` → `flutter test` 순서다. 새 기능은 관련 `tests/`를 추가하고 PHPStan level 6과 PHPUnit을 통과해야 한다.
 
-### self-hosted macOS runner
+### self-hosted Linux runner (조직 공용 1대)
 
-- CI와 배포는 GitHub-hosted runner가 아닌 self-hosted macOS runner를 사용한다. runner는 `~/actions-runners/AICura`에 있고 LaunchAgent `actions.runner.pushwing-AICura.aicura-mac-local-runner.plist`로 실행된다. 상태 관리는 `./svc.sh status|stop|start`를 사용한다.
-- macOS self-hosted runner에서는 GitHub Actions `services:`와 Docker 컨테이너 액션을 사용하지 않는다. MySQL은 `docker run`으로 직접 기동하고, 배포는 `appleboy/ssh-action` 대신 macOS 내장 `ssh`를 `run:` 단계에서 사용한다.
-- macOS에서는 BSD sed 문법 `sed -i '' -e '...'`를 사용한다. GNU `sed -i` 문법을 넣지 않는다.
+- CI와 배포는 GitHub-hosted runner가 아닌 조직(`aivance-kr`) 공용 self-hosted runner 1대(Linux, X64)를 사용한다. `runs-on: [self-hosted, Linux, X64]`. 저장소별 등록이 아니라 조직 단위 등록이라 다른 저장소와 러너를 공유한다. 상태 관리는 `./svc.sh status|stop|start`(Linux에서는 systemd로 등록됨)를 사용한다.
+- Linux self-hosted runner는 GitHub Actions `services:`를 지원해 MySQL은 `docker run` 수동 기동/정리 대신 `services.mysql`로 옮겼다. 호스트 포트는 고정하지 않아(`ports: [3306]`) 러너를 공유하는 다른 저장소 CI와 충돌하지 않으며, 실제 포트는 `${{ job.services.mysql.ports['3306'] }}`로 읽는다. 배포는 `appleboy/ssh-action`도 쓸 수 있게 됐지만 얻는 이득이 없고 기존 수동 ssh 방식이 과거 사고로 다져진 검증된 구현이라 의도적으로 유지한다.
+- sed는 GNU sed 문법 `sed -i -e '...'`를 사용한다(macOS BSD sed의 `sed -i '' -e '...'` 문법은 쓰지 않는다).
 - YAML `run: |` 안의 heredoc 종료 마커는 실행 스크립트에서 flush-left가 되도록 본문과 정확히 같은 들여쓰기를 유지한다. 어긋나면 heredoc이 닫히지 않아 배포가 멈춘다.
-- runner를 재등록할 때는 GitHub registration token을 새로 발급하고 `./config.sh --replace`를 사용한다. 호스팅 runner로 되돌릴 때는 `runs-on`, MySQL 서비스 구성, SSH 구현을 함께 되돌린다.
+- runner를 재등록할 때는 조직 단위 GitHub registration token(`orgs/aivance-kr/actions/runners/registration-token`)을 새로 발급하고 `./config.sh --url https://github.com/aivance-kr --replace`를 사용한다. 호스팅 runner로 되돌릴 때는 `runs-on`, MySQL 서비스 구성을 함께 되돌린다.
 
 ### 배포
 
@@ -138,4 +138,4 @@ return $this->render('admin/campaigns/index', ['campaigns' => $campaigns]);
 - API/Controller 변경: 입력 검증, 인증·권한, 오류 응답, OpenAPI, PHPUnit을 확인한다.
 - Model/Service 변경: SQL 바인딩, 트랜잭션, N+1, 회귀 테스트와 PHPStan을 확인한다.
 - Admin 뷰 변경: `render()`, `esc()`, UI 가이드와 모바일/브라우저 동작을 확인한다.
-- 배포·CI 변경: self-hosted macOS runner, 동적 MySQL 포트, 비대화형 SSH와 마이그레이션 실패 감지를 확인한다.
+- 배포·CI 변경: 조직 공용 self-hosted Linux runner, 동적 MySQL 포트, 비대화형 SSH와 마이그레이션 실패 감지를 확인한다.

@@ -32,7 +32,7 @@ CodeIgniter 4 단일 프로젝트에 네 개의 진입면(surface)이 공존한�
 ### 설치
 
 ```bash
-git clone https://github.com/pushwing/AICura.git
+git clone https://github.com/aivance-kr/AICura.git
 cd AICura
 composer install
 cp env .env
@@ -502,7 +502,7 @@ flutter analyze && flutter test
 
 ```bash
 # 1) GitHub 읽기전용 deploy key — 서버 저장소 리모트는 SSH 여야 함 (HTTPS면 인증 실패)
-git remote set-url origin git@github.com:pushwing/AICura.git
+git remote set-url origin git@github.com:aivance-kr/AICura.git
 
 # 2) 프로덕션 .env 에 실제 DB 접속 정보 (없으면 migrate 시 Access denied)
 
