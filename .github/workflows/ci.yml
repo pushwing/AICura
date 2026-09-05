@@ -88,15 +88,29 @@ jobs:
             sleep 2
           done
 
-      - name: PHP 설정
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: "8.5"
-          extensions: mbstring, intl, mysqli, curl, dom, xml, tokenizer
-          # self-hosted macOS 러너의 PHP 8.5에서는 pcov 대신 xdebug를 사용한다.
-          # AIPicto CI와 동일하게 setup-php가 지원하는 coverage 드라이버를 설치한다.
-          coverage: xdebug
-          tools: composer:v2
+      - name: 사전 설치된 PHP·Composer 환경 확인
+        run: |
+          php -v
+          composer --version
+          php -r '
+            $requiredExtensions = ["mbstring", "intl", "mysqli", "curl", "dom", "xml", "tokenizer", "xdebug"];
+            $missingExtensions = array_values(array_filter(
+                $requiredExtensions,
+                static fn (string $extension): bool => ! extension_loaded($extension),
+            ));
+            $errors = [];
+            if (version_compare(PHP_VERSION, "8.5.0", "<")) {
+                $errors[] = "PHP 8.5 이상이 필요합니다: " . PHP_VERSION;
+            }
+            if ($missingExtensions !== []) {
+                $errors[] = "필수 PHP 확장이 없습니다: " . implode(", ", $missingExtensions);
+            }
+            if ($errors !== []) {
+                fwrite(STDERR, implode(PHP_EOL, $errors) . PHP_EOL);
+                exit(1);
+            }
+            echo "사전 설치된 PHP 환경 확인 완료" . PHP_EOL;
+          '
 
       - name: Composer 캐시
         uses: actions/cache@v4
