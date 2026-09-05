@@ -151,12 +151,13 @@ jobs:
         run: composer analyse
 
       - name: 테스트 DB 연결 정보 보정 (localhost → 127.0.0.1, 동적 포트 반영)
-        # macOS(BSD) sed 는 -i 뒤에 백업 확장자 인자가 필수라 GNU sed 문법과 다르다.
+        # BSD/GNU sed에서 모두 동작하도록 명시적 백업 확장자를 사용한다.
         run: |
-          sed -i '' \
+          sed -i.bak \
             -e 's#name="database.tests.hostname" value="localhost"#name="database.tests.hostname" value="127.0.0.1"#' \
             -e "s#name=\"database.tests.port\" value=\"3306\"#name=\"database.tests.port\" value=\"${MYSQL_PORT}\"#" \
             phpunit.dist.xml
+          rm -f phpunit.dist.xml.bak
 
       - name: 단위·DB 테스트 및 커버리지 (PHPUnit)
         env:
