@@ -53,7 +53,7 @@ jobs:
 
   # ───────────────────────────── 백엔드 (CodeIgniter 4) ─────────────────────────────
   backend:
-    name: Backend (PHP 8.5 · PHPStan · PHPUnit)
+    name: Backend (PHP 8.5 · Quality · Coverage)
     needs: changes
     if: needs.changes.outputs.backend == 'true'
     runs-on: self-hosted
@@ -93,9 +93,9 @@ jobs:
         with:
           php-version: "8.5"
           extensions: mbstring, intl, mysqli, curl, dom, xml, tokenizer
-          # phpunit.dist.xml 이 failOnWarning + <coverage> 를 켜 두어
-          # 커버리지 드라이버가 없으면 경고→실패. pcov 로 드라이버 제공.
-          coverage: pcov
+          # self-hosted macOS 러너의 PHP 8.5에서는 pcov 대신 xdebug를 사용한다.
+          # AIPicto CI와 동일하게 setup-php가 지원하는 coverage 드라이버를 설치한다.
+          coverage: xdebug
           tools: composer:v2
 
       - name: Composer 캐시
@@ -144,8 +144,28 @@ jobs:
             -e "s#name=\"database.tests.port\" value=\"3306\"#name=\"database.tests.port\" value=\"${MYSQL_PORT}\"#" \
             phpunit.dist.xml
 
-      - name: 단위·DB 테스트 (PHPUnit)
-        run: composer test
+      - name: 단위·DB 테스트 및 커버리지 (PHPUnit)
+        env:
+          XDEBUG_MODE: coverage
+        run: |
+          mkdir -p build
+          vendor/bin/phpunit \
+            --coverage-text=build/coverage.txt \
+            --coverage-cobertura=build/cobertura.xml
+
+      - name: 커버리지 요약
+        if: always()
+        run: |
+          {
+            echo '### 📊 Backend 커버리지'
+            echo '```'
+            if [ -f build/coverage.txt ]; then
+              cat build/coverage.txt
+            else
+              echo '커버리지 리포트가 생성되지 않았습니다.'
+            fi
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: MySQL 컨테이너 정리
         if: always()
