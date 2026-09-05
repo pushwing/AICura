@@ -53,7 +53,7 @@ jobs:
 
   # ───────────────────────────── 백엔드 (CodeIgniter 4) ─────────────────────────────
   backend:
-    name: Backend (PHP 8.5 · PHPStan · PHPUnit)
+    name: Backend (PHP 8.5 · Quality · Coverage)
     needs: changes
     if: needs.changes.outputs.backend == 'true'
     runs-on: self-hosted
@@ -88,15 +88,29 @@ jobs:
             sleep 2
           done
 
-      - name: PHP 설정
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: "8.5"
-          extensions: mbstring, intl, mysqli, curl, dom, xml, tokenizer
-          # phpunit.dist.xml 이 failOnWarning + <coverage> 를 켜 두어
-          # 커버리지 드라이버가 없으면 경고→실패. pcov 로 드라이버 제공.
-          coverage: pcov
-          tools: composer:v2
+      - name: 사전 설치된 PHP·Composer 환경 확인
+        run: |
+          php -v
+          composer --version
+          php -r '
+            $requiredExtensions = ["mbstring", "intl", "mysqli", "curl", "dom", "xml", "tokenizer", "xdebug"];
+            $missingExtensions = array_values(array_filter(
+                $requiredExtensions,
+                static fn (string $extension): bool => ! extension_loaded($extension),
+            ));
+            $errors = [];
+            if (version_compare(PHP_VERSION, "8.5.0", "<")) {
+                $errors[] = "PHP 8.5 이상이 필요합니다: " . PHP_VERSION;
+            }
+            if ($missingExtensions !== []) {
+                $errors[] = "필수 PHP 확장이 없습니다: " . implode(", ", $missingExtensions);
+            }
+            if ($errors !== []) {
+                fwrite(STDERR, implode(PHP_EOL, $errors) . PHP_EOL);
+                exit(1);
+            }
+            echo "사전 설치된 PHP 환경 확인 완료" . PHP_EOL;
+          '
 
       - name: Composer 캐시
         uses: actions/cache@v4
@@ -137,15 +151,36 @@ jobs:
         run: composer analyse
 
       - name: 테스트 DB 연결 정보 보정 (localhost → 127.0.0.1, 동적 포트 반영)
-        # macOS(BSD) sed 는 -i 뒤에 백업 확장자 인자가 필수라 GNU sed 문법과 다르다.
+        # BSD/GNU sed에서 모두 동작하도록 명시적 백업 확장자를 사용한다.
         run: |
-          sed -i '' \
+          sed -i.bak \
             -e 's#name="database.tests.hostname" value="localhost"#name="database.tests.hostname" value="127.0.0.1"#' \
             -e "s#name=\"database.tests.port\" value=\"3306\"#name=\"database.tests.port\" value=\"${MYSQL_PORT}\"#" \
             phpunit.dist.xml
+          rm -f phpunit.dist.xml.bak
 
-      - name: 단위·DB 테스트 (PHPUnit)
-        run: composer test
+      - name: 단위·DB 테스트 및 커버리지 (PHPUnit)
+        env:
+          XDEBUG_MODE: coverage
+        run: |
+          mkdir -p build
+          vendor/bin/phpunit \
+            --coverage-text=build/coverage.txt \
+            --coverage-cobertura=build/cobertura.xml
+
+      - name: 커버리지 요약
+        if: always()
+        run: |
+          {
+            echo '### 📊 Backend 커버리지'
+            echo '```'
+            if [ -f build/coverage.txt ]; then
+              cat build/coverage.txt
+            else
+              echo '커버리지 리포트가 생성되지 않았습니다.'
+            fi
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: MySQL 컨테이너 정리
         if: always()
